@@ -1,0 +1,61 @@
+# Dockerfile para produção - Multi-stage build
+FROM node:20-alpine AS builder
+
+# Adiciona dependências para compressão e segurança
+RUN apk add --no-cache python3 make g++
+
+# Cria usuário não-root
+RUN addgroup -S appgroup && adduser -S appuser -G appgroup
+
+WORKDIR /app
+
+# Copia arquivos de dependências
+COPY package.json yarn.lock ./
+
+# Instala dependências usando Yarn
+RUN yarn install --frozen-lockfile
+
+# Copia código fonte
+COPY --chown=appuser:appgroup . .
+
+# Constrói a aplicação
+RUN yarn build
+
+# Production stage - Menor e mais seguro
+FROM node:20-alpine AS production
+
+# Adiciona ferramentas de segurança e sanitização
+RUN apk add --no-cache dumb-init
+
+# Define variáveis de ambiente
+ENV NODE_ENV=production \
+  TZ=UTC \
+  PORT=3000
+
+# Cria usuário não-root (segurança)
+RUN addgroup -S appgroup && adduser -S appuser -G appgroup
+
+WORKDIR /app
+
+# Copia package.json e yarn.lock para instalar apenas dependências de produção
+COPY package.json yarn.lock ./
+RUN yarn install --frozen-lockfile --production && yarn cache clean
+
+# Copia apenas arquivos necessários do estágio de build
+COPY --from=builder --chown=appuser:appgroup /app/dist ./dist
+
+# Reduz superfície de ataque executando como usuário não-root
+USER appuser
+
+# dumb-init funciona como PID 1 adequado em containers
+ENTRYPOINT ["/usr/bin/dumb-init", "--"]
+
+# Configurações de healthcheck
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
+  CMD wget -q --spider http://localhost:3000/api/v1/health || exit 1
+
+# Porta para a aplicação financeira
+EXPOSE 3000
+
+# Inicia a aplicação
+CMD ["node", "dist/src/main.js"] 

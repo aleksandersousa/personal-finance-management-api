@@ -1,0 +1,51 @@
+services:
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: financial-api
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=development
+      - DATABASE_URL=postgresql://postgres:postgres@db:5432/financial_db?sslmode=disable
+      - JWT_SECRET=your-jwt-secret-key-here
+      - PORT=3000
+      - API_PREFIX=api/v1
+      - THROTTLE_TTL=60
+      - THROTTLE_LIMIT=10
+      - DATABASE_SSL=false
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - financial-network
+
+  db:
+    image: postgres:16-alpine
+    container_name: financial-db
+    restart: unless-stopped
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_DB=financial_db
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./scripts/init-db.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d financial_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - financial-network
+
+volumes:
+  postgres_data:
+
+networks:
+  financial-network:
+    driver: bridge 

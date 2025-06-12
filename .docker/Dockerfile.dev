@@ -1,0 +1,23 @@
+# Dockerfile para desenvolvimento
+FROM node:20-alpine
+
+# Instalar dependências necessárias
+RUN apk add --no-cache python3 make g++
+
+WORKDIR /app
+
+# Copiar arquivos de dependências
+COPY package.json yarn.lock ./
+
+# Instalar todas as dependências (incluindo devDependencies)
+RUN yarn install --frozen-lockfile
+
+# Definir variáveis de ambiente para desenvolvimento
+ENV NODE_ENV=development
+ENV PORT=3000
+
+# Expor porta
+EXPOSE 3000
+
+# Comando para desenvolvimento com hot reload
+CMD ["yarn", "start:dev"] 

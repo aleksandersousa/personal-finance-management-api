@@ -1,0 +1,57 @@
+# Docker Compose principal - Environment será definido via arquivo específico
+services:
+  api:
+    build:
+      context: ..
+      dockerfile: .docker/Dockerfile.dev
+    container_name: financial-api
+    restart: unless-stopped
+    ports:
+      - "${API_PORT:-3000}:3000"
+    environment:
+      - NODE_ENV=${NODE_ENV:-development}
+      - DATABASE_URL=${DATABASE_URL}
+      - JWT_SECRET=${JWT_SECRET}
+      - JWT_EXPIRES_IN=${JWT_EXPIRES_IN:-15m}
+      - PORT=3000
+      - API_PREFIX=${API_PREFIX:-api/v1}
+      - THROTTLE_TTL=${THROTTLE_TTL:-60}
+      - THROTTLE_LIMIT=${THROTTLE_LIMIT:-10}
+      - FRONTEND_URL=${FRONTEND_URL}
+      - DATABASE_SSL=${DATABASE_SSL:-false}
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - ..:/app
+      - /app/node_modules
+    networks:
+      - financial-network
+
+  db:
+    image: postgres:16-alpine
+    container_name: financial-db
+    restart: unless-stopped
+    ports:
+      - "${DB_PORT:-5432}:5432"
+    environment:
+      - POSTGRES_DB=${DB_NAME:-financial_db}
+      - POSTGRES_USER=${DB_USER:-postgres}
+      - POSTGRES_PASSWORD=${DB_PASSWORD:-postgres}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ../scripts/init-db.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-postgres} -d ${DB_NAME:-financial_db}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - financial-network
+
+volumes:
+  postgres_data:
+
+networks:
+  financial-network:
+    driver: bridge 
