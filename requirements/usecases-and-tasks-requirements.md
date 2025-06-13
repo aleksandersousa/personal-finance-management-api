@@ -1,163 +1,424 @@
-# 👤 User Stories & Tasks (Backend)
+# 📋 Use Cases & User Stories - Complete Specification
 
-### Story 1: Add fixed income
+## 🎯 MVP Core Features (Priority 1 - Essential)
 
-As a user, I want to register my salary so I can see it monthly.
+> **MVP Scope**: Basic financial entry management with user authentication for data isolation
 
-- Tasks: Use AddEntry with `is_fixed = true`, `type = INCOME`
-- Endpoint:  
-  `POST /entries`
+### **MVP-01: User Authentication** 🔐
 
----
+**User Story:** As a user, I want to create an account and login securely to manage my personal finances.
 
-### Story 2: View summary
+**Use Cases:**
 
-As a user, I want to view the monthly balance.
+- UC-AUTH-01: Register new user account
+- UC-AUTH-02: Login with email/password
+- UC-AUTH-03: Refresh access token
+- UC-AUTH-04: JWT token management
 
-- Tasks: Use GetMonthlySummary
-- Endpoint:  
-  `GET /summary?month=YYYY-MM`
+**Development Tasks:**
 
----
+- User entity (id, email, password, name, createdAt)
+- RegisterUser use case
+- LoginUser use case
+- JWT token service
+- Password hashing (bcrypt)
+- AuthController with validation
 
-### Story 3: Add dynamic expense
+**Endpoints:**
 
-As a user, I want to add occasional expenses so I can track irregular spending.
-
-- Tasks: Use AddEntry with `is_fixed = false`, `type = EXPENSE`
-- Endpoint:  
-  `POST /entries`
-
----
-
-### Story 4: Update an entry
-
-As a user, I want to correct any mistakes in entries to keep my finances accurate.
-
-- Tasks: Use UpdateEntry with the entry ID and updated data
-- Endpoint:  
-  `PUT /entries/:id`
+- `POST /auth/register` - Register new user
+- `POST /auth/login` - User login
+- `POST /auth/refresh` - User login
 
 ---
 
-### Story 5: Delete an entry
+### **UC-01: Register Fixed Income**
 
-As a user, I want to remove entries I no longer want to track.
+**User Story:** As a user, I want to register my salary so I can track my monthly income.
 
-- Tasks: Use DeleteEntry with the entry ID
-- Endpoint:  
-  `DELETE /entries/:id`
+**Use Case:** AddEntry
 
----
+- **Type:** INCOME
+- **IsFixed:** true
+- **Endpoint:** `POST /entries`
 
-### Story 6: List entries by month
+**Development Tasks:**
 
-As a user, I want to see all my entries for a given month to analyze spending and income.
-
-- Tasks: Use ListEntriesByMonth with year and month parameters
-- Endpoint:  
-  `GET /entries?month=YYYY-MM`
-
----
-
-### Story 7: Predict cash flow
-
-As a user, I want to forecast my future cash flow based on fixed and dynamic entries.
-
-- Tasks: Use PredictCashFlow to generate prediction data
-- Endpoint:  
-  `GET /forecast`
+- Entry entity with amount, description, type, isFixed, categoryId, userId, date
+- AddEntry use case
+- EntryController
+- Input validation
 
 ---
 
-### Story 8: Manage categories
+### **UC-02: Register Fixed Expense**
 
-As a user, I want to create, update, delete, and list categories for better organization.
+**User Story:** As a user, I want to register fixed expenses like rent so I can track monthly costs.
 
-- Tasks:
-  - AddCategory to create new categories  
-    Endpoint: `POST /categories`
-  - UpdateCategory to modify existing categories  
-    Endpoint: `PUT /categories/:id`
-  - DeleteCategory to remove categories  
-    Endpoint: `DELETE /categories/:id`
-  - ListCategories to retrieve all categories  
-    Endpoint: `GET /categories`
+**Use Case:** AddEntry
 
----
+- **Type:** EXPENSE
+- **IsFixed:** true
+- **Endpoint:** `POST /entries`
 
-### Story 9: User registration and login
+**Development Tasks:**
 
-As a user, I want to securely create an account and log in.
-
-- Tasks:
-  - RegisterUser to create a new user  
-    Endpoint: `POST /auth/register`
-  - LoginUser to authenticate credentials and generate JWT  
-    Endpoint: `POST /auth/login`
+- Same AddEntry use case with different type
+- Expense validation rules
 
 ---
 
-### Story 10: Social authentication
+### **UC-03: Register Dynamic Income**
 
-As a user, I want to log in using Google, Apple, Twitter, etc.
+**User Story:** As a user, I want to register occasional income like freelance work.
 
-- Tasks: Use AuthenticateWithProvider for social login flows
-- Endpoint:  
-  `POST /auth/social`
+**Use Case:** AddEntry
 
----
-
-### Story 11: Refresh session
-
-As a user, I want to refresh my authentication token without re-logging.
-
-- Tasks: Use RefreshToken to generate a new access token using refresh token
-- Endpoint:  
-  `POST /auth/refresh`
+- **Type:** INCOME
+- **IsFixed:** false
+- **Endpoint:** `POST /entries`
 
 ---
 
-### Story 12: Manage recurring entries
+### **UC-04: Register Dynamic Expense**
 
-As a user, I want to add, list, and deactivate recurring entries (e.g., monthly subscriptions).
+**User Story:** As a user, I want to register occasional expenses like shopping.
 
-- Tasks:
-  - AddRecurringEntry to add recurring expenses/incomes  
-    Endpoint: `POST /recurring-entries`
-  - ListRecurringEntries to view all active recurring entries  
-    Endpoint: `GET /recurring-entries`
-  - DeactivateRecurringEntry to stop a recurring entry  
-    Endpoint: `PATCH /recurring-entries/:id/deactivate`
+**Use Case:** AddEntry
+
+- **Type:** EXPENSE
+- **IsFixed:** false
+- **Endpoint:** `POST /entries`
 
 ---
 
-# 🧩 Use Cases and Tasks
+### **UC-05: List Entries by Month**
 
-( ... [mantém igual ao documento anterior] ... )
+**User Story:** As a user, I want to see all my entries for a specific month.
+
+**Use Case:** ListEntriesByMonth
+
+- **Endpoint:** `GET /entries?month=YYYY-MM`
+
+**Development Tasks:**
+
+- Date filtering logic
+- Entry repository with month queries
+- Pagination support
+
+---
+
+### **UC-06: Update Entry**
+
+**User Story:** As a user, I want to correct mistakes in my entries.
+
+**Use Case:** UpdateEntry
+
+- **Endpoint:** `PUT /entries/:id`
+
+**Development Tasks:**
+
+- UpdateEntry use case
+- Ownership validation
+- UpdateEntryDTO
 
 ---
 
-# 🌐 API Endpoints
+### **UC-07: Delete Entry**
 
-| Method | Path                                | Description                        |
-| ------ | ----------------------------------- | ---------------------------------- |
-| POST   | `/entries`                          | Create new entry                   |
-| GET    | `/entries?month=YYYY-MM`            | List entries for a month           |
-| PUT    | `/entries/:id`                      | Update entry by ID                 |
-| DELETE | `/entries/:id`                      | Delete entry by ID                 |
-| GET    | `/summary?month=YYYY-MM`            | Get financial summary              |
-| GET    | `/forecast`                         | Predict cash flow                  |
-| POST   | `/categories`                       | Create new category                |
-| GET    | `/categories`                       | List all categories                |
-| PUT    | `/categories/:id`                   | Update category by ID              |
-| DELETE | `/categories/:id`                   | Delete category by ID              |
-| POST   | `/auth/register`                    | Register new user                  |
-| POST   | `/auth/login`                       | User login                         |
-| POST   | `/auth/social`                      | Social login (Google, Apple, etc.) |
-| POST   | `/auth/refresh`                     | Refresh authentication token       |
-| POST   | `/recurring-entries`                | Add recurring entry                |
-| GET    | `/recurring-entries`                | List recurring entries             |
-| PATCH  | `/recurring-entries/:id/deactivate` | Deactivate recurring entry         |
+**User Story:** As a user, I want to remove entries I no longer need.
+
+**Use Case:** DeleteEntry
+
+- **Endpoint:** `DELETE /entries/:id`
+
+**Development Tasks:**
+
+- DeleteEntry use case
+- Soft delete implementation
+- Ownership validation
 
 ---
+
+### **UC-08: View Monthly Summary**
+
+**User Story:** As a user, I want to see my balance, total income and expenses for the month.
+
+**Use Case:** GetMonthlySummary
+
+- **Endpoint:** `GET /summary?month=YYYY-MM`
+
+**Development Tasks:**
+
+- Summary calculation logic
+- Income/expense aggregation
+- Balance calculation
+
+---
+
+### **UC-09: Predict Cash Flow**
+
+**User Story:** As a user, I want to forecast future cash flow based on fixed entries.
+
+**Use Case:** PredictCashFlow
+
+- **Endpoint:** `GET /forecast`
+
+**Development Tasks:**
+
+- Prediction algorithm
+- Fixed entry projection
+- Future balance calculation
+
+---
+
+## 🚀 Additional Features (Priority 2 - Post-MVP)
+
+> **Extended Features**: Advanced functionality for enhanced user experience
+
+### **EXT-01: Category Management** 📂
+
+**User Story:** As a user, I want to organize my entries with custom categories.
+
+**Use Cases:**
+
+- UC-CAT-01: Create custom categories
+- UC-CAT-02: List user categories
+- UC-CAT-03: Update category details
+- UC-CAT-04: Delete categories
+
+**Development Tasks:**
+
+- Category entity (id, name, description, userId, type)
+- Category CRUD use cases
+- CategoryController
+- Default categories on user registration
+
+**Endpoints:**
+
+- `POST /categories` - Create category
+- `GET /categories` - List categories
+- `PUT /categories/:id` - Update category
+- `DELETE /categories/:id` - Delete category
+
+---
+
+### **EXT-02: Refresh Token System** 🔄
+
+**User Story:** As a user, I want to stay logged in without re-entering credentials frequently.
+
+**Use Cases:**
+
+- UC-AUTH-04: Refresh expired access tokens
+- UC-AUTH-05: Secure token rotation
+
+**Development Tasks:**
+
+- RefreshToken entity and repository
+- RefreshToken use case
+- Token blacklist mechanism
+- Extended AuthController
+
+**Endpoints:**
+
+- `POST /auth/refresh` - Refresh access token
+
+---
+
+### **EXT-03: Recurring Entries** 🔄
+
+**User Story:** As a user, I want to automate recurring income/expenses like salary and subscriptions.
+
+**Use Cases:**
+
+- UC-REC-01: Create recurring entries
+- UC-REC-02: List active recurring entries
+- UC-REC-03: Deactivate recurring entries
+- UC-REC-04: Process recurring entries automatically
+
+**Development Tasks:**
+
+- RecurringEntry entity (frequency, startDate, endDate, isActive)
+- Recurring entry CRUD use cases
+- Background job processor
+- RecurringEntryController
+
+**Endpoints:**
+
+- `POST /recurring-entries` - Create recurring entry
+- `GET /recurring-entries` - List recurring entries
+- `PATCH /recurring-entries/:id/deactivate` - Deactivate recurring entry
+
+---
+
+### **EXT-04: Social Authentication** 🌐
+
+**User Story:** As a user, I want to login using Google, Apple, or other social providers.
+
+**Use Cases:**
+
+- UC-SOCIAL-01: Google OAuth login
+- UC-SOCIAL-02: Apple Sign-In
+- UC-SOCIAL-03: Account linking
+
+**Development Tasks:**
+
+- AuthProvider entity for social accounts
+- OAuth integration services
+- Social profile mapping
+- Extended AuthController
+
+**Endpoints:**
+
+- `POST /auth/social` - Social authentication
+- `GET /auth/providers` - List available providers
+
+---
+
+### **EXT-05: Advanced Analytics** 📊
+
+**User Story:** As a user, I want detailed insights into my spending patterns and trends.
+
+**Use Cases:**
+
+- UC-ANALYTICS-01: Category spending breakdown
+- UC-ANALYTICS-02: Monthly/yearly comparisons
+- UC-ANALYTICS-03: Spending trends analysis
+- UC-ANALYTICS-04: Budget vs actual analysis
+
+**Development Tasks:**
+
+- Analytics service with complex queries
+- Chart data preparation
+- AnalyticsController
+- Statistical calculations
+
+**Endpoints:**
+
+- `GET /analytics/spending-by-category` - Category breakdown
+- `GET /analytics/monthly-comparison` - Monthly trends
+- `GET /analytics/trends` - Spending patterns
+
+---
+
+### **EXT-06: Budgeting System** 💰
+
+**User Story:** As a user, I want to set budgets for categories and track my progress.
+
+**Use Cases:**
+
+- UC-BUDGET-01: Create category budgets
+- UC-BUDGET-02: Track budget progress
+- UC-BUDGET-03: Budget alerts and notifications
+- UC-BUDGET-04: Budget vs actual reports
+
+**Development Tasks:**
+
+- Budget entity (categoryId, amount, period, alertThreshold)
+- Budget tracking use cases
+- Budget alert system
+- BudgetController
+
+**Endpoints:**
+
+- `POST /budgets` - Create budget
+- `GET /budgets` - List budgets with progress
+- `PUT /budgets/:id` - Update budget
+- `GET /budgets/alerts` - Get budget alerts
+
+---
+
+## 🏗️ Implementation Priority
+
+### **Phase 1: MVP Core (Essential)**
+
+1. User authentication system (MVP-01)
+2. Entry entity & repository with user relationships
+3. AddEntry use case (covers UC-01 to UC-04)
+4. ListEntriesByMonth use case (UC-05)
+5. UpdateEntry use case (UC-06)
+6. DeleteEntry use case (UC-07)
+7. GetMonthlySummary use case (UC-08)
+8. PredictCashFlow use case (UC-09)
+
+### **Phase 2: Essential Extensions**
+
+9. Category management (EXT-01)
+10. Refresh token system (EXT-02)
+
+### **Phase 3: Automation Features**
+
+11. Recurring entries (EXT-03)
+12. Background job processing
+
+### **Phase 4: Advanced Features**
+
+13. Social authentication (EXT-04)
+14. Advanced analytics (EXT-05)
+15. Budgeting system (EXT-06)
+
+---
+
+## 🔧 Technical Implementation
+
+### **MVP Entities Required:**
+
+- User (id, email, password, name, createdAt)
+- Entry (id, amount, description, type, isFixed, categoryId, userId, date)
+- Category (optional - can use simple strings initially)
+
+### **Extended Entities (Post-MVP):**
+
+- Category (id, name, description, userId, type)
+- RefreshToken (id, token, userId, expiresAt)
+- RecurringEntry (id, frequency, startDate, endDate, isActive, entryTemplate)
+- AuthProvider (id, provider, providerUserId, userId)
+- Budget (id, categoryId, amount, period, alertThreshold)
+
+### **MVP Use Cases Required:**
+
+- RegisterUser, LoginUser
+- AddEntry
+- ListEntriesByMonth
+- UpdateEntry
+- DeleteEntry
+- GetMonthlySummary
+- PredictCashFlow
+
+### **MVP Controllers Required:**
+
+- AuthController
+- EntryController
+- SummaryController
+
+### **Complete API Endpoints:**
+
+**MVP Endpoints:**
+| Method | Path | Use Case |
+| ------ | ------------------------ | ------------------ |
+| POST | `/auth/register` | RegisterUser |
+| POST | `/auth/login` | LoginUser |
+| POST | `/auth/refresh` | RefreshToken |
+| POST | `/entries` | AddEntry |
+| GET | `/entries?month=YYYY-MM` | ListEntriesByMonth |
+| PUT | `/entries/:id` | UpdateEntry |
+| DELETE | `/entries/:id` | DeleteEntry |
+| GET | `/summary?month=YYYY-MM` | GetMonthlySummary |
+| GET | `/forecast` | PredictCashFlow |
+
+**Extended Endpoints:**
+| Method | Path | Feature |
+| ------ | --------------------------------- | ---------- |
+| POST | `/auth/refresh` | EXT-02 |
+| POST | `/auth/social` | EXT-04 |
+| POST | `/categories` | EXT-01 |
+| GET | `/categories` | EXT-01 |
+| PUT | `/categories/:id` | EXT-01 |
+| DELETE | `/categories/:id` | EXT-01 |
+| POST | `/recurring-entries` | EXT-03 |
+| GET | `/recurring-entries` | EXT-03 |
+| PATCH | `/recurring-entries/:id/deactivate` | EXT-03 |
+| GET | `/analytics/spending-by-category` | EXT-05 |
+| GET | `/analytics/monthly-comparison` | EXT-05 |
+| POST | `/budgets` | EXT-06 |
+| GET | `/budgets` | EXT-06 |

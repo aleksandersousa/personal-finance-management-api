@@ -2,6 +2,10 @@
 
 ## Functional Requirements
 
+**Authentication (Essential):** 0. User registration and login with JWT authentication
+
+**Core Financial Features:**
+
 1. Register a fixed income
 2. Register a fixed expense
 3. Register a dynamic income
@@ -18,3 +22,5 @@
 - Modular and testable (SOLID)
 - Swagger API docs
 - PostgreSQL persistence
+- JWT authentication for data isolation
+- Password hashing (bcrypt)
