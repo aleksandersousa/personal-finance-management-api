@@ -7,8 +7,10 @@ export interface LoginUserRequest {
 
 export interface LoginUserResponse {
   user: Omit<UserModel, "password">;
-  accessToken: string;
-  refreshToken: string;
+  tokens: {
+    accessToken: string;
+    refreshToken: string;
+  };
 }
 
 export interface LoginUserUseCase {

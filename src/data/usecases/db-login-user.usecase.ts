@@ -48,8 +48,10 @@ export class DbLoginUserUseCase implements LoginUserUseCase {
 
     return {
       user: userWithoutPassword,
-      accessToken: tokens.accessToken,
-      refreshToken: tokens.refreshToken,
+      tokens: {
+        accessToken: tokens.accessToken,
+        refreshToken: tokens.refreshToken,
+      },
     };
   }
 }
