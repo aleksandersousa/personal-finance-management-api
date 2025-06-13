@@ -58,8 +58,10 @@ export class DbRegisterUserUseCase implements RegisterUserUseCase {
 
     return {
       user: userWithoutPassword,
-      accessToken: tokens.accessToken,
-      refreshToken: tokens.refreshToken,
+      tokens: {
+        accessToken: tokens.accessToken,
+        refreshToken: tokens.refreshToken,
+      },
     };
   }
 }
