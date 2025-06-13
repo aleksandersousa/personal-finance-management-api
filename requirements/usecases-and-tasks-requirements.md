@@ -35,7 +35,12 @@
   "id": "uuid",
   "name": "John Doe",
   "email": "john@example.com",
-  "createdAt": "2024-01-15T10:30:00Z"
+  "createdAt": "2024-01-15T10:30:00Z",
+  "tokens": {
+    "accessToken": "jwt-access-token",
+    "refreshToken": "jwt-refresh-token",
+    "expiresIn": 900
+  }
 }
 ```
 
