@@ -58,18 +58,8 @@ export const makeTokenGenerator = (
   return new JwtTokenGenerator(jwtService, configService);
 };
 
-// Factory para criar o controller Auth
-export const makeAuthController = (
-  registerUserUseCase: DbRegisterUserUseCase,
-  loginUserUseCase: DbLoginUserUseCase,
-  refreshTokenUseCase: DbRefreshTokenUseCase
-): AuthController => {
-  return new AuthController(
-    registerUserUseCase,
-    loginUserUseCase,
-    refreshTokenUseCase
-  );
-};
+// Factory para criar o controller Auth (não usado - gerenciado pelo NestJS)
+// Controllers são instanciados automaticamente pelo framework
 
 // Factory para criar a estratégia JWT
 export const makeJwtStrategy = (

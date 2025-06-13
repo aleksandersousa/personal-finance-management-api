@@ -8,8 +8,8 @@ export class RefreshTokenResponseDto {
   accessToken: string;
 
   @ApiProperty({
-    description: "JWT refresh token",
-    example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+    description: "Token expiration time in seconds",
+    example: 900,
   })
-  refreshToken: string;
+  expiresIn: number;
 }

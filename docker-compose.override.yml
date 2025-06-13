@@ -1,0 +1,96 @@
+services:
+  # Estender o serviço da API para incluir variáveis de observabilidade
+  api:
+    environment:
+      # Observabilidade
+      - METRICS_ENABLED=true
+      - METRICS_PATH=/metrics
+      - LOG_LEVEL=info
+      - LOG_FORMAT=json
+      - LOG_FILE_ENABLED=true
+      - LOG_CONSOLE_ENABLED=true
+      - HEALTH_CHECK_ENABLED=true
+      - PERFORMANCE_MONITORING_ENABLED=true
+    volumes:
+      # Mount logs directory for development
+      - ./logs:/app/logs
+    depends_on:
+      - db
+      - prometheus
+    networks:
+      - financial-network
+      - observability-network
+
+  prometheus:
+    image: prom/prometheus:v2.45.0
+    container_name: financial-prometheus-dev
+    restart: unless-stopped
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./observability/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data_dev:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--storage.tsdb.retention.time=7d'  # Menor retenção para dev
+      - '--web.enable-lifecycle'
+      - '--log.level=info'
+    networks:
+      - observability-network
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:9090/-/healthy"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  grafana:
+    image: grafana/grafana:10.1.0
+    container_name: financial-grafana-dev
+    restart: unless-stopped
+    ports:
+      - "3001:3000"
+    environment:
+      # Configurações básicas
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin123
+      - GF_SECURITY_ALLOW_EMBEDDING=true
+      - GF_SECURITY_DISABLE_GRAVATAR=true
+      
+      # Configurações de desenvolvimento
+      - GF_ANALYTICS_REPORTING_ENABLED=false
+      - GF_ANALYTICS_CHECK_FOR_UPDATES=false
+      - GF_LOG_LEVEL=info
+      
+      # Configurações de usuário
+      - GF_USERS_ALLOW_SIGN_UP=false
+      - GF_USERS_ALLOW_ORG_CREATE=false
+      
+      # Configurações de session
+      - GF_SESSION_LIFE_TIME=7200
+    volumes:
+      - grafana_data_dev:/var/lib/grafana
+      - ./observability/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./observability/grafana/dashboards:/var/lib/grafana/dashboards:ro
+    networks:
+      - observability-network
+    depends_on:
+      - prometheus
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:3000/api/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+volumes:
+  prometheus_data_dev:
+    driver: local
+  grafana_data_dev:
+    driver: local
+
+networks:
+  observability-network:
+    driver: bridge
+    name: financial-observability-dev 

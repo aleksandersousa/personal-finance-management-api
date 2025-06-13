@@ -40,13 +40,8 @@ export const makeEntryRepository = (
   return new TypeormEntryRepository(repository);
 };
 
-// Factory para criar o controller Entry
-export const makeEntryController = (
-  addEntryUseCase: DbAddEntryUseCase,
-  listEntriesByMonthUseCase: DbListEntriesByMonthUseCase
-): EntryController => {
-  return new EntryController(addEntryUseCase, listEntriesByMonthUseCase);
-};
+// Factory para criar o controller Entry (não usado - gerenciado pelo NestJS)
+// Controllers são instanciados automaticamente pelo framework
 
 // Provider completo para uso no módulo NestJS
 export const entryProviders = [
