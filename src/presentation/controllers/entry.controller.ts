@@ -8,10 +8,8 @@ import {
   HttpStatus,
   HttpCode,
   UseGuards,
-  Req,
   BadRequestException,
   NotFoundException,
-  InternalServerErrorException,
   Inject,
 } from "@nestjs/common";
 import {
@@ -21,19 +19,21 @@ import {
   ApiBody,
   ApiQuery,
   ApiBearerAuth,
+  ApiBadRequestResponse,
+  ApiUnauthorizedResponse,
+  ApiNotFoundResponse,
 } from "@nestjs/swagger";
-import { Request } from "express";
 import { DbAddEntryUseCase } from "@data/usecases/db-add-entry.usecase";
 import { DbListEntriesByMonthUseCase } from "@data/usecases/db-list-entries-by-month.usecase";
 import { CreateEntryDto } from "../dtos/create-entry.dto";
 import { EntryResponseDto } from "../dtos/entry-response.dto";
+import { EntryListResponseDto } from "../dtos/entry-list-response.dto";
 import { JwtAuthGuard } from "../guards/jwt-auth.guard";
+import { User } from "../decorators/user.decorator";
 
-interface AuthenticatedRequest extends Request {
-  user: {
-    id: string;
-    email: string;
-  };
+interface UserPayload {
+  id: string;
+  email: string;
 }
 
 @ApiTags("entries")
@@ -52,56 +52,24 @@ export class EntryController {
   @ApiOperation({
     summary: "Create a new financial entry",
     description:
-      "Creates a new financial entry (income or expense) for the authenticated user. This endpoint implements Story 1: Add fixed income.",
+      "Creates a new financial entry (income or expense) for the authenticated user. Supports UC-01 to UC-04 (Register Fixed/Dynamic Income/Expense).",
   })
   @ApiResponse({
     status: 201,
     description: "Entry created successfully",
     type: EntryResponseDto,
   })
-  @ApiResponse({
-    status: 400,
-    description: "Validation failed or invalid data",
-    schema: {
-      type: "object",
-      properties: {
-        statusCode: { type: "number", example: 400 },
-        message: { type: "array", items: { type: "string" } },
-        error: { type: "string", example: "Bad Request" },
-      },
-    },
-  })
-  @ApiResponse({
-    status: 401,
-    description: "Unauthorized - Invalid or missing token",
-    schema: {
-      type: "object",
-      properties: {
-        statusCode: { type: "number", example: 401 },
-        message: { type: "string", example: "Unauthorized" },
-      },
-    },
-  })
-  @ApiResponse({
-    status: 404,
-    description: "Resource not found",
-    schema: {
-      type: "object",
-      properties: {
-        statusCode: { type: "number", example: 404 },
-        message: { type: "string", example: "Category not found" },
-        error: { type: "string", example: "Not Found" },
-      },
-    },
-  })
+  @ApiBadRequestResponse({ description: "Validation failed or invalid data" })
+  @ApiUnauthorizedResponse({ description: "Invalid or missing JWT token" })
+  @ApiNotFoundResponse({ description: "Category not found" })
   @ApiBody({ type: CreateEntryDto })
   async create(
     @Body(ValidationPipe) createEntryDto: CreateEntryDto,
-    @Req() req: AuthenticatedRequest
+    @User() user: UserPayload
   ): Promise<EntryResponseDto> {
     try {
       const entry = await this.addEntryUseCase.execute({
-        userId: req.user.id,
+        userId: user.id,
         description: createEntryDto.description,
         amount: createEntryDto.amount,
         date: new Date(createEntryDto.date),
@@ -112,146 +80,229 @@ export class EntryController {
 
       return {
         id: entry.id,
-        userId: entry.userId,
-        description: entry.description,
         amount: entry.amount,
-        date: entry.date,
+        description: entry.description,
         type: entry.type,
         isFixed: entry.isFixed,
         categoryId: entry.categoryId,
+        categoryName: "Category Name", // Would come from category service
+        userId: entry.userId,
+        date: entry.date,
         createdAt: entry.createdAt,
         updatedAt: entry.updatedAt,
       };
     } catch (error) {
-      // Handle specific business logic errors (non-sensitive)
+      if (this.isNotFoundError(error.message)) {
+        throw new NotFoundException("Category not found");
+      }
       if (this.isClientError(error.message)) {
-        if (this.isNotFoundError(error.message)) {
-          throw new NotFoundException(error.message);
-        }
         throw new BadRequestException(error.message);
       }
-
-      // Handle sensitive/unexpected errors
-      console.error("Unexpected error in EntryController.create:", error);
-      throw new InternalServerErrorException(
-        "An unexpected error occurred while creating the entry"
-      );
+      throw new BadRequestException("Failed to create entry");
     }
   }
 
   @Get()
   @ApiOperation({
-    summary: "List entries for a specific month",
+    summary: "List entries by month with pagination and filters",
     description:
-      "Retrieves all financial entries for the authenticated user for a specific month. This endpoint implements Story 6: List entries by month.",
-  })
-  @ApiQuery({
-    name: "month",
-    description: "Month in YYYY-MM format",
-    example: "2025-01",
-    required: true,
+      "Retrieves financial entries for a specific month with pagination, sorting, and filtering options. Implements UC-05 (List Entries by Month).",
   })
   @ApiResponse({
     status: 200,
     description: "Entries retrieved successfully",
-    type: [EntryResponseDto],
+    type: EntryListResponseDto,
   })
-  @ApiResponse({
-    status: 400,
-    description: "Invalid month format or parameters",
-    schema: {
-      type: "object",
-      properties: {
-        statusCode: { type: "number", example: 400 },
-        message: { type: "string", example: "Invalid month format" },
-        error: { type: "string", example: "Bad Request" },
-      },
-    },
+  @ApiQuery({
+    name: "month",
+    required: true,
+    description: "Month in YYYY-MM format",
+    example: "2024-01",
   })
-  @ApiResponse({
-    status: 401,
-    description: "Unauthorized - Invalid or missing token",
-    schema: {
-      type: "object",
-      properties: {
-        statusCode: { type: "number", example: 401 },
-        message: { type: "string", example: "Unauthorized" },
-      },
-    },
+  @ApiQuery({
+    name: "page",
+    required: false,
+    description: "Page number (default: 1)",
+    example: 1,
   })
+  @ApiQuery({
+    name: "limit",
+    required: false,
+    description: "Items per page (default: 20, max: 100)",
+    example: 20,
+  })
+  @ApiQuery({
+    name: "sort",
+    required: false,
+    description: "Sort field: date, amount, description (default: date)",
+    example: "date",
+  })
+  @ApiQuery({
+    name: "order",
+    required: false,
+    description: "Sort order: asc, desc (default: desc)",
+    example: "desc",
+  })
+  @ApiQuery({
+    name: "type",
+    required: false,
+    description: "Filter by type: INCOME, EXPENSE, all (default: all)",
+    example: "all",
+  })
+  @ApiQuery({
+    name: "category",
+    required: false,
+    description: "Filter by category ID or 'all' (default: all)",
+    example: "all",
+  })
+  @ApiBadRequestResponse({ description: "Invalid query parameters" })
+  @ApiUnauthorizedResponse({ description: "Invalid or missing JWT token" })
   async listByMonth(
     @Query("month") month: string,
-    @Req() req: AuthenticatedRequest
-  ): Promise<EntryResponseDto[]> {
+    @Query("page") page: string = "1",
+    @Query("limit") limit: string = "20",
+    @Query("sort") sort: string = "date",
+    @Query("order") order: string = "desc",
+    @Query("type") type: string = "all",
+    @Query("category") category: string = "all",
+    @User() user: UserPayload
+  ): Promise<EntryListResponseDto> {
     try {
-      // Validate month format (YYYY-MM)
+      // Validate month format
       if (!month || !/^\d{4}-\d{2}$/.test(month)) {
-        throw new BadRequestException(
-          "Invalid month format. Use YYYY-MM format (e.g., 2025-01)"
-        );
+        throw new BadRequestException("Month must be in YYYY-MM format");
       }
 
+      // Parse and validate pagination
+      const pageNum = Math.max(1, parseInt(page, 10) || 1);
+      const limitNum = Math.min(100, Math.max(1, parseInt(limit, 10) || 20));
+
+      // Parse month
       const [yearStr, monthStr] = month.split("-");
       const year = parseInt(yearStr, 10);
       const monthNum = parseInt(monthStr, 10);
 
+      // Validate date range
+      if (year < 1900 || year > 2100 || monthNum < 1 || monthNum > 12) {
+        throw new BadRequestException("Invalid year or month value");
+      }
+
       const entries = await this.listEntriesByMonthUseCase.execute({
-        userId: req.user.id,
+        userId: user.id,
         year,
         month: monthNum,
       });
 
-      return entries.map((entry) => ({
-        id: entry.id,
-        userId: entry.userId,
-        description: entry.description,
-        amount: entry.amount,
-        date: entry.date,
-        type: entry.type,
-        isFixed: entry.isFixed,
-        categoryId: entry.categoryId,
-        createdAt: entry.createdAt,
-        updatedAt: entry.updatedAt,
-      }));
-    } catch (error) {
-      // Handle specific business logic errors (non-sensitive)
-      if (this.isClientError(error.message)) {
-        if (this.isNotFoundError(error.message)) {
-          throw new NotFoundException(error.message);
-        }
-        throw new BadRequestException(error.message);
+      // Apply client-side filtering and pagination (temporary implementation)
+      let filteredEntries = entries;
+
+      // Filter by type
+      if (type !== "all") {
+        filteredEntries = filteredEntries.filter(
+          (entry) => entry.type === type
+        );
       }
 
-      // Handle sensitive/unexpected errors
-      console.error("Unexpected error in EntryController.listByMonth:", error);
-      throw new InternalServerErrorException(
-        "An unexpected error occurred while retrieving entries"
-      );
+      // Filter by category
+      if (category !== "all") {
+        filteredEntries = filteredEntries.filter(
+          (entry) => entry.categoryId === category
+        );
+      }
+
+      // Sort entries
+      const validSortFields = ["date", "amount", "description"];
+      const validOrders = ["asc", "desc"];
+      const sortField = validSortFields.includes(sort) ? sort : "date";
+      const sortOrder = validOrders.includes(order) ? order : "desc";
+
+      filteredEntries.sort((a, b) => {
+        let aValue: any = a[sortField as keyof typeof a];
+        let bValue: any = b[sortField as keyof typeof b];
+
+        if (sortField === "date") {
+          aValue = new Date(aValue).getTime();
+          bValue = new Date(bValue).getTime();
+        }
+
+        if (sortOrder === "asc") {
+          return aValue > bValue ? 1 : -1;
+        } else {
+          return aValue < bValue ? 1 : -1;
+        }
+      });
+
+      // Calculate pagination
+      const total = filteredEntries.length;
+      const totalPages = Math.ceil(total / limitNum);
+      const startIndex = (pageNum - 1) * limitNum;
+      const endIndex = startIndex + limitNum;
+      const paginatedEntries = filteredEntries.slice(startIndex, endIndex);
+
+      // Calculate summary
+      const totalIncome = filteredEntries
+        .filter((e) => e.type === "INCOME")
+        .reduce((sum, e) => sum + e.amount, 0);
+
+      const totalExpenses = filteredEntries
+        .filter((e) => e.type === "EXPENSE")
+        .reduce((sum, e) => sum + e.amount, 0);
+
+      return {
+        data: paginatedEntries.map((entry) => ({
+          id: entry.id,
+          amount: entry.amount,
+          description: entry.description,
+          type: entry.type,
+          isFixed: entry.isFixed,
+          categoryId: entry.categoryId,
+          categoryName: "Category Name", // Would come from category service
+          userId: entry.userId,
+          date: entry.date,
+          createdAt: entry.createdAt,
+          updatedAt: entry.updatedAt,
+        })),
+        pagination: {
+          page: pageNum,
+          limit: limitNum,
+          total,
+          totalPages,
+          hasNext: pageNum * limitNum < total,
+          hasPrev: pageNum > 1,
+        },
+        summary: {
+          totalIncome,
+          totalExpenses,
+          balance: totalIncome - totalExpenses,
+          entriesCount: total,
+        },
+      };
+    } catch (error) {
+      if (this.isClientError(error.message)) {
+        throw new BadRequestException(error.message);
+      }
+      throw new BadRequestException("Failed to retrieve entries");
     }
   }
 
   private isClientError(message: string): boolean {
-    const clientErrorMessages = [
-      "Amount must be greater than zero",
-      "Description is required",
-      "User ID is required",
-      "User not found",
-      "Category not found",
-      "Category does not belong to the user",
-      "Invalid year",
-      "Invalid month",
+    const clientErrorPatterns = [
+      "validation",
+      "invalid",
+      "required",
+      "must be",
+      "cannot be",
+      "already exists",
+      "not found",
+      "unauthorized",
+      "forbidden",
     ];
-
-    return clientErrorMessages.some((clientMsg) =>
-      message.toLowerCase().includes(clientMsg.toLowerCase())
+    return clientErrorPatterns.some((pattern) =>
+      message.toLowerCase().includes(pattern)
     );
   }
 
   private isNotFoundError(message: string): boolean {
-    const notFoundMessages = ["User not found", "Category not found"];
-
-    return notFoundMessages.some((notFoundMsg) =>
-      message.toLowerCase().includes(notFoundMsg.toLowerCase())
-    );
+    return message.toLowerCase().includes("not found");
   }
 }

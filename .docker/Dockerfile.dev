@@ -12,6 +12,9 @@ COPY package.json yarn.lock ./
 # Instalar todas as dependências (incluindo devDependencies)
 RUN yarn install --frozen-lockfile
 
+# Copiar código fonte
+COPY . .
+
 # Definir variáveis de ambiente para desenvolvimento
 ENV NODE_ENV=development
 ENV PORT=3000

@@ -4,8 +4,9 @@ import {
   Body,
   HttpCode,
   HttpStatus,
-  HttpException,
   Inject,
+  BadRequestException,
+  UnauthorizedException,
 } from "@nestjs/common";
 import {
   ApiTags,
@@ -13,6 +14,7 @@ import {
   ApiResponse,
   ApiBody,
   ApiBadRequestResponse,
+  ApiUnauthorizedResponse,
 } from "@nestjs/swagger";
 import { RegisterUserUseCase } from "@domain/usecases/register-user.usecase";
 import { LoginUserUseCase } from "@domain/usecases/login-user.usecase";
@@ -20,7 +22,8 @@ import { RefreshTokenUseCase } from "@domain/usecases/refresh-token.usecase";
 import { RegisterUserDto } from "../dtos/register-user.dto";
 import { LoginUserDto } from "../dtos/login-user.dto";
 import { RefreshTokenDto } from "../dtos/refresh-token.dto";
-import { AuthResponseDto } from "../dtos/auth-response.dto";
+import { RegisterResponseDto } from "../dtos/register-response.dto";
+import { LoginResponseDto } from "../dtos/login-response.dto";
 import { RefreshTokenResponseDto } from "../dtos/refresh-token-response.dto";
 
 @ApiTags("auth")
@@ -36,11 +39,12 @@ export class AuthController {
   ) {}
 
   @Post("register")
+  @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ summary: "Register a new user" })
   @ApiResponse({
     status: 201,
     description: "User registered successfully",
-    type: AuthResponseDto,
+    type: RegisterResponseDto,
   })
   @ApiBadRequestResponse({
     description: "Validation failed or user already exists",
@@ -48,7 +52,7 @@ export class AuthController {
   @ApiBody({ type: RegisterUserDto })
   async register(
     @Body() registerUserDto: RegisterUserDto
-  ): Promise<AuthResponseDto> {
+  ): Promise<RegisterResponseDto> {
     try {
       const result = await this.registerUserUseCase.execute({
         name: registerUserDto.name,
@@ -57,19 +61,21 @@ export class AuthController {
       });
 
       return {
-        user: {
-          id: result.user.id,
-          name: result.user.name,
-          email: result.user.email,
-          avatarUrl: result.user.avatarUrl,
-          createdAt: result.user.createdAt,
-          updatedAt: result.user.updatedAt,
+        id: result.user.id,
+        name: result.user.name,
+        email: result.user.email,
+        createdAt: result.user.createdAt,
+        tokens: {
+          accessToken: result.tokens.accessToken,
+          refreshToken: result.tokens.refreshToken,
+          expiresIn: 900, // 15 minutes
         },
-        accessToken: result.accessToken,
-        refreshToken: result.refreshToken,
       };
     } catch (error) {
-      throw new HttpException(error.message, HttpStatus.BAD_REQUEST);
+      if (error.message.includes("already exists")) {
+        throw new BadRequestException("User already exists");
+      }
+      throw new BadRequestException("User registration failed");
     }
   }
 
@@ -79,13 +85,13 @@ export class AuthController {
   @ApiResponse({
     status: 200,
     description: "User logged in successfully",
-    type: AuthResponseDto,
+    type: LoginResponseDto,
   })
-  @ApiBadRequestResponse({
+  @ApiUnauthorizedResponse({
     description: "Invalid credentials",
   })
   @ApiBody({ type: LoginUserDto })
-  async login(@Body() loginUserDto: LoginUserDto): Promise<AuthResponseDto> {
+  async login(@Body() loginUserDto: LoginUserDto): Promise<LoginResponseDto> {
     try {
       const result = await this.loginUserUseCase.execute({
         email: loginUserDto.email,
@@ -97,28 +103,28 @@ export class AuthController {
           id: result.user.id,
           name: result.user.name,
           email: result.user.email,
-          avatarUrl: result.user.avatarUrl,
-          createdAt: result.user.createdAt,
-          updatedAt: result.user.updatedAt,
         },
-        accessToken: result.accessToken,
-        refreshToken: result.refreshToken,
+        tokens: {
+          accessToken: result.tokens.accessToken,
+          refreshToken: result.tokens.refreshToken,
+          expiresIn: 900, // 15 minutes
+        },
       };
     } catch (error) {
-      throw new HttpException(error.message, HttpStatus.BAD_REQUEST);
+      throw new UnauthorizedException("Invalid credentials");
     }
   }
 
   @Post("refresh")
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: "Refresh authentication token" })
+  @ApiOperation({ summary: "Refresh access token" })
   @ApiResponse({
     status: 200,
     description: "Token refreshed successfully",
     type: RefreshTokenResponseDto,
   })
-  @ApiBadRequestResponse({
-    description: "Invalid or expired refresh token",
+  @ApiUnauthorizedResponse({
+    description: "Invalid refresh token",
   })
   @ApiBody({ type: RefreshTokenDto })
   async refresh(
@@ -131,10 +137,10 @@ export class AuthController {
 
       return {
         accessToken: result.accessToken,
-        refreshToken: result.refreshToken,
+        expiresIn: 900, // 15 minutes
       };
     } catch (error) {
-      throw new HttpException(error.message, HttpStatus.UNAUTHORIZED);
+      throw new UnauthorizedException("Invalid refresh token");
     }
   }
 }

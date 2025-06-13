@@ -1,0 +1,42 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  external_labels:
+    monitor: "financial-api-dev"
+
+rule_files:
+  # - "rules/*.yml"
+
+scrape_configs:
+  # Prometheus monitoring itself
+  - job_name: "prometheus"
+    static_configs:
+      - targets: ["localhost:9090"]
+    scrape_interval: 30s
+    metrics_path: /metrics
+
+  # Financial API monitoring
+  - job_name: "financial-api"
+    static_configs:
+      - targets: ["api:3000"]
+    metrics_path: "/api/v1/metrics"
+    scrape_interval: 15s
+    scrape_timeout: 10s
+    honor_labels: true
+    params:
+      format: ["prometheus"]
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: __param_target
+      - source_labels: [__param_target]
+        target_label: instance
+      - target_label: __address__
+        replacement: api:3000
+
+  # Health check monitoring
+  - job_name: "financial-api-health"
+    static_configs:
+      - targets: ["api:3000"]
+    metrics_path: "/api/v1/health"
+    scrape_interval: 30s
+    scrape_timeout: 5s

@@ -99,4 +99,11 @@ temp/
 *.tsbuildinfo
 
 # Docker volumes
-postgres_data/ 
+postgres_data/
+
+# Observability data (development)
+prometheus_data_dev/
+grafana_data_dev/
+
+# Observability backups
+backups/ 
