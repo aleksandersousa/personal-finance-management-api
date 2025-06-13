@@ -7,15 +7,11 @@ services:
     restart: unless-stopped
     ports:
       - "3000:3000"
+    env_file:
+      - .env
     environment:
-      - NODE_ENV=development
+      # Override database URL to use docker service name
       - DATABASE_URL=postgresql://postgres:postgres@db:5432/financial_db?sslmode=disable
-      - JWT_SECRET=your-jwt-secret-key-here
-      - PORT=3000
-      - API_PREFIX=api/v1
-      - THROTTLE_TTL=60
-      - THROTTLE_LIMIT=10
-      - DATABASE_SSL=false
     depends_on:
       db:
         condition: service_healthy
