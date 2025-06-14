@@ -4,6 +4,8 @@ import { InjectRepository } from "@nestjs/typeorm";
 import {
   EntryRepository,
   CreateEntryData,
+  FindEntriesByMonthFilters,
+  FindEntriesByMonthResult,
 } from "@data/protocols/entry-repository";
 import { EntryModel } from "@domain/models/entry.model";
 import { EntryEntity } from "../entities/entry.entity";
@@ -65,6 +67,97 @@ export class TypeormEntryRepository implements EntryRepository {
       .getMany();
 
     return entries.map(this.mapToModel);
+  }
+
+  async findByUserIdAndMonthWithFilters(
+    filters: FindEntriesByMonthFilters
+  ): Promise<FindEntriesByMonthResult> {
+    const {
+      userId,
+      year,
+      month,
+      page = 1,
+      limit = 20,
+      sort = "date",
+      order = "desc",
+      type = "all",
+      categoryId,
+    } = filters;
+
+    const startDate = new Date(year, month - 1, 1);
+    const endDate = new Date(year, month, 0, 23, 59, 59);
+
+    // Build base query
+    let queryBuilder = this.entryRepository
+      .createQueryBuilder("entry")
+      .where("entry.userId = :userId", { userId })
+      .andWhere("entry.date >= :startDate", { startDate })
+      .andWhere("entry.date <= :endDate", { endDate })
+      .leftJoinAndSelect("entry.user", "user")
+      .leftJoinAndSelect("entry.category", "category");
+
+    // Apply type filter
+    if (type !== "all") {
+      queryBuilder = queryBuilder.andWhere("entry.type = :type", { type });
+    }
+
+    // Apply category filter
+    if (categoryId && categoryId !== "all") {
+      queryBuilder = queryBuilder.andWhere("entry.categoryId = :categoryId", {
+        categoryId,
+      });
+    }
+
+    // Apply sorting
+    const validSortFields = ["date", "amount", "description"];
+    const sortField = validSortFields.includes(sort) ? sort : "date";
+    queryBuilder = queryBuilder.orderBy(
+      `entry.${sortField}`,
+      order.toUpperCase() as "ASC" | "DESC"
+    );
+
+    // Get total count
+    const total = await queryBuilder.getCount();
+
+    // Apply pagination
+    const skip = (page - 1) * limit;
+    queryBuilder = queryBuilder.skip(skip).take(limit);
+
+    // Get paginated results
+    const entries = await queryBuilder.getMany();
+
+    // Calculate summary - need separate query for totals without pagination
+    const summaryQuery = this.entryRepository
+      .createQueryBuilder("entry")
+      .select(
+        "SUM(CASE WHEN entry.type = 'INCOME' THEN entry.amount ELSE 0 END)",
+        "totalIncome"
+      )
+      .addSelect(
+        "SUM(CASE WHEN entry.type = 'EXPENSE' THEN entry.amount ELSE 0 END)",
+        "totalExpenses"
+      )
+      .where("entry.userId = :userId", { userId })
+      .andWhere("entry.date >= :startDate", { startDate })
+      .andWhere("entry.date <= :endDate", { endDate });
+
+    // Apply same filters to summary query
+    if (type !== "all") {
+      summaryQuery.andWhere("entry.type = :type", { type });
+    }
+
+    if (categoryId && categoryId !== "all") {
+      summaryQuery.andWhere("entry.categoryId = :categoryId", { categoryId });
+    }
+
+    const summaryResult = await summaryQuery.getRawOne();
+
+    return {
+      data: entries.map(this.mapToModel),
+      total,
+      totalIncome: parseFloat(summaryResult?.totalIncome || "0"),
+      totalExpenses: parseFloat(summaryResult?.totalExpenses || "0"),
+    };
   }
 
   async update(

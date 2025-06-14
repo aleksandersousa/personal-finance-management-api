@@ -1,13 +1,32 @@
-import { EntryModel, EntryType } from "@domain/models/entry.model";
+import { EntryModel } from "@domain/models/entry.model";
 
 export interface CreateEntryData {
   userId: string;
   description: string;
   amount: number;
   date: Date;
-  type: EntryType;
+  type: "INCOME" | "EXPENSE";
   isFixed: boolean;
-  categoryId?: string | null;
+  categoryId?: string;
+}
+
+export interface FindEntriesByMonthFilters {
+  userId: string;
+  year: number;
+  month: number;
+  page?: number;
+  limit?: number;
+  sort?: string;
+  order?: "asc" | "desc";
+  type?: "INCOME" | "EXPENSE" | "all";
+  categoryId?: string;
+}
+
+export interface FindEntriesByMonthResult {
+  data: EntryModel[];
+  total: number;
+  totalIncome: number;
+  totalExpenses: number;
 }
 
 export interface EntryRepository {
@@ -19,6 +38,9 @@ export interface EntryRepository {
     year: number,
     month: number
   ): Promise<EntryModel[]>;
+  findByUserIdAndMonthWithFilters(
+    filters: FindEntriesByMonthFilters
+  ): Promise<FindEntriesByMonthResult>;
   update(id: string, data: Partial<CreateEntryData>): Promise<EntryModel>;
   delete(id: string): Promise<void>;
 }

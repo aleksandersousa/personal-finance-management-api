@@ -15,6 +15,7 @@ describe("DbListEntriesByMonthUseCase", () => {
       findById: jest.fn(),
       findByUserId: jest.fn(),
       findByUserIdAndMonth: jest.fn(),
+      findByUserIdAndMonthWithFilters: jest.fn(),
       update: jest.fn(),
       delete: jest.fn(),
     };
@@ -69,7 +70,14 @@ describe("DbListEntriesByMonthUseCase", () => {
       },
     ];
 
-    it("should list entries for a valid month successfully", async () => {
+    const mockRepositoryResult = {
+      data: mockEntries,
+      total: 2,
+      totalIncome: 5000,
+      totalExpenses: 200,
+    };
+
+    it("should list entries for a valid month successfully with default pagination", async () => {
       const request = {
         userId: "user-123",
         year: 2025,
@@ -77,38 +85,137 @@ describe("DbListEntriesByMonthUseCase", () => {
       };
 
       mockUserRepository.findById.mockResolvedValue(mockUser);
-      mockEntryRepository.findByUserIdAndMonth.mockResolvedValue(mockEntries);
+      mockEntryRepository.findByUserIdAndMonthWithFilters.mockResolvedValue(
+        mockRepositoryResult
+      );
 
       const result = await sut.execute(request);
 
-      expect(result).toEqual(mockEntries);
+      expect(result.data).toEqual(mockEntries);
+      expect(result.pagination).toEqual({
+        page: 1,
+        limit: 20,
+        total: 2,
+        totalPages: 1,
+        hasNext: false,
+        hasPrev: false,
+      });
+      expect(result.summary).toEqual({
+        totalIncome: 5000,
+        totalExpenses: 200,
+        balance: 4800,
+        entriesCount: 2,
+      });
       expect(mockUserRepository.findById).toHaveBeenCalledWith("user-123");
-      expect(mockEntryRepository.findByUserIdAndMonth).toHaveBeenCalledWith(
-        "user-123",
-        2025,
-        1
-      );
+      expect(
+        mockEntryRepository.findByUserIdAndMonthWithFilters
+      ).toHaveBeenCalledWith({
+        userId: "user-123",
+        year: 2025,
+        month: 1,
+        page: 1,
+        limit: 20,
+        sort: "date",
+        order: "desc",
+        type: "all",
+        categoryId: undefined,
+      });
     });
 
-    it("should return empty array when no entries found for the month", async () => {
+    it("should list entries with custom pagination and filters", async () => {
+      const request = {
+        userId: "user-123",
+        year: 2025,
+        month: 1,
+        page: 2,
+        limit: 10,
+        sort: "amount",
+        order: "asc" as const,
+        type: "INCOME" as const,
+        categoryId: "category-123",
+      };
+
+      mockUserRepository.findById.mockResolvedValue(mockUser);
+      mockEntryRepository.findByUserIdAndMonthWithFilters.mockResolvedValue(
+        mockRepositoryResult
+      );
+
+      const result = await sut.execute(request);
+
+      expect(result.data).toEqual(mockEntries);
+      expect(
+        mockEntryRepository.findByUserIdAndMonthWithFilters
+      ).toHaveBeenCalledWith({
+        userId: "user-123",
+        year: 2025,
+        month: 1,
+        page: 2,
+        limit: 10,
+        sort: "amount",
+        order: "asc",
+        type: "INCOME",
+        categoryId: "category-123",
+      });
+    });
+
+    it("should return empty data when no entries found for the month", async () => {
       const request = {
         userId: "user-123",
         year: 2025,
         month: 2,
       };
 
+      const emptyResult = {
+        data: [],
+        total: 0,
+        totalIncome: 0,
+        totalExpenses: 0,
+      };
+
       mockUserRepository.findById.mockResolvedValue(mockUser);
-      mockEntryRepository.findByUserIdAndMonth.mockResolvedValue([]);
+      mockEntryRepository.findByUserIdAndMonthWithFilters.mockResolvedValue(
+        emptyResult
+      );
 
       const result = await sut.execute(request);
 
-      expect(result).toEqual([]);
-      expect(mockUserRepository.findById).toHaveBeenCalledWith("user-123");
-      expect(mockEntryRepository.findByUserIdAndMonth).toHaveBeenCalledWith(
-        "user-123",
-        2025,
-        2
+      expect(result.data).toEqual([]);
+      expect(result.pagination.total).toBe(0);
+      expect(result.summary.entriesCount).toBe(0);
+    });
+
+    it("should validate and sanitize pagination parameters", async () => {
+      const request = {
+        userId: "user-123",
+        year: 2025,
+        month: 1,
+        page: -1, // Should be corrected to 1
+        limit: 200, // Should be corrected to 100 (max)
+        sort: "invalid", // Should be corrected to "date"
+        order: "invalid" as any, // Should be corrected to "desc"
+        type: "invalid" as any, // Should be corrected to "all"
+      };
+
+      mockUserRepository.findById.mockResolvedValue(mockUser);
+      mockEntryRepository.findByUserIdAndMonthWithFilters.mockResolvedValue(
+        mockRepositoryResult
       );
+
+      await sut.execute(request);
+
+      expect(
+        mockEntryRepository.findByUserIdAndMonthWithFilters
+      ).toHaveBeenCalledWith({
+        userId: "user-123",
+        year: 2025,
+        month: 1,
+        page: 1, // Corrected
+        limit: 100, // Corrected
+        sort: "date", // Corrected
+        order: "desc", // Corrected
+        type: "all", // Corrected
+        categoryId: undefined,
+      });
     });
 
     it("should throw error if user ID is not provided", async () => {

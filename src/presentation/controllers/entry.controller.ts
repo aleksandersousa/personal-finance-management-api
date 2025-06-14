@@ -173,7 +173,7 @@ export class EntryController {
         throw new BadRequestException("Month must be in YYYY-MM format");
       }
 
-      // Parse and validate pagination
+      // Parse and validate pagination parameters
       const pageNum = Math.max(1, parseInt(page, 10) || 1);
       const limitNum = Math.min(100, Math.max(1, parseInt(limit, 10) || 20));
 
@@ -187,95 +187,59 @@ export class EntryController {
         throw new BadRequestException("Invalid year or month value");
       }
 
-      const entries = await this.listEntriesByMonthUseCase.execute({
+      // Validate query parameters
+      const validSortFields = ["date", "amount", "description"];
+      const validOrders = ["asc", "desc"];
+      const validTypes = ["INCOME", "EXPENSE", "all"];
+
+      if (!validSortFields.includes(sort)) {
+        throw new BadRequestException(
+          `Invalid sort field. Must be one of: ${validSortFields.join(", ")}`
+        );
+      }
+
+      if (!validOrders.includes(order)) {
+        throw new BadRequestException(
+          `Invalid order. Must be one of: ${validOrders.join(", ")}`
+        );
+      }
+
+      if (!validTypes.includes(type)) {
+        throw new BadRequestException(
+          `Invalid type. Must be one of: ${validTypes.join(", ")}`
+        );
+      }
+
+      // Execute use case with all parameters - filtering and pagination now done at database level
+      const result = await this.listEntriesByMonthUseCase.execute({
         userId: user.id,
         year,
         month: monthNum,
+        page: pageNum,
+        limit: limitNum,
+        sort,
+        order: order as "asc" | "desc",
+        type: type as "INCOME" | "EXPENSE" | "all",
+        categoryId: category !== "all" ? category : undefined,
       });
 
-      // Apply client-side filtering and pagination (temporary implementation)
-      let filteredEntries = entries;
-
-      // Filter by type
-      if (type !== "all") {
-        filteredEntries = filteredEntries.filter(
-          (entry) => entry.type === type
-        );
-      }
-
-      // Filter by category
-      if (category !== "all") {
-        filteredEntries = filteredEntries.filter(
-          (entry) => entry.categoryId === category
-        );
-      }
-
-      // Sort entries
-      const validSortFields = ["date", "amount", "description"];
-      const validOrders = ["asc", "desc"];
-      const sortField = validSortFields.includes(sort) ? sort : "date";
-      const sortOrder = validOrders.includes(order) ? order : "desc";
-
-      filteredEntries.sort((a, b) => {
-        let aValue: any = a[sortField as keyof typeof a];
-        let bValue: any = b[sortField as keyof typeof b];
-
-        if (sortField === "date") {
-          aValue = new Date(aValue).getTime();
-          bValue = new Date(bValue).getTime();
-        }
-
-        if (sortOrder === "asc") {
-          return aValue > bValue ? 1 : -1;
-        } else {
-          return aValue < bValue ? 1 : -1;
-        }
-      });
-
-      // Calculate pagination
-      const total = filteredEntries.length;
-      const totalPages = Math.ceil(total / limitNum);
-      const startIndex = (pageNum - 1) * limitNum;
-      const endIndex = startIndex + limitNum;
-      const paginatedEntries = filteredEntries.slice(startIndex, endIndex);
-
-      // Calculate summary
-      const totalIncome = filteredEntries
-        .filter((e) => e.type === "INCOME")
-        .reduce((sum, e) => sum + e.amount, 0);
-
-      const totalExpenses = filteredEntries
-        .filter((e) => e.type === "EXPENSE")
-        .reduce((sum, e) => sum + e.amount, 0);
-
+      // Map to response DTO format - data is already processed by use case
       return {
-        data: paginatedEntries.map((entry) => ({
+        data: result.data.map((entry) => ({
           id: entry.id,
           amount: entry.amount,
           description: entry.description,
           type: entry.type,
           isFixed: entry.isFixed,
           categoryId: entry.categoryId,
-          categoryName: "Category Name", // Would come from category service
+          categoryName: "Category Name", // TODO: This should come from category service
           userId: entry.userId,
           date: entry.date,
           createdAt: entry.createdAt,
           updatedAt: entry.updatedAt,
         })),
-        pagination: {
-          page: pageNum,
-          limit: limitNum,
-          total,
-          totalPages,
-          hasNext: pageNum * limitNum < total,
-          hasPrev: pageNum > 1,
-        },
-        summary: {
-          totalIncome,
-          totalExpenses,
-          balance: totalIncome - totalExpenses,
-          entriesCount: total,
-        },
+        pagination: result.pagination,
+        summary: result.summary,
       };
     } catch (error) {
       if (this.isClientError(error.message)) {

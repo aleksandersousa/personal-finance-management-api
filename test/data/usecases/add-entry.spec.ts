@@ -21,6 +21,7 @@ describe("DbAddEntryUseCase", () => {
       findById: jest.fn(),
       findByUserId: jest.fn(),
       findByUserIdAndMonth: jest.fn(),
+      findByUserIdAndMonthWithFilters: jest.fn(),
       update: jest.fn(),
       delete: jest.fn(),
     };

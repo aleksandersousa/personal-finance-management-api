@@ -1,8 +1,8 @@
 import {
   ListEntriesByMonthUseCase,
   ListEntriesByMonthRequest,
+  ListEntriesByMonthResponse,
 } from "@domain/usecases/list-entries-by-month.usecase";
-import { EntryModel } from "@domain/models/entry.model";
 import { EntryRepository } from "../protocols/entry-repository";
 import { UserRepository } from "../protocols/user-repository";
 
@@ -12,7 +12,9 @@ export class DbListEntriesByMonthUseCase implements ListEntriesByMonthUseCase {
     private readonly userRepository: UserRepository
   ) {}
 
-  async execute(request: ListEntriesByMonthRequest): Promise<EntryModel[]> {
+  async execute(
+    request: ListEntriesByMonthRequest
+  ): Promise<ListEntriesByMonthResponse> {
     // Validate user ID
     if (!request.userId) {
       throw new Error("User ID is required");
@@ -33,13 +35,53 @@ export class DbListEntriesByMonthUseCase implements ListEntriesByMonthUseCase {
       throw new Error("User not found");
     }
 
-    // Get entries for the specified month
-    const entries = await this.entryRepository.findByUserIdAndMonth(
-      request.userId,
-      request.year,
-      request.month
-    );
+    // Set default values for pagination and filters
+    const page = Math.max(1, request.page || 1);
+    const limit = Math.min(100, Math.max(1, request.limit || 20));
+    const sort = ["date", "amount", "description"].includes(request.sort || "")
+      ? request.sort
+      : "date";
+    const order = ["asc", "desc"].includes(request.order || "")
+      ? request.order
+      : "desc";
+    const type = ["INCOME", "EXPENSE", "all"].includes(request.type || "")
+      ? request.type
+      : "all";
 
-    return entries;
+    // Get entries with filters and pagination from repository
+    const result = await this.entryRepository.findByUserIdAndMonthWithFilters({
+      userId: request.userId,
+      year: request.year,
+      month: request.month,
+      page,
+      limit,
+      sort,
+      order,
+      type,
+      categoryId: request.categoryId,
+    });
+
+    // Calculate pagination metadata
+    const totalPages = Math.ceil(result.total / limit);
+    const hasNext = page * limit < result.total;
+    const hasPrev = page > 1;
+
+    return {
+      data: result.data,
+      pagination: {
+        page,
+        limit,
+        total: result.total,
+        totalPages,
+        hasNext,
+        hasPrev,
+      },
+      summary: {
+        totalIncome: result.totalIncome,
+        totalExpenses: result.totalExpenses,
+        balance: result.totalIncome - result.totalExpenses,
+        entriesCount: result.total,
+      },
+    };
   }
 }
