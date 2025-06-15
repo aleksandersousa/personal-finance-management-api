@@ -20,8 +20,13 @@ import { AuthModule } from './auth.module';
   providers: [
     {
       provide: 'EntryRepository',
-      useFactory: repository => makeEntryRepository(repository),
-      inject: [getRepositoryToken(EntryEntity)],
+      useFactory: (repository, logger, metrics) =>
+        makeEntryRepository(repository, logger, metrics),
+      inject: [
+        getRepositoryToken(EntryEntity),
+        'ContextAwareLoggerService',
+        'FinancialMetricsService',
+      ],
     },
     {
       provide: 'CategoryRepository',
