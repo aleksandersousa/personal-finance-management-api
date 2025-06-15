@@ -121,8 +121,8 @@ jobs:
       (needs.staging-tests.result == 'success' || github.event.inputs.force_deploy == 'true')
 
     outputs:
-      image-tag: ${{ steps.meta.outputs.tags }}
-      image-digest: ${{ steps.build.outputs.digest }}
+      image-tag: ${{ steps.set-outputs.outputs.image-tag }}
+      image-digest: ${{ steps.build.outputs.digest || steps.build-alt.outputs.digest }}
 
     steps:
       - name: 📥 Checkout code
@@ -163,6 +163,43 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
           platforms: linux/amd64,linux/arm64
+        continue-on-error: true
+
+      - name: 🔄 Alternative staging build (if main build fails)
+        id: build-alt
+        if: steps.build.outcome == 'failure'
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: .docker/Dockerfile.prod
+          push: true
+          tags: ${{ env.REGISTRY }}/${{ github.actor }}/${{ env.IMAGE_NAME }}:staging-${{ github.ref_name }}
+          build-args: |
+            NODE_ENV=staging
+            VERSION=${{ needs.pre-deployment.outputs.version }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          platforms: linux/amd64
+        continue-on-error: true
+
+      - name: 📊 Set staging build outputs
+        id: set-outputs
+        run: |
+          if [[ "${{ steps.build.outcome }}" == "success" ]]; then
+            # Extract primary tag from multi-line output
+            PRIMARY_TAG=$(echo "${{ steps.meta.outputs.tags }}" | head -n1)
+            echo "image-tag=$PRIMARY_TAG" >> $GITHUB_OUTPUT
+            echo "✅ Primary staging build succeeded"
+            echo "🏷️ Primary tag: $PRIMARY_TAG"
+          elif [[ "${{ steps.build-alt.outcome }}" == "success" ]]; then
+            echo "image-tag=${{ env.REGISTRY }}/${{ github.actor }}/${{ env.IMAGE_NAME }}:staging-${{ github.ref_name }}" >> $GITHUB_OUTPUT
+            echo "✅ Alternative staging build succeeded"
+          else
+            echo "❌ All staging build attempts failed"
+            echo "🚨 GHCR permissions may need to be configured"
+            echo "📖 See docs/GITHUB_PACKAGES_SETUP.md for setup instructions"
+            exit 1
+          fi
 
   # 🚀 Deploy to Staging Environment
   deploy-staging:

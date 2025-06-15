@@ -2,11 +2,17 @@
 
 Este documento explica como configurar as permissões necessárias para o GitHub Container Registry (GHCR) no CI/CD.
 
-## 🚨 Problema Atual
+## 🚨 Problemas Atuais
 
-Erro: `denied: installation not allowed to Create organization package`
+### Erro 1: `denied: installation not allowed to Create organization package`
 
 Este erro indica que o GITHUB_TOKEN não tem permissões para criar pacotes no GitHub Container Registry.
+
+### Erro 2: `Invalid format 'ghcr.io/user/repo:tag'`
+
+Este erro ocorre quando outputs multi-linha são usados em variáveis de ambiente do GitHub Actions.
+
+**Status**: ✅ **CORRIGIDO** - Implementada extração de tag primária em todos os workflows.
 
 ## 🔧 Soluções Implementadas
 
@@ -49,9 +55,16 @@ permissions:
    - Em "Package creation", selecione: **"Public"** ou **"Private"** conforme necessário
 
 4. **Verifique as permissões de organização** (se aplicável):
+
    - Se o repositório estiver em uma organização, vá para as configurações da organização
    - **Settings** → **Member privileges** → **Package creation**
    - Certifique-se de que está habilitado
+
+5. **⚠️ IMPORTANTE para Staging**:
+   - O erro específico `installation not allowed to Create organization package` geralmente ocorre quando:
+     - O repositório está em uma organização e as permissões não estão configuradas
+     - O primeiro package ainda não foi criado manualmente
+     - As configurações de visibilidade do package não estão definidas
 
 ### **Opção 2: Via GitHub CLI**
 
