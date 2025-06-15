@@ -106,4 +106,16 @@ prometheus_data_dev/
 grafana_data_dev/
 
 # Observability backups
-backups/ 
+backups/
+
+# CI/CD
+logs/monitoring/
+deployment-*.log
+trivy-results.sarif
+.env.development
+.env.staging
+.env.production
+
+# Container images
+*.tar
+*.tar.gz 
