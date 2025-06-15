@@ -2,17 +2,23 @@
  * Logger Spy for Infrastructure Layer Testing
  * Observes and controls logging interactions
  */
+import {
+  BusinessEvent,
+  SecurityEvent,
+  PerformanceEvent,
+} from "../../../../src/infra/logging/context-aware-logger.service";
+
 export class LoggerSpy {
-  public loggedEvents: LogEvent[] = [];
+  public loggedEvents: any[] = [];
   public loggedBusinessEvents: BusinessEvent[] = [];
   public loggedSecurityEvents: SecurityEvent[] = [];
   public loggedErrors: ErrorEvent[] = [];
 
-  log(message: string, ...args: any[]): void {
+  log(message: any, context?: string): void {
     this.loggedEvents.push({
-      level: "log",
+      level: "info",
       message,
-      args,
+      context,
       timestamp: new Date(),
     });
   }
@@ -25,26 +31,29 @@ export class LoggerSpy {
     });
   }
 
-  warn(message: string): void {
+  warn(message: any, context?: string): void {
     this.loggedEvents.push({
       level: "warn",
       message,
+      context,
       timestamp: new Date(),
     });
   }
 
-  debug(message: string): void {
+  debug(message: any, context?: string): void {
     this.loggedEvents.push({
       level: "debug",
       message,
+      context,
       timestamp: new Date(),
     });
   }
 
-  info(message: string): void {
+  verbose(message: any, context?: string): void {
     this.loggedEvents.push({
-      level: "info",
+      level: "verbose",
       message,
+      context,
       timestamp: new Date(),
     });
   }
@@ -63,6 +72,15 @@ export class LoggerSpy {
     });
   }
 
+  logPerformanceEvent(event: PerformanceEvent): void {
+    this.loggedEvents.push({
+      level: "info",
+      type: "performance_event",
+      ...event,
+      timestamp: new Date(),
+    });
+  }
+
   // =================== Test Utility Methods ===================
 
   /**
@@ -76,11 +94,11 @@ export class LoggerSpy {
   }
 
   /**
-   * Get business events by type
+   * Get business events by event name
    */
-  getBusinessEvents(eventType?: string): BusinessEvent[] {
-    return eventType
-      ? this.loggedBusinessEvents.filter((e) => e.event === eventType)
+  getBusinessEvents(eventName?: string): BusinessEvent[] {
+    return eventName
+      ? this.loggedBusinessEvents.filter((e) => e.event === eventName)
       : this.loggedBusinessEvents;
   }
 
@@ -94,93 +112,21 @@ export class LoggerSpy {
   }
 
   /**
-   * Get the number of errors logged
+   * Get count of logged errors
    */
   getErrorsCount(): number {
     return this.loggedErrors.length;
   }
 
   /**
-   * Get the last business event
+   * Check if a specific event was logged
    */
-  getLastBusinessEvent(): BusinessEvent | null {
-    return (
-      this.loggedBusinessEvents[this.loggedBusinessEvents.length - 1] || null
-    );
-  }
-
-  /**
-   * Check if a specific business event was logged
-   */
-  hasLoggedEvent(eventType: string): boolean {
-    return this.loggedBusinessEvents.some((e) => e.event === eventType);
-  }
-
-  /**
-   * Get all events by level
-   */
-  getEventsByLevel(level: string): LogEvent[] {
-    return this.loggedEvents.filter((e) => e.level === level);
-  }
-
-  /**
-   * Get the last logged error
-   */
-  getLastError(): ErrorEvent | null {
-    return this.loggedErrors[this.loggedErrors.length - 1] || null;
-  }
-
-  /**
-   * Check if any errors were logged
-   */
-  hasErrors(): boolean {
-    return this.loggedErrors.length > 0;
-  }
-
-  /**
-   * Get events within a time range
-   */
-  getEventsInRange(startTime: Date, endTime: Date): LogEvent[] {
-    return this.loggedEvents.filter(
-      (e) => e.timestamp >= startTime && e.timestamp <= endTime
-    );
-  }
-
-  /**
-   * Get business events for a specific user
-   */
-  getBusinessEventsForUser(userId: string): BusinessEvent[] {
-    return this.loggedBusinessEvents.filter((e) => e.userId === userId);
+  hasLoggedEvent(eventName: string): boolean {
+    return this.loggedBusinessEvents.some((e) => e.event === eventName);
   }
 }
 
-// Type definitions for spy events
-interface LogEvent {
-  level: string;
-  message: string;
-  args?: any[];
-  timestamp: Date;
-}
-
-interface BusinessEvent {
-  event: string;
-  entityId?: string;
-  userId?: string;
-  traceId?: string;
-  metadata?: any;
-  timestamp?: Date;
-}
-
-interface SecurityEvent {
-  event: string;
-  severity: string;
-  userId?: string;
-  error?: string;
-  traceId?: string;
-  metadata?: any;
-  timestamp?: Date;
-}
-
+// Type definitions
 interface ErrorEvent {
   message: string;
   stack?: string;

@@ -89,13 +89,6 @@ export class UserRepositoryStub implements UserRepository {
   }
 
   /**
-   * Get all users (for testing purposes)
-   */
-  getAllUsers(): UserModel[] {
-    return Array.from(this.users.values());
-  }
-
-  /**
    * Check if a user exists by ID
    */
   hasUser(id: string): boolean {
@@ -103,31 +96,9 @@ export class UserRepositoryStub implements UserRepository {
   }
 
   /**
-   * Get the last created user
-   */
-  getLastCreated(): UserModel | null {
-    const users = Array.from(this.users.values());
-    return users.length > 0 ? users[users.length - 1] : null;
-  }
-
-  /**
-   * Simulate database constraints or validation errors
-   */
-  mockConstraintViolation(): void {
-    this.mockFailure(new Error("Database constraint violation"));
-  }
-
-  /**
    * Simulate connection errors
    */
   mockConnectionError(): void {
     this.mockFailure(new Error("Database connection failed"));
-  }
-
-  /**
-   * Simulate timeout errors
-   */
-  mockTimeoutError(): void {
-    this.mockFailure(new Error("Database operation timeout"));
   }
 }

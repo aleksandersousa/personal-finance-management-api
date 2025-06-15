@@ -238,13 +238,6 @@ export class EntryRepositoryStub implements EntryRepository {
   }
 
   /**
-   * Get all entries (for testing purposes)
-   */
-  getAllEntries(): EntryModel[] {
-    return Array.from(this.entries.values());
-  }
-
-  /**
    * Check if an entry exists by ID
    */
   hasEntry(id: string): boolean {
@@ -252,54 +245,9 @@ export class EntryRepositoryStub implements EntryRepository {
   }
 
   /**
-   * Get entries by user ID (for testing purposes)
-   */
-  getEntriesByUser(userId: string): EntryModel[] {
-    return Array.from(this.entries.values()).filter((e) => e.userId === userId);
-  }
-
-  /**
-   * Get the last created entry
-   */
-  getLastCreated(): EntryModel | null {
-    const entries = Array.from(this.entries.values());
-    return entries.length > 0 ? entries[entries.length - 1] : null;
-  }
-
-  /**
-   * Simulate database constraints or validation errors
-   */
-  mockConstraintViolation(): void {
-    this.mockFailure(new Error("Database constraint violation"));
-  }
-
-  /**
    * Simulate connection errors
    */
   mockConnectionError(): void {
     this.mockFailure(new Error("Database connection failed"));
-  }
-
-  /**
-   * Simulate timeout errors
-   */
-  mockTimeoutError(): void {
-    this.mockFailure(new Error("Database operation timeout"));
-  }
-
-  /**
-   * Get entries by type for testing
-   */
-  getEntriesByType(userId: string, type: "INCOME" | "EXPENSE"): EntryModel[] {
-    return this.getEntriesByUser(userId).filter((entry) => entry.type === type);
-  }
-
-  /**
-   * Get entries by category for testing
-   */
-  getEntriesByCategory(userId: string, categoryId: string): EntryModel[] {
-    return this.getEntriesByUser(userId).filter(
-      (entry) => entry.categoryId === categoryId
-    );
   }
 }

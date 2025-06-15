@@ -1,11 +1,13 @@
 import { UserModel } from "@domain/models/user.model";
 
-export const mockUser: UserModel = {
+const mockUser: UserModel = {
   id: "user-123",
-  name: "John Doe",
-  email: "john@example.com",
-  createdAt: new Date("2025-06-01T10:00:00Z"),
-  updatedAt: new Date("2025-06-01T10:00:00Z"),
+  name: "Test User",
+  email: "test@example.com",
+  password: "hashed-password",
+  avatarUrl: null,
+  createdAt: new Date("2024-01-01T00:00:00Z"),
+  updatedAt: new Date("2024-01-01T00:00:00Z"),
 };
 
 /**
@@ -28,21 +30,5 @@ export class MockUserFactory {
         email: `user${index + 1}@example.com`,
       })
     );
-  }
-
-  static createValid(): UserModel {
-    return this.create();
-  }
-
-  static createWithEmail(email: string): UserModel {
-    return this.create({ email });
-  }
-
-  static createWithId(id: string): UserModel {
-    return this.create({ id });
-  }
-
-  static createWithName(name: string): UserModel {
-    return this.create({ name });
   }
 }

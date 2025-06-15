@@ -1,12 +1,12 @@
 import { CategoryModel } from "@domain/models/category.model";
 
-export const mockCategory: CategoryModel = {
+const mockCategory: CategoryModel = {
   id: "category-123",
-  name: "Food",
+  name: "Test Category",
   type: "EXPENSE",
   userId: "user-123",
-  createdAt: new Date("2025-06-01T10:00:00Z"),
-  updatedAt: new Date("2025-06-01T10:00:00Z"),
+  createdAt: new Date("2024-01-01T00:00:00Z"),
+  updatedAt: new Date("2024-01-01T00:00:00Z"),
 };
 
 /**
@@ -28,37 +28,5 @@ export class MockCategoryFactory {
         name: `Category ${index + 1}`,
       })
     );
-  }
-
-  static createValid(): CategoryModel {
-    return this.create();
-  }
-
-  static createIncome(): CategoryModel {
-    return this.create({
-      type: "INCOME",
-      name: "Salary",
-      id: "salary-category",
-    });
-  }
-
-  static createExpense(): CategoryModel {
-    return this.create({
-      type: "EXPENSE",
-      name: "Food",
-      id: "food-category",
-    });
-  }
-
-  static createForUser(userId: string): CategoryModel {
-    return this.create({ userId });
-  }
-
-  static createWithName(name: string): CategoryModel {
-    return this.create({ name });
-  }
-
-  static createWithType(type: "INCOME" | "EXPENSE"): CategoryModel {
-    return this.create({ type });
   }
 }

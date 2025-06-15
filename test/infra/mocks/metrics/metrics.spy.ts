@@ -53,16 +53,6 @@ export class MetricsSpy {
     });
   }
 
-  recordSummary(name: string, value: number, labels: any = {}): void {
-    this.recordedMetrics.push({
-      name,
-      value,
-      labels,
-      type: "summary",
-      timestamp: new Date(),
-    });
-  }
-
   // =================== Test Utility Methods ===================
 
   /**
@@ -114,74 +104,12 @@ export class MetricsSpy {
   }
 
   /**
-   * Get the last recorded metric
-   */
-  getLastMetric(): MetricRecord | null {
-    return this.recordedMetrics[this.recordedMetrics.length - 1] || null;
-  }
-
-  /**
-   * Get the last started timer
-   */
-  getLastTimer(): TimerRecord | null {
-    return this.startedTimers[this.startedTimers.length - 1] || null;
-  }
-
-  /**
-   * Get metrics by labels
-   */
-  getMetricsByLabels(labels: any): MetricRecord[] {
-    return this.recordedMetrics.filter((m) => {
-      return Object.keys(labels).every(
-        (key) => m.labels && m.labels[key] === labels[key]
-      );
-    });
-  }
-
-  /**
-   * Get total count of all metrics
-   */
-  getTotalMetricsCount(): number {
-    return this.recordedMetrics.length;
-  }
-
-  /**
-   * Get total count of all timers
-   */
-  getTotalTimersCount(): number {
-    return this.startedTimers.length;
-  }
-
-  /**
-   * Get metrics within a time range
-   */
-  getMetricsInRange(startTime: Date, endTime: Date): MetricRecord[] {
-    return this.recordedMetrics.filter(
-      (m) => m.timestamp >= startTime && m.timestamp <= endTime
-    );
-  }
-
-  /**
-   * Get metrics by status label (for HTTP metrics)
-   */
-  getMetricsByStatus(status: string): MetricRecord[] {
-    return this.recordedMetrics.filter(
-      (m) => m.labels && m.labels.status === status
-    );
-  }
-
-  /**
-   * Get successful operation metrics
-   */
-  getSuccessMetrics(): MetricRecord[] {
-    return this.getMetricsByStatus("success");
-  }
-
-  /**
    * Get error operation metrics
    */
   getErrorMetrics(): MetricRecord[] {
-    return this.getMetricsByStatus("error");
+    return this.recordedMetrics.filter(
+      (m) => m.labels && m.labels.status === "error"
+    );
   }
 }
 

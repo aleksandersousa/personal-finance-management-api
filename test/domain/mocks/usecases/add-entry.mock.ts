@@ -37,28 +37,4 @@ export class AddEntryUseCaseMockFactory {
       execute: jest.fn().mockRejectedValue(new Error("Category not found")),
     };
   }
-
-  static createCategoryMismatchFailure(): jest.Mocked<AddEntryUseCase> {
-    return {
-      execute: jest
-        .fn()
-        .mockRejectedValue(new Error("Category does not belong to the user")),
-    };
-  }
-
-  static createAmountValidationFailure(): jest.Mocked<AddEntryUseCase> {
-    return {
-      execute: jest
-        .fn()
-        .mockRejectedValue(new Error("Amount must be greater than zero")),
-    };
-  }
-
-  static createDescriptionValidationFailure(): jest.Mocked<AddEntryUseCase> {
-    return {
-      execute: jest
-        .fn()
-        .mockRejectedValue(new Error("Description is required")),
-    };
-  }
 }

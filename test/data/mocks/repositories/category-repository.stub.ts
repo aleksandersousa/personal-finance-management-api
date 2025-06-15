@@ -136,13 +136,6 @@ export class CategoryRepositoryStub implements CategoryRepository {
   }
 
   /**
-   * Get all categories (for testing purposes)
-   */
-  getAllCategories(): CategoryModel[] {
-    return Array.from(this.categories.values());
-  }
-
-  /**
    * Check if a category exists by ID
    */
   hasCategory(id: string): boolean {
@@ -150,52 +143,9 @@ export class CategoryRepositoryStub implements CategoryRepository {
   }
 
   /**
-   * Get categories by user ID (for testing purposes)
-   */
-  getCategoriesByUser(userId: string): CategoryModel[] {
-    return Array.from(this.categories.values()).filter(
-      (c) => c.userId === userId
-    );
-  }
-
-  /**
-   * Get the last created category
-   */
-  getLastCreated(): CategoryModel | null {
-    const categories = Array.from(this.categories.values());
-    return categories.length > 0 ? categories[categories.length - 1] : null;
-  }
-
-  /**
-   * Get categories by type for testing
-   */
-  getCategoriesByType(
-    userId: string,
-    type: "INCOME" | "EXPENSE"
-  ): CategoryModel[] {
-    return this.getCategoriesByUser(userId).filter(
-      (category) => category.type === type
-    );
-  }
-
-  /**
-   * Simulate database constraints or validation errors
-   */
-  mockConstraintViolation(): void {
-    this.mockFailure(new Error("Database constraint violation"));
-  }
-
-  /**
    * Simulate connection errors
    */
   mockConnectionError(): void {
     this.mockFailure(new Error("Database connection failed"));
-  }
-
-  /**
-   * Simulate timeout errors
-   */
-  mockTimeoutError(): void {
-    this.mockFailure(new Error("Database operation timeout"));
   }
 }
