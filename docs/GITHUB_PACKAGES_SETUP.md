@@ -2,13 +2,27 @@
 
 Este documento explica como configurar as permissões necessárias para o GitHub Container Registry (GHCR) no CI/CD.
 
-## 🔧 Configuração Necessária
+## 🚨 Problema Atual
 
-### 1. Permissões do Repositório
+Erro: `denied: installation not allowed to Create organization package`
 
-O workflow já está configurado com as permissões necessárias:
+Este erro indica que o GITHUB_TOKEN não tem permissões para criar pacotes no GitHub Container Registry.
+
+## 🔧 Soluções Implementadas
+
+### 1. **Múltiplas Estratégias de Build**
+
+O workflow agora tenta várias abordagens:
+
+1. **Build principal**: Formato padrão do metadata-action
+2. **Build alternativo**: Formato `ghcr.io/username/repo:branch`
+3. **Build separado**: AMD64 e ARM64 individualmente
+4. **Manifest combinado**: Cria multi-arch a partir dos builds separados
+
+### 2. **Configuração Robusta**
 
 ```yaml
+# Permissões necessárias no workflow
 permissions:
   contents: read
   packages: write
@@ -16,13 +30,13 @@ permissions:
   actions: read
 ```
 
-### 2. Configurações do GitHub
+## 🛠️ Configuração Manual Necessária
 
-#### Opção A: Configurar via Interface Web
+### **Opção 1: Via Interface Web (RECOMENDADO)**
 
 1. **Acesse as configurações do repositório**:
 
-   - Vá para `Settings` → `Actions` → `General`
+   - Vá para **Settings** → **Actions** → **General**
 
 2. **Configure as permissões do GITHUB_TOKEN**:
 
@@ -30,87 +44,127 @@ permissions:
    - Marque: **"Allow GitHub Actions to create and approve pull requests"**
 
 3. **Configure o Container Registry**:
-   - Vá para `Settings` → `Packages`
+
+   - Vá para **Settings** → **Packages**
    - Em "Package creation", selecione: **"Public"** ou **"Private"** conforme necessário
 
-#### Opção B: Configurar via GitHub CLI
+4. **Verifique as permissões de organização** (se aplicável):
+   - Se o repositório estiver em uma organização, vá para as configurações da organização
+   - **Settings** → **Member privileges** → **Package creation**
+   - Certifique-se de que está habilitado
+
+### **Opção 2: Via GitHub CLI**
 
 ```bash
-# Instalar GitHub CLI se não tiver
-# https://cli.github.com/
-
 # Configurar permissões do repositório
-gh api repos/:owner/:repo/actions/permissions \
+gh api repos/aleksandersousa/personal-financial-management-api/actions/permissions \
   --method PUT \
   --field default_workflow_permissions=write \
   --field can_approve_pull_request_reviews=true
 
 # Verificar configuração
-gh api repos/:owner/:repo/actions/permissions
+gh api repos/aleksandersousa/personal-financial-management-api/actions/permissions
 ```
 
-### 3. Verificar Configuração
+### **Opção 3: Teste Manual**
 
-Após configurar, você pode verificar se está funcionando:
+Para verificar se as permissões estão funcionando:
 
 ```bash
-# Testar push manual de uma imagem
-docker build -t ghcr.io/aleksandersousa/personal-financial-management-api:test .
+# 1. Gerar um token pessoal (se necessário)
+# Vá para Settings → Developer settings → Personal access tokens
+# Crie um token com escopo 'write:packages'
+
+# 2. Testar login
 echo $GITHUB_TOKEN | docker login ghcr.io -u aleksandersousa --password-stdin
+
+# 3. Testar push de uma imagem simples
+docker pull hello-world
+docker tag hello-world ghcr.io/aleksandersousa/personal-financial-management-api:test
 docker push ghcr.io/aleksandersousa/personal-financial-management-api:test
 ```
 
-## 🚨 Troubleshooting
+## 🔍 Diagnóstico de Problemas
 
-### Erro: "denied: installation not allowed to Create organization package"
+### **Verificar Status Atual**
 
-**Causa**: O GITHUB_TOKEN não tem permissões para criar pacotes.
+```bash
+# Verificar permissões do repositório
+gh api repos/aleksandersousa/personal-financial-management-api/actions/permissions
 
-**Solução**:
+# Verificar pacotes existentes
+gh api user/packages?package_type=container
 
-1. Verifique se as permissões do workflow estão corretas
-2. Configure "Read and write permissions" nas configurações do repositório
-3. Se for uma organização, verifique as políticas de pacotes da organização
+# Verificar configurações de organização (se aplicável)
+gh api orgs/aleksandersousa/actions/permissions
+```
 
-### Erro: "denied: requested access to the resource is denied"
+### **Logs Detalhados**
 
-**Causa**: Problema de autenticação ou nome do pacote.
+No workflow, você pode adicionar debug:
 
-**Solução**:
+```yaml
+- name: 🔍 Debug GHCR permissions
+  run: |
+    echo "Actor: ${{ github.actor }}"
+    echo "Repository: ${{ github.repository }}"
+    echo "Repository Owner: ${{ github.repository_owner }}"
+    echo "Registry: ${{ env.REGISTRY }}"
+    echo "Image Name: ${{ env.IMAGE_NAME }}"
+```
 
-1. Verifique se o nome do repositório está correto
-2. Confirme que você tem acesso de escrita ao repositório
-3. Verifique se o pacote já existe e você tem permissões
+## 🚀 Alternativas se GHCR Não Funcionar
 
-### Erro: "unauthorized: authentication required"
+### **1. Docker Hub (Fallback)**
 
-**Causa**: Token de autenticação inválido ou expirado.
+Se o GHCR continuar com problemas, você pode usar Docker Hub:
 
-**Solução**:
+```yaml
+env:
+  REGISTRY: docker.io
+  IMAGE_NAME: aleksandersousa/personal-financial-management-api
+```
 
-1. O GITHUB_TOKEN é gerado automaticamente pelo GitHub Actions
-2. Verifique se as permissões do workflow estão configuradas
-3. Em caso de token personalizado, verifique se não expirou
+E adicionar secrets:
 
-## 📋 Checklist de Configuração
+- `DOCKERHUB_USERNAME`
+- `DOCKERHUB_TOKEN`
 
-- [ ] Permissões do workflow configuradas no arquivo YAML
-- [ ] "Read and write permissions" habilitado nas configurações do repositório
-- [ ] Configurações de pacotes definidas (público/privado)
-- [ ] Nome da imagem correto no workflow
-- [ ] Teste manual de push funcionando
+### **2. Registry Privado**
+
+Configurar um registry privado (AWS ECR, Azure ACR, etc.)
+
+## 📋 Checklist de Resolução
+
+- [ ] **Permissões do workflow** configuradas no YAML
+- [ ] **"Read and write permissions"** habilitado nas configurações do repositório
+- [ ] **Configurações de pacotes** definidas (público/privado)
+- [ ] **Permissões de organização** verificadas (se aplicável)
+- [ ] **Teste manual** de push funcionando
+- [ ] **Workflow com fallbacks** implementado
+
+## 🎯 Próximos Passos
+
+1. **Configure as permissões** via interface web (mais confiável)
+2. **Execute o workflow** novamente
+3. **Verifique os logs** para ver qual estratégia funcionou
+4. **Se ainda falhar**, considere usar Docker Hub temporariamente
 
 ## 🔗 Links Úteis
 
 - [GitHub Packages Documentation](https://docs.github.com/en/packages)
 - [Container Registry Guide](https://docs.github.com/en/packages/working-with-a-github-packages-registry/working-with-the-container-registry)
 - [GitHub Actions Permissions](https://docs.github.com/en/actions/security-guides/automatic-token-authentication)
+- [Troubleshooting GHCR](https://docs.github.com/en/packages/working-with-a-github-packages-registry/working-with-the-container-registry#troubleshooting)
 
-## 📞 Suporte
+## 📞 Status do Workflow
 
-Se ainda houver problemas:
+O workflow agora tem **múltiplas estratégias de fallback**:
 
-1. Verifique os logs detalhados do GitHub Actions
-2. Teste o push manual da imagem
-3. Consulte a documentação oficial do GitHub
-4. Abra uma issue no repositório se necessário
+1. ✅ **Tenta build principal** com formato padrão
+2. ✅ **Tenta build alternativo** com formato simplificado
+3. ✅ **Tenta builds separados** por arquitetura
+4. ✅ **Combina em manifest** multi-arquitetura
+5. ✅ **Continua deploy** mesmo se algumas estratégias falharem
+
+Pelo menos uma das estratégias deve funcionar após configurar as permissões!
