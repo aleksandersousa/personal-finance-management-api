@@ -495,17 +495,471 @@ export class ValidationExceptionFilter implements ExceptionFilter {
 
 ## 🧪 Phase 6: Testing Implementation
 
-### 6.1 Unit Tests Structure
+### 6.1 Test Structure & Mock Organization
 
 ```bash
-# Test files mirror source structure
+# Test files mirror source structure with dedicated mock folders per layer
 test/
-├── data/usecases/[action]-[entity].usecase.spec.ts
-├── infra/db/typeorm/repositories/[entity].repository.spec.ts
-└── presentation/controllers/[entity].controller.spec.ts
+├── domain/
+│   ├── mocks/              # Domain models and use case mocks
+│   │   ├── models/         # Entity mocks and factories
+│   │   └── usecases/       # Use case mocks
+│   └── usecases/           # Domain use case tests
+├── data/
+│   ├── mocks/              # Data layer stubs and spies
+│   │   ├── repositories/   # Repository stubs
+│   │   └── protocols/      # Protocol stubs (validation, etc.)
+│   └── usecases/           # Data use case implementation tests
+├── infra/
+│   ├── mocks/              # Infrastructure spies
+│   │   ├── db/             # Database connection spies
+│   │   ├── logging/        # Logger spies
+│   │   ├── metrics/        # Metrics spies
+│   │   └── external/       # External service spies
+│   └── db/typeorm/repositories/  # Repository integration tests
+├── presentation/
+│   ├── mocks/              # Presentation layer mocks
+│   │   ├── controllers/    # Request/Response mocks
+│   │   ├── guards/         # Auth guard mocks
+│   │   ├── middlewares/    # Middleware mocks
+│   │   └── interceptors/   # Interceptor mocks
+│   └── controllers/        # Controller tests
+└── main/
+    └── mocks/              # Factory and module mocks
 ```
 
-### 6.2 Use Case Unit Tests
+### 6.2 Mock Creation Strategy by Layer
+
+#### 6.2.1 Domain Layer Mocks (`test/domain/mocks/`)
+
+**Purpose**: Provide pure domain objects and use case mocks for complete isolation
+
+**Implementation Pattern:**
+
+```typescript
+// test/domain/mocks/models/[entity].mock.ts
+export const mock[Entity]: [Entity] = {
+  id: 'test-id',
+  userId: 'test-user-id',
+  // ... domain properties
+  createdAt: new Date('2025-06-01T00:00:00Z'),
+  updatedAt: new Date('2025-06-01T00:00:00Z'),
+};
+
+export class Mock[Entity]Factory {
+  static create(overrides: Partial<[Entity]> = {}): [Entity] {
+    return { ...mock[Entity], ...overrides };
+  }
+
+  static createMany(count: number, overrides: Partial<[Entity]> = {}): [Entity][] {
+    return Array.from({ length: count }, (_, index) =>
+      this.create({ ...overrides, id: `${mock[Entity].id}-${index + 1}` })
+    );
+  }
+
+  static createValid(): [Entity] {
+    return this.create();
+  }
+
+  static createInvalid(): Partial<[Entity]> {
+    return { ...mock[Entity], id: undefined };
+  }
+}
+```
+
+```typescript
+// test/domain/mocks/usecases/[action]-[entity].mock.ts
+export class [Action][Entity]UseCaseMockFactory {
+  static createSuccess(result: [Entity] = mock[Entity]): jest.Mocked<[Action][Entity]UseCase> {
+    return {
+      execute: jest.fn().mockResolvedValue(result),
+    };
+  }
+
+  static createFailure(error: Error): jest.Mocked<[Action][Entity]UseCase> {
+    return {
+      execute: jest.fn().mockRejectedValue(error),
+    };
+  }
+
+  static createValidationFailure(): jest.Mocked<[Action][Entity]UseCase> {
+    return {
+      execute: jest.fn().mockRejectedValue(new ValidationError('Invalid data')),
+    };
+  }
+}
+```
+
+#### 6.2.2 Data Layer Stubs (`test/data/mocks/`)
+
+**Purpose**: Provide controllable data layer implementations for testing business logic
+
+**Implementation Pattern:**
+
+```typescript
+// test/data/mocks/repositories/[entity]-repository.stub.ts
+export class [Entity]RepositoryStub implements [Entity]Repository {
+  private entities: Map<string, [Entity]> = new Map();
+  private shouldFail = false;
+  private errorToThrow: Error | null = null;
+
+  async create(data: [Entity]CreateData): Promise<[Entity]> {
+    if (this.shouldFail && this.errorToThrow) {
+      throw this.errorToThrow;
+    }
+
+    const entity: [Entity] = {
+      ...data,
+      id: `stub-${Date.now()}-${Math.random()}`,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+
+    this.entities.set(entity.id, entity);
+    return entity;
+  }
+
+  async findById(id: string): Promise<[Entity] | null> {
+    if (this.shouldFail && this.errorToThrow) {
+      throw this.errorToThrow;
+    }
+    return this.entities.get(id) || null;
+  }
+
+  async findByUserId(userId: string): Promise<[Entity][]> {
+    if (this.shouldFail && this.errorToThrow) {
+      throw this.errorToThrow;
+    }
+    return Array.from(this.entities.values()).filter(e => e.userId === userId);
+  }
+
+  async update(id: string, data: [Entity]UpdateData): Promise<[Entity]> {
+    if (this.shouldFail && this.errorToThrow) {
+      throw this.errorToThrow;
+    }
+
+    const existing = this.entities.get(id);
+    if (!existing) throw new Error('[Entity] not found');
+
+    const updated = { ...existing, ...data, updatedAt: new Date() };
+    this.entities.set(id, updated);
+    return updated;
+  }
+
+  async delete(id: string): Promise<void> {
+    if (this.shouldFail && this.errorToThrow) {
+      throw this.errorToThrow;
+    }
+    this.entities.delete(id);
+  }
+
+  // Test utility methods
+  clear(): void {
+    this.entities.clear();
+    this.shouldFail = false;
+    this.errorToThrow = null;
+  }
+
+  seed(entities: [Entity][]): void {
+    entities.forEach(entity => this.entities.set(entity.id, entity));
+  }
+
+  mockFailure(error: Error): void {
+    this.shouldFail = true;
+    this.errorToThrow = error;
+  }
+
+  mockSuccess(): void {
+    this.shouldFail = false;
+    this.errorToThrow = null;
+  }
+
+  getCount(): number {
+    return this.entities.size;
+  }
+}
+```
+
+```typescript
+// test/data/mocks/protocols/validation.stub.ts
+export class ValidationStub<T> implements ValidationProtocol<T> {
+  private validationResult: ValidationResult = {
+    isValid: true,
+    errors: [],
+  };
+
+  validate(data: T): ValidationResult {
+    return this.validationResult;
+  }
+
+  // Test utility methods
+  mockValidationSuccess(): void {
+    this.validationResult = {
+      isValid: true,
+      errors: [],
+    };
+  }
+
+  mockValidationFailure(errors: ValidationError[]): void {
+    this.validationResult = {
+      isValid: false,
+      errors,
+    };
+  }
+
+  mockFieldError(field: string, message: string): void {
+    this.mockValidationFailure([{ field, message }]);
+  }
+}
+```
+
+#### 6.2.3 Infrastructure Layer Spies (`test/infra/mocks/`)
+
+**Purpose**: Observe and control infrastructure layer interactions
+
+**Implementation Pattern:**
+
+```typescript
+// test/infra/mocks/logging/logger.spy.ts
+export class LoggerSpy implements ContextAwareLoggerService {
+  public loggedEvents: LogEvent[] = [];
+  public loggedBusinessEvents: BusinessEvent[] = [];
+  public loggedSecurityEvents: SecurityEvent[] = [];
+  public loggedErrors: ErrorEvent[] = [];
+
+  log(message: string, ...args: any[]): void {
+    this.loggedEvents.push({
+      level: "log",
+      message,
+      args,
+      timestamp: new Date(),
+    });
+  }
+
+  error(message: string, stack?: string): void {
+    this.loggedErrors.push({ message, stack, timestamp: new Date() });
+  }
+
+  warn(message: string): void {
+    this.loggedEvents.push({ level: "warn", message, timestamp: new Date() });
+  }
+
+  debug(message: string): void {
+    this.loggedEvents.push({ level: "debug", message, timestamp: new Date() });
+  }
+
+  logBusinessEvent(event: BusinessEvent): void {
+    this.loggedBusinessEvents.push({ ...event, timestamp: new Date() });
+  }
+
+  logSecurityEvent(event: SecurityEvent): void {
+    this.loggedSecurityEvents.push({ ...event, timestamp: new Date() });
+  }
+
+  // Test utility methods
+  clear(): void {
+    this.loggedEvents = [];
+    this.loggedBusinessEvents = [];
+    this.loggedSecurityEvents = [];
+    this.loggedErrors = [];
+  }
+
+  getBusinessEvents(eventType?: string): BusinessEvent[] {
+    return eventType
+      ? this.loggedBusinessEvents.filter((e) => e.event === eventType)
+      : this.loggedBusinessEvents;
+  }
+
+  getSecurityEvents(severity?: string): SecurityEvent[] {
+    return severity
+      ? this.loggedSecurityEvents.filter((e) => e.severity === severity)
+      : this.loggedSecurityEvents;
+  }
+
+  getErrorsCount(): number {
+    return this.loggedErrors.length;
+  }
+
+  getLastBusinessEvent(): BusinessEvent | null {
+    return (
+      this.loggedBusinessEvents[this.loggedBusinessEvents.length - 1] || null
+    );
+  }
+
+  hasLoggedEvent(eventType: string): boolean {
+    return this.loggedBusinessEvents.some((e) => e.event === eventType);
+  }
+}
+```
+
+```typescript
+// test/infra/mocks/metrics/metrics.spy.ts
+export class MetricsSpy implements MetricsService {
+  public recordedMetrics: MetricRecord[] = [];
+  public startedTimers: TimerRecord[] = [];
+
+  startTimer(name: string): TimerFunction {
+    const timerFn = jest.fn((labels: any) => {
+      this.recordedMetrics.push({
+        name,
+        labels,
+        type: "timer",
+        timestamp: new Date(),
+      });
+    });
+
+    this.startedTimers.push({ name, timer: timerFn, startTime: new Date() });
+    return timerFn;
+  }
+
+  incrementCounter(name: string, labels: any = {}): void {
+    this.recordedMetrics.push({
+      name,
+      labels,
+      type: "counter",
+      timestamp: new Date(),
+    });
+  }
+
+  recordGauge(name: string, value: number, labels: any = {}): void {
+    this.recordedMetrics.push({
+      name,
+      value,
+      labels,
+      type: "gauge",
+      timestamp: new Date(),
+    });
+  }
+
+  recordHistogram(name: string, value: number, labels: any = {}): void {
+    this.recordedMetrics.push({
+      name,
+      value,
+      labels,
+      type: "histogram",
+      timestamp: new Date(),
+    });
+  }
+
+  // Test utility methods
+  clear(): void {
+    this.recordedMetrics = [];
+    this.startedTimers = [];
+  }
+
+  getMetrics(name?: string, type?: string): MetricRecord[] {
+    let filtered = this.recordedMetrics;
+
+    if (name) {
+      filtered = filtered.filter((m) => m.name === name);
+    }
+
+    if (type) {
+      filtered = filtered.filter((m) => m.type === type);
+    }
+
+    return filtered;
+  }
+
+  getTimers(name?: string): TimerRecord[] {
+    return name
+      ? this.startedTimers.filter((t) => t.name === name)
+      : this.startedTimers;
+  }
+
+  getMetricCount(name: string): number {
+    return this.recordedMetrics.filter((m) => m.name === name).length;
+  }
+
+  hasRecordedMetric(name: string): boolean {
+    return this.recordedMetrics.some((m) => m.name === name);
+  }
+}
+```
+
+#### 6.2.4 Presentation Layer Mocks (`test/presentation/mocks/`)
+
+**Purpose**: Mock HTTP-related components for controller testing
+
+**Implementation Pattern:**
+
+```typescript
+// test/presentation/mocks/controllers/request.mock.ts
+export const mockRequest = {
+  user: {
+    userId: "test-user-123",
+    email: "test@example.com",
+    role: "user",
+  },
+  traceId: "trace-123",
+  headers: {
+    authorization: "Bearer mock-jwt-token",
+    "content-type": "application/json",
+  },
+  ip: "127.0.0.1",
+  method: "POST",
+  url: "/api/v1/test",
+};
+
+export class RequestMockFactory {
+  static create(overrides: any = {}): any {
+    return { ...mockRequest, ...overrides };
+  }
+
+  static createWithUser(
+    userId: string,
+    email: string = "test@example.com"
+  ): any {
+    return this.create({
+      user: { userId, email, role: "user" },
+    });
+  }
+
+  static createWithAdmin(userId: string = "admin-123"): any {
+    return this.create({
+      user: { userId, email: "admin@example.com", role: "admin" },
+    });
+  }
+
+  static createUnauthorized(): any {
+    return this.create({
+      user: null,
+      headers: { ...mockRequest.headers, authorization: undefined },
+    });
+  }
+}
+```
+
+```typescript
+// test/presentation/mocks/guards/auth.mock.ts
+export class AuthGuardMockFactory {
+  static createAuthorized(): any {
+    return {
+      canActivate: jest.fn().mockReturnValue(true),
+    };
+  }
+
+  static createUnauthorized(): any {
+    return {
+      canActivate: jest.fn().mockReturnValue(false),
+    };
+  }
+
+  static createConditional(condition: boolean): any {
+    return {
+      canActivate: jest.fn().mockReturnValue(condition),
+    };
+  }
+
+  static createSpy(): any {
+    return {
+      canActivate: jest.fn().mockReturnValue(true),
+    };
+  }
+}
+```
+
+### 6.3 Unit Tests Implementation
 
 **Location**: `test/data/usecases/`
 
@@ -513,70 +967,194 @@ test/
 
 ```typescript
 // test/data/usecases/[action]-[entity].usecase.spec.ts
+import { [Action][Entity]UseCase } from '../../../src/data/usecases/[action]-[entity].usecase';
+import { [Entity]RepositoryStub } from '../mocks/repositories/[entity]-repository.stub';
+import { ValidationStub } from '../mocks/protocols/validation.stub';
+import { Mock[Entity]Factory } from '../../domain/mocks/models/[entity].mock';
+
 describe('[Action][Entity]UseCase', () => {
   let useCase: [Action][Entity]UseCase;
-  let mockRepository: jest.Mocked<[Entity]Repository>;
-  let mockValidation: jest.Mocked<ValidationProtocol<[Action][Entity]Data>>;
+  let repositoryStub: [Entity]RepositoryStub;
+  let validationStub: ValidationStub<[Action][Entity]Data>;
 
-  beforeEach(async () => {
-    mockRepository = {
-      create: jest.fn(),
-      findById: jest.fn(),
-      // ... other methods
-    };
+  beforeEach(() => {
+    repositoryStub = new [Entity]RepositoryStub();
+    validationStub = new ValidationStub<[Action][Entity]Data>();
+    useCase = new [Action][Entity]UseCase(repositoryStub, validationStub);
+  });
 
-    mockValidation = {
-      validate: jest.fn()
-    };
-
-    useCase = new [Action][Entity]UseCase(mockRepository, mockValidation);
+  afterEach(() => {
+    repositoryStub.clear();
   });
 
   describe('execute', () => {
-    it('should create [entity] with valid data', async () => {
+    it('should [action] [entity] with valid data', async () => {
       // Arrange
-      const inputData = {
-        // test data
-      };
-
-      mockValidation.validate.mockReturnValue({
-        isValid: true,
-        errors: []
-      });
-
-      mockRepository.create.mockResolvedValue(/* expected entity */);
+      const inputData = Mock[Entity]Factory.create();
+      validationStub.mockValidationSuccess();
 
       // Act
       const result = await useCase.execute(inputData);
 
       // Assert
-      expect(result).toEqual(/* expected result */);
-      expect(mockRepository.create).toHaveBeenCalledWith(inputData);
+      expect(result).toHaveProperty('id');
+      expect(result.description).toBe(inputData.description);
+      expect(repositoryStub.getCount()).toBe(1);
     });
 
     it('should throw validation error for invalid data', async () => {
-      // Test validation failure
+      // Arrange
+      const inputData = Mock[Entity]Factory.createInvalid();
+      validationStub.mockValidationFailure([
+        { field: 'amount', message: 'Amount must be positive' }
+      ]);
+
+      // Act & Assert
+      await expect(useCase.execute(inputData)).rejects.toThrow('Validation failed');
+      expect(repositoryStub.getCount()).toBe(0);
     });
 
     it('should handle repository errors', async () => {
-      // Test error scenarios
+      // Arrange
+      const inputData = Mock[Entity]Factory.create();
+      validationStub.mockValidationSuccess();
+      repositoryStub.mockFailure(new Error('Database connection failed'));
+
+      // Act & Assert
+      await expect(useCase.execute(inputData)).rejects.toThrow('Database connection failed');
     });
   });
 });
 ```
 
-### 6.3 Repository Integration Tests
+### 6.4 Controller Tests Implementation
+
+**Implementation Pattern:**
+
+```typescript
+// test/presentation/controllers/[entity].controller.spec.ts
+import { Test, TestingModule } from '@nestjs/testing';
+import { [Entity]Controller } from '../../../src/presentation/controllers/[entity].controller';
+import { [Action][Entity]UseCaseMockFactory } from '../../domain/mocks/usecases/[action]-[entity].mock';
+import { LoggerSpy } from '../../infra/mocks/logging/logger.spy';
+import { MetricsSpy } from '../../infra/mocks/metrics/metrics.spy';
+import { RequestMockFactory } from '../mocks/controllers/request.mock';
+import { Mock[Entity]Factory } from '../../domain/mocks/models/[entity].mock';
+
+describe('[Entity]Controller', () => {
+  let controller: [Entity]Controller;
+  let [action][Entity]UseCase: jest.Mocked<[Action][Entity]UseCase>;
+  let loggerSpy: LoggerSpy;
+  let metricsSpy: MetricsSpy;
+
+  beforeEach(async () => {
+    [action][Entity]UseCase = [Action][Entity]UseCaseMockFactory.createSuccess();
+    loggerSpy = new LoggerSpy();
+    metricsSpy = new MetricsSpy();
+
+    const module: TestingModule = await Test.createTestingModule({
+      controllers: [[Entity]Controller],
+      providers: [
+        { provide: [Action][Entity]UseCase, useValue: [action][Entity]UseCase },
+        { provide: ContextAwareLoggerService, useValue: loggerSpy },
+        { provide: MetricsService, useValue: metricsSpy },
+      ],
+    }).compile();
+
+    controller = module.get<[Entity]Controller>([Entity]Controller);
+  });
+
+  afterEach(() => {
+    loggerSpy.clear();
+    metricsSpy.clear();
+    jest.clearAllMocks();
+  });
+
+  describe('[action]', () => {
+    it('should [action] [entity] and log business event', async () => {
+      // Arrange
+      const [action]Dto = { /* valid DTO data */ };
+      const mockRequest = RequestMockFactory.createWithUser('user-123');
+      const expected[Entity] = Mock[Entity]Factory.create();
+
+      [action][Entity]UseCase.execute.mockResolvedValue(expected[Entity]);
+
+      // Act
+      const result = await controller.[action]([action]Dto, mockRequest);
+
+      // Assert
+      expect(result).toEqual(expected[Entity]);
+      expect([action][Entity]UseCase.execute).toHaveBeenCalledWith({
+        ...[action]Dto,
+        userId: 'user-123'
+      });
+
+      // Verify business event logging
+      const businessEvents = loggerSpy.getBusinessEvents('[entity]_api_[action]_success');
+      expect(businessEvents).toHaveLength(1);
+      expect(businessEvents[0]).toMatchObject({
+        userId: 'user-123',
+        traceId: 'trace-123'
+      });
+
+      // Verify metrics
+      expect(metricsSpy.hasRecordedMetric('http_request_duration')).toBe(true);
+    });
+
+    it('should handle use case errors and log security event', async () => {
+      // Arrange
+      const [action]Dto = { /* invalid DTO data */ };
+      const mockRequest = RequestMockFactory.createWithUser('user-123');
+      const error = new ValidationError('Invalid data');
+
+      [action][Entity]UseCase.execute.mockRejectedValue(error);
+
+      // Act & Assert
+      await expect(controller.[action]([action]Dto, mockRequest)).rejects.toThrow(error);
+
+      // Verify security event logging
+      const securityEvents = loggerSpy.getSecurityEvents('medium');
+      expect(securityEvents).toHaveLength(1);
+      expect(securityEvents[0]).toMatchObject({
+        event: '[entity]_api_[action]_failed',
+        userId: 'user-123',
+        error: 'Invalid data'
+      });
+
+      // Verify error metrics
+      const errorMetrics = metricsSpy.getMetrics('http_request_duration');
+      expect(errorMetrics.some(m => m.labels.status === 'error')).toBe(true);
+    });
+  });
+});
+```
+
+### 6.5 Integration Test Implementation
 
 **Implementation Pattern:**
 
 ```typescript
 // test/infra/db/typeorm/repositories/[entity].repository.spec.ts
+import { Test, TestingModule } from '@nestjs/testing';
+import { TypeOrmModule } from '@nestjs/typeorm';
+import { DataSource } from 'typeorm';
+import { [Entity]Repository } from '../../../../../src/infra/db/typeorm/repositories/[entity].repository';
+import { [Entity]Entity } from '../../../../../src/infra/db/typeorm/entities/[entity].entity';
+import { LoggerSpy } from '../../../mocks/logging/logger.spy';
+import { MetricsSpy } from '../../../mocks/metrics/metrics.spy';
+import { Mock[Entity]Factory } from '../../../../domain/mocks/models/[entity].mock';
+
 describe('[Entity]Repository', () => {
   let repository: [Entity]Repository;
   let testingModule: TestingModule;
   let dataSource: DataSource;
+  let loggerSpy: LoggerSpy;
+  let metricsSpy: MetricsSpy;
 
   beforeEach(async () => {
+    loggerSpy = new LoggerSpy();
+    metricsSpy = new MetricsSpy();
+
     testingModule = await Test.createTestingModule({
       imports: [
         TypeOrmModule.forRoot({
@@ -584,13 +1162,14 @@ describe('[Entity]Repository', () => {
           database: ':memory:',
           entities: [[Entity]Entity],
           synchronize: true,
+          logging: false,
         }),
         TypeOrmModule.forFeature([[Entity]Entity]),
       ],
       providers: [
         [Entity]Repository,
-        ContextAwareLoggerService,
-        MetricsService,
+        { provide: ContextAwareLoggerService, useValue: loggerSpy },
+        { provide: MetricsService, useValue: metricsSpy },
       ],
     }).compile();
 
@@ -599,72 +1178,205 @@ describe('[Entity]Repository', () => {
   });
 
   afterEach(async () => {
-    await dataSource.destroy();
+    await dataSource.dropDatabase();
+    loggerSpy.clear();
+    metricsSpy.clear();
   });
 
-  it('should create [entity] successfully', async () => {
-    // Integration test implementation
+  afterAll(async () => {
+    await testingModule.close();
+  });
+
+  describe('create', () => {
+    it('should create [entity] successfully', async () => {
+      // Arrange
+      const [entity]Data = Mock[Entity]Factory.create();
+
+      // Act
+      const result = await repository.create([entity]Data);
+
+      // Assert
+      expect(result).toHaveProperty('id');
+      expect(result.description).toBe([entity]Data.description);
+      expect(result.userId).toBe([entity]Data.userId);
+
+      // Verify logging
+      expect(loggerSpy.hasLoggedEvent('[entity]_created')).toBe(true);
+
+      // Verify metrics
+      expect(metricsSpy.hasRecordedMetric('database_operation')).toBe(true);
+      const metrics = metricsSpy.getMetrics('database_operation');
+      expect(metrics[0].labels).toMatchObject({
+        operation: 'create',
+        entity: '[entity]',
+        status: 'success'
+      });
+    });
+
+    it('should handle database errors', async () => {
+      // Arrange
+      const invalid[Entity]Data = { ...Mock[Entity]Factory.create(), userId: null };
+
+      // Act & Assert
+      await expect(repository.create(invalid[Entity]Data)).rejects.toThrow();
+
+      // Verify error logging
+      expect(loggerSpy.getErrorsCount()).toBeGreaterThan(0);
+
+      // Verify error metrics
+      const metrics = metricsSpy.getMetrics('database_operation');
+      expect(metrics.some(m => m.labels.status === 'error')).toBe(true);
+    });
   });
 });
 ```
 
-### 6.4 Controller E2E Tests
+### 6.6 E2E Test Implementation
 
 **Implementation Pattern:**
 
 ```typescript
 // test/presentation/controllers/[entity].controller.e2e-spec.ts
-describe("[Entity]Controller (e2e)", () => {
+import { Test, TestingModule } from '@nestjs/testing';
+import { INestApplication } from '@nestjs/common';
+import * as request from 'supertest';
+import { AppModule } from '../../../src/main/modules/app.module';
+import { LoggerSpy } from '../../infra/mocks/logging/logger.spy';
+import { MetricsSpy } from '../../infra/mocks/metrics/metrics.spy';
+import { DataSource } from 'typeorm';
+
+describe('[Entity]Controller (e2e)', () => {
   let app: INestApplication;
   let authToken: string;
+  let loggerSpy: LoggerSpy;
+  let metricsSpy: MetricsSpy;
+  let dataSource: DataSource;
 
-  beforeEach(async () => {
+  beforeAll(async () => {
+    loggerSpy = new LoggerSpy();
+    metricsSpy = new MetricsSpy();
+
     const moduleFixture: TestingModule = await Test.createTestingModule({
       imports: [AppModule],
-    }).compile();
+    })
+      .overrideProvider(ContextAwareLoggerService)
+      .useValue(loggerSpy)
+      .overrideProvider(MetricsService)
+      .useValue(metricsSpy)
+      .compile();
 
     app = moduleFixture.createNestApplication();
-    await app.init();
+    dataSource = moduleFixture.get<DataSource>(DataSource);
 
-    // Setup authentication token
+    await app.init();
     authToken = await getAuthToken(app);
   });
 
-  it("/[entities] (POST)", () => {
-    return request(app.getHttpServer())
-      .post("/api/v1/[entities]")
-      .set("Authorization", `Bearer ${authToken}`)
-      .send({
-        // test data
-      })
-      .expect(201)
-      .expect((res) => {
-        expect(res.body).toHaveProperty("id");
-        expect(res.body.property).toBe("expected value");
-      });
+  afterAll(async () => {
+    await app.close();
   });
 
-  it("/[entities] (POST) should return 400 for invalid data", () => {
-    return request(app.getHttpServer())
-      .post("/api/v1/[entities]")
-      .set("Authorization", `Bearer ${authToken}`)
-      .send({
-        // invalid test data
-      })
-      .expect(400);
+  beforeEach(async () => {
+    // Clean database state
+    await dataSource.synchronize(true);
+    loggerSpy.clear();
+    metricsSpy.clear();
+  });
+
+  describe('POST /api/v1/[entities]', () => {
+    it('should create [entity] successfully', async () => {
+      // Arrange
+      const create[Entity]Data = {
+        description: 'Test [Entity]',
+        amount: 10000,
+        category: 'Test Category',
+        type: 'EXPENSE',
+        is_fixed: false,
+        date: '2025-06-01T00:00:00Z',
+      };
+
+      // Act
+      const response = await request(app.getHttpServer())
+        .post('/api/v1/[entities]')
+        .set('Authorization', `Bearer ${authToken}`)
+        .send(create[Entity]Data)
+        .expect(201);
+
+      // Assert
+      expect(response.body).toHaveProperty('id');
+      expect(response.body.description).toBe(create[Entity]Data.description);
+      expect(response.body.amount).toBe(create[Entity]Data.amount);
+
+      // Verify business events were logged
+      const businessEvents = loggerSpy.getBusinessEvents('[entity]_api_create_success');
+      expect(businessEvents).toHaveLength(1);
+      expect(businessEvents[0]).toMatchObject({
+        entityId: response.body.id,
+        userId: expect.any(String),
+      });
+
+      // Verify metrics were recorded
+      expect(metricsSpy.hasRecordedMetric('http_request_duration')).toBe(true);
+      const timerMetrics = metricsSpy.getTimers('http_request_duration');
+      expect(timerMetrics).toHaveLength(1);
+    });
+
+    it('should return 400 for invalid data', async () => {
+      // Arrange
+      const invalid[Entity]Data = {
+        description: '', // Invalid: empty description
+        amount: -100, // Invalid: negative amount
+      };
+
+      // Act
+      const response = await request(app.getHttpServer())
+        .post('/api/v1/[entities]')
+        .set('Authorization', `Bearer ${authToken}`)
+        .send(invalid[Entity]Data)
+        .expect(400);
+
+      // Assert
+      expect(response.body).toHaveProperty('message');
+      expect(response.body.message).toContain('validation');
+
+      // Verify security events were logged
+      const securityEvents = loggerSpy.getSecurityEvents();
+      expect(securityEvents.length).toBeGreaterThan(0);
+
+      // Verify error metrics
+      const errorMetrics = metricsSpy.getMetrics('http_request_duration');
+      expect(errorMetrics.some(m => m.labels.status === 'error')).toBe(true);
+    });
+
+    it('should return 401 for unauthorized requests', async () => {
+      // Act
+      const response = await request(app.getHttpServer())
+        .post('/api/v1/[entities]')
+        .send({ description: 'Test' })
+        .expect(401);
+
+      // Assert
+      expect(response.body).toHaveProperty('message');
+      expect(response.body.message).toContain('Unauthorized');
+    });
   });
 });
 ```
 
 **Testing Checklist:**
 
-- [ ] Unit tests for all use cases
-- [ ] Repository integration tests
-- [ ] Controller E2E tests
-- [ ] Validation scenarios covered
-- [ ] Error scenarios tested
-- [ ] Authentication tests included
-- [ ] Edge cases covered
+- [ ] Domain layer mocks created with factories
+- [ ] Data layer stubs implemented with test utilities
+- [ ] Infrastructure layer spies configured for observability
+- [ ] Presentation layer mocks for HTTP components
+- [ ] Unit tests for all use cases with complete mock isolation
+- [ ] Integration tests for repositories with in-memory database
+- [ ] Controller tests with spy verification for logging and metrics
+- [ ] E2E tests with full application context and spy monitoring
+- [ ] Mock state cleanup between tests
+- [ ] Error scenarios tested for all layers
+- [ ] Authentication and authorization scenarios covered
+- [ ] Performance impact of mocks verified (fast execution)
 
 ## 🔗 Phase 7: Module Integration
 
@@ -920,22 +1632,46 @@ When following this workflow as an AI:
 4. **Use the exact patterns shown** - Consistency is crucial
 5. **Add comprehensive logging and metrics** - Observability is mandatory
 6. **Write tests for everything** - No code without tests
-7. **Update documentation always** - Keep docs in sync with code
-8. **Ask for clarification** if requirements are unclear
-9. **Suggest improvements** to the workflow when appropriate
-10. **Validate everything** before considering the task complete
+7. **Create organized mocks by layer** - Follow the mock structure religiously
+8. **Use appropriate mock types** - Mocks for unit tests, stubs for integration, spies for E2E
+9. **Implement test utilities** - Add clear(), seed(), and helper methods to mocks
+10. **Update documentation always** - Keep docs in sync with code
+11. **Ask for clarification** if requirements are unclear
+12. **Suggest improvements** to the workflow when appropriate
+13. **Validate everything** before considering the task complete
+
+### Mock Creation Guidelines for AIs:
+
+- **Domain Layer**: Create entity factories and use case mocks with success/failure scenarios
+- **Data Layer**: Implement repository stubs with controllable behavior and utility methods
+- **Infra Layer**: Build spies for logging and metrics with observation capabilities
+- **Presentation Layer**: Mock HTTP components (requests, guards, middlewares) with factory patterns
+- **Always clean state** between tests using provided utility methods
+- **Verify interactions** using spy methods and assertion helpers
 
 ## 🎓 Guidelines for Human Developers
 
 1. **Read the full workflow** before starting any feature
 2. **Follow the guidelines religiously** - They exist for good reasons
 3. **Don't skip testing phases** - Quality is not negotiable
-4. **Update observability** - Monitoring helps everyone
-5. **Document as you go** - Don't leave it for later
-6. **Review your own work** using the checklists
-7. **Ask for help** when patterns are unclear
-8. **Contribute improvements** to the workflow
-9. **Share knowledge** with the team
-10. **Celebrate completion** - You've built something robust!
+4. **Organize mocks by architectural layer** - Keep the structure clean and consistent
+5. **Use the right mock type for each test** - Understand mocks vs stubs vs spies
+6. **Write comprehensive test utilities** - Make testing easier for the team
+7. **Update observability** - Monitoring helps everyone
+8. **Document as you go** - Don't leave it for later
+9. **Review your own work** using the checklists
+10. **Ask for help** when patterns are unclear
+11. **Contribute improvements** to the workflow and mock patterns
+12. **Share knowledge** with the team about testing strategies
+13. **Celebrate completion** - You've built something robust!
+
+### Mock Management Best Practices:
+
+- **Maintain consistency** across all mock implementations
+- **Keep mocks simple** but comprehensive enough for all test scenarios
+- **Use factory patterns** for creating variations of test data
+- **Document complex mock behaviors** with JSDoc comments
+- **Regularly clean up** unused or outdated mock implementations
+- **Share reusable mocks** across test files when appropriate
 
 This workflow ensures consistent, high-quality, and maintainable code that follows all established guidelines and best practices. Every implementation should result in production-ready, well-tested, and properly monitored functionality.
