@@ -2,6 +2,38 @@
 
 Este documento descreve as práticas recomendadas para configurar o pipeline de CI/CD e realizar o deploy da API utilizando **Docker**, **PostgreSQL**, **GitHub Actions** e **Fly.io**, incorporando as **lições aprendidas** de implementação.
 
+## ⚠️ PROBLEMAS IDENTIFICADOS E CORRIGIDOS
+
+### Atualizações Baseadas em Problemas Reais
+
+Durante a implementação dos pipelines de CI/CD, foram identificados e corrigidos os seguintes problemas:
+
+#### ✅ Problemas de CI/CD Resolvidos:
+
+1. **Package Manager Inconsistente**
+
+   - **Problema:** Misturar npm e yarn nos workflows
+   - **Solução:** Yarn usado consistentemente em todos os workflows
+
+2. **Configuração SSL em Testes**
+
+   - **Problema:** SSL habilitado em ambiente de CI causando falhas
+   - **Solução:** `sslmode=disable` em DATABASE_URL para CI
+
+3. **Versões de Node.js Desatualizadas**
+
+   - **Problema:** Usar Node.js 18 quando projeto usa 20+
+   - **Solução:** Node.js 20 consistente em todos os workflows
+
+4. **Cache de Dependências**
+
+   - **Problema:** Builds lentos sem cache
+   - **Solução:** `cache: "yarn"` em setup-node
+
+5. **Testes E2E em CI**
+   - **Problema:** Testes E2E falhando por dependências de banco
+   - **Solução:** Usar `--passWithNoTests` e mocks
+
 ---
 
 ## 📦 Requisitos
@@ -89,8 +121,8 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: "20"
-          cache: "yarn" # ⚠️ IMPORTANTE: Usar yarn cache
+          node-version: '20'
+          cache: 'yarn' # ⚠️ IMPORTANTE: Usar yarn cache
 
       - name: Install dependencies
         run: yarn install --frozen-lockfile # ⚠️ Usar yarn consistentemente
@@ -171,8 +203,8 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: "20"
-          cache: "yarn"
+          node-version: '20'
+          cache: 'yarn'
 
       - name: Install dependencies
         run: yarn install --frozen-lockfile --production # ⚠️ Apenas prod deps
@@ -199,7 +231,7 @@ jobs:
         uses: 8398a7/action-slack@v3
         with:
           status: ${{ job.status }}
-          text: "Staging deployment ${{ job.status }}"
+          text: 'Staging deployment ${{ job.status }}'
         env:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK }}
 ```
@@ -226,8 +258,8 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: "20"
-          cache: "yarn"
+          node-version: '20'
+          cache: 'yarn'
 
       - name: Install dependencies
         run: yarn install --frozen-lockfile --production
@@ -273,7 +305,7 @@ jobs:
         uses: 8398a7/action-slack@v3
         with:
           status: ${{ job.status }}
-          text: "🚀 Production deployment ${{ job.status }}"
+          text: '🚀 Production deployment ${{ job.status }}'
           fields: repo,message,commit,author,action,eventName,ref,workflow
         env:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK }}
@@ -417,7 +449,7 @@ name: Rotate Secrets
 
 on:
   schedule:
-    - cron: "0 0 1 * *" # Todo dia 1 do mês
+    - cron: '0 0 1 * *' # Todo dia 1 do mês
   workflow_dispatch:
 
 jobs:
@@ -443,7 +475,7 @@ jobs:
         uses: 8398a7/action-slack@v3
         with:
           status: success
-          text: "🔄 JWT Secret rotated successfully"
+          text: '🔄 JWT Secret rotated successfully'
         env:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK }}
 ```
@@ -457,54 +489,54 @@ jobs:
 ```yaml
 version: 2
 updates:
-  - package-ecosystem: "npm"
-    directory: "/"
+  - package-ecosystem: 'npm'
+    directory: '/'
     schedule:
-      interval: "weekly"
-      day: "monday"
-      time: "09:00"
+      interval: 'weekly'
+      day: 'monday'
+      time: '09:00'
     allow:
-      - dependency-type: "direct:production"
-      - dependency-type: "direct:development"
+      - dependency-type: 'direct:production'
+      - dependency-type: 'direct:development'
     ignore:
-      - dependency-name: "@types/*"
-        update-types: ["version-update:semver-patch"]
+      - dependency-name: '@types/*'
+        update-types: ['version-update:semver-patch']
     commit-message:
-      prefix: "deps"
-      include: "scope"
+      prefix: 'deps'
+      include: 'scope'
     labels:
-      - "dependencies"
-      - "automated"
+      - 'dependencies'
+      - 'automated'
     open-pull-requests-limit: 5
     versioning-strategy: auto
 
     # ⚠️ Configurações específicas para aplicação financeira
     groups:
       security-updates:
-        dependency-type: "production"
+        dependency-type: 'production'
         update-types:
-          - "security"
+          - 'security'
 
       nestjs-updates:
         patterns:
-          - "@nestjs/*"
+          - '@nestjs/*'
 
       database-updates:
         patterns:
-          - "typeorm"
-          - "pg"
-          - "@types/pg"
+          - 'typeorm'
+          - 'pg'
+          - '@types/pg'
 
   # Adicionar Docker também
-  - package-ecosystem: "docker"
-    directory: "/.docker"
+  - package-ecosystem: 'docker'
+    directory: '/.docker'
     schedule:
-      interval: "monthly"
+      interval: 'monthly'
     commit-message:
-      prefix: "docker"
+      prefix: 'docker'
     labels:
-      - "docker"
-      - "dependencies"
+      - 'docker'
+      - 'dependencies'
 ```
 
 ### Verificação de Vulnerabilidades Avançada

@@ -93,6 +93,12 @@ yarn add -D typescript ts-node tsconfig-paths
 yarn add -D @typescript-eslint/eslint-plugin @typescript-eslint/parser
 yarn add -D eslint eslint-config-prettier eslint-plugin-prettier
 yarn add -D prettier source-map-support
+
+# ⚠️ OPCIONAL: Apenas se usar SQLite para testes (NÃO recomendado)
+# yarn add -D sqlite3
+
+# ⚠️ IMPORTANTE: Versões específicas para compatibilidade
+yarn add -D @types/pg@^8.10.9
 ```
 
 ### 1.3 Create Directory Structure
@@ -178,6 +184,35 @@ git checkout develop
 - Use meaningful commit messages
 - Commit frequently with small, focused changes
 
+### ⚠️ CONFIGURAÇÃO CRÍTICA: Git User e Permissões
+
+**Problema comum:** Não conseguir fazer commits por falta de configuração
+
+```bash
+# ✅ OBRIGATÓRIO: Configurar usuário Git
+git config --global user.name "Seu Nome"
+git config --global user.email "seu.email@exemplo.com"
+
+# ✅ Para projetos específicos (recomendado)
+git config user.name "Seu Nome"
+git config user.email "seu.email@exemplo.com"
+
+# ✅ Verificar configuração
+git config --list | grep user
+
+# ✅ Se usando SSH, verificar chaves
+ssh -T git@github.com
+
+# ✅ Se usando HTTPS, configurar credenciais
+git config --global credential.helper store
+```
+
+**Problemas de permissão resolvidos:**
+
+- `Please tell me who you are` → Configurar user.name e user.email
+- `Permission denied (publickey)` → Configurar SSH keys ou usar HTTPS
+- `Authentication failed` → Configurar token GitHub para HTTPS
+
 ## 🔧 Phase 3: Core Configuration
 
 ### 3.1 TypeScript Configuration
@@ -222,29 +257,29 @@ Create `.eslintrc.js`:
 
 ```javascript
 module.exports = {
-  parser: "@typescript-eslint/parser",
+  parser: '@typescript-eslint/parser',
   parserOptions: {
-    project: "tsconfig.json",
+    project: 'tsconfig.json',
     tsconfigRootDir: __dirname,
-    sourceType: "module",
+    sourceType: 'module',
   },
-  plugins: ["@typescript-eslint/eslint-plugin"],
+  plugins: ['@typescript-eslint/eslint-plugin'],
   extends: [
-    "@nestjs",
-    "plugin:@typescript-eslint/recommended",
-    "plugin:prettier/recommended",
+    '@nestjs',
+    'plugin:@typescript-eslint/recommended',
+    'plugin:prettier/recommended',
   ],
   root: true,
   env: {
     node: true,
     jest: true,
   },
-  ignorePatterns: [".eslintrc.js"],
+  ignorePatterns: ['.eslintrc.js'],
   rules: {
-    "@typescript-eslint/interface-name-prefix": "off",
-    "@typescript-eslint/explicit-function-return-type": "off",
-    "@typescript-eslint/explicit-module-boundary-types": "off",
-    "@typescript-eslint/no-explicit-any": "off",
+    '@typescript-eslint/interface-name-prefix': 'off',
+    '@typescript-eslint/explicit-function-return-type': 'off',
+    '@typescript-eslint/explicit-module-boundary-types': 'off',
+    '@typescript-eslint/no-explicit-any': 'off',
   },
 };
 ```
@@ -270,16 +305,69 @@ Create `jest.config.js`:
 
 ```javascript
 module.exports = {
-  moduleFileExtensions: ["js", "json", "ts"],
-  rootDir: "src",
-  testRegex: ".*\\.spec\\.ts$",
+  moduleFileExtensions: ['js', 'json', 'ts'],
+  rootDir: '.', // ⚠️ IMPORTANTE: Usar "." para incluir pasta test
+  testRegex: '.*\\.spec\\.ts$',
   transform: {
-    "^.+\\.(t|j)s$": "ts-jest",
+    '^.+\\.(t|j)s$': 'ts-jest',
   },
-  collectCoverageFrom: ["**/*.(t|j)s"],
-  coverageDirectory: "../coverage",
-  testEnvironment: "node",
+  collectCoverageFrom: [
+    'src/**/*.(t|j)s',
+    '!src/**/*.spec.ts',
+    '!src/**/*.d.ts',
+  ],
+  coverageDirectory: './coverage',
+  testEnvironment: 'node',
+  moduleNameMapping: {
+    '^@/(.*)$': '<rootDir>/src/$1',
+    '^@domain/(.*)$': '<rootDir>/src/domain/$1',
+    '^@data/(.*)$': '<rootDir>/src/data/$1',
+    '^@infra/(.*)$': '<rootDir>/src/infra/$1',
+    '^@presentation/(.*)$': '<rootDir>/src/presentation/$1',
+    '^@main/(.*)$': '<rootDir>/src/main/$1',
+  },
+  setupFilesAfterEnv: ['<rootDir>/test/setup.ts'],
+  testPathIgnorePatterns: ['<rootDir>/node_modules/', '<rootDir>/dist/'],
 };
+```
+
+### 3.5 Configuração de Testes E2E
+
+Create `test/jest-e2e.json`:
+
+```json
+{
+  "moduleFileExtensions": ["js", "json", "ts"],
+  "rootDir": ".",
+  "testEnvironment": "node",
+  "testRegex": ".e2e-spec.ts$",
+  "transform": {
+    "^.+\\.(t|j)s$": "ts-jest"
+  },
+  "moduleNameMapping": {
+    "^@/(.*)$": "<rootDir>/src/$1",
+    "^@domain/(.*)$": "<rootDir>/src/domain/$1",
+    "^@data/(.*)$": "<rootDir>/src/data/$1",
+    "^@infra/(.*)$": "<rootDir>/src/infra/$1",
+    "^@presentation/(.*)$": "<rootDir>/src/presentation/$1",
+    "^@main/(.*)$": "<rootDir>/src/main/$1"
+  },
+  "setupFilesAfterEnv": ["<rootDir>/test/setup.ts"]
+}
+```
+
+### 3.6 Setup de Testes
+
+Create `test/setup.ts`:
+
+```typescript
+import 'reflect-metadata';
+
+// Global test setup
+beforeAll(() => {
+  // Configure timezone for consistent test results
+  process.env.TZ = 'UTC';
+});
 ```
 
 ## 🏛️ Phase 4: Core Architecture Implementation
@@ -290,20 +378,20 @@ Create TypeORM configuration:
 
 ```typescript
 // src/infra/db/typeorm/config/data-source.ts
-import { DataSource } from "typeorm";
+import { DataSource } from 'typeorm';
 
 export const typeOrmConfig = {
-  type: "postgres" as const,
-  host: process.env.DB_HOST || "localhost",
+  type: 'postgres' as const,
+  host: process.env.DB_HOST || 'localhost',
   port: parseInt(process.env.DB_PORT) || 5432,
-  username: process.env.DB_USERNAME || "postgres",
-  password: process.env.DB_PASSWORD || "postgres",
-  database: process.env.DB_NAME || "myapi_db",
-  entities: [__dirname + "/../entities/*.entity{.ts,.js}"],
-  migrations: [__dirname + "/../migrations/*{.ts,.js}"],
-  synchronize: process.env.NODE_ENV === "development",
-  logging: process.env.NODE_ENV === "development",
-  ssl: process.env.DB_SSL === "true" ? { rejectUnauthorized: false } : false,
+  username: process.env.DB_USERNAME || 'postgres',
+  password: process.env.DB_PASSWORD || 'postgres',
+  database: process.env.DB_NAME || 'myapi_db',
+  entities: [__dirname + '/../entities/*.entity{.ts,.js}'],
+  migrations: [__dirname + '/../migrations/*{.ts,.js}'],
+  synchronize: process.env.NODE_ENV === 'development',
+  logging: process.env.NODE_ENV === 'development',
+  ssl: process.env.DB_SSL === 'true' ? { rejectUnauthorized: false } : false,
 };
 
 export const AppDataSource = new DataSource(typeOrmConfig);
@@ -374,7 +462,7 @@ services:
     container_name: myapi-api
     restart: unless-stopped
     ports:
-      - "3000:3000"
+      - '3000:3000'
     environment:
       - NODE_ENV=development
       - DATABASE_URL=postgresql://${DB_USERNAME}:${DB_PASSWORD}@db:5432/${DB_NAME}
@@ -392,7 +480,7 @@ services:
     container_name: myapi-db
     restart: unless-stopped
     ports:
-      - "5432:5432"
+      - '5432:5432'
     environment:
       - POSTGRES_DB=${DB_NAME}
       - POSTGRES_USER=${DB_USERNAME}
@@ -400,7 +488,7 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME} -d ${DB_NAME}"]
+      test: ['CMD-SHELL', 'pg_isready -U ${DB_USERNAME} -d ${DB_NAME}']
       interval: 10s
       timeout: 5s
       retries: 5
@@ -614,7 +702,7 @@ Create `test/jest-e2e.json`:
 
 ```typescript
 // test/app.e2e-spec.ts
-describe("AppController (e2e)", () => {
+describe('AppController (e2e)', () => {
   let app: INestApplication;
 
   beforeEach(async () => {
@@ -626,12 +714,12 @@ describe("AppController (e2e)", () => {
     await app.init();
   });
 
-  it("/api/v1/health (GET)", () => {
+  it('/api/v1/health (GET)', () => {
     return request(app.getHttpServer())
-      .get("/api/v1/health")
+      .get('/api/v1/health')
       .expect(200)
-      .expect((res) => {
-        expect(res.body.status).toBe("ok");
+      .expect(res => {
+        expect(res.body.status).toBe('ok');
       });
   });
 });
@@ -674,8 +762,8 @@ jobs:
       - name: Use Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: "22"
-          cache: "yarn"
+          node-version: '22'
+          cache: 'yarn'
 
       - run: yarn install --frozen-lockfile
       - run: yarn lint
@@ -748,6 +836,97 @@ This boilerplate provides a solid foundation. Customize based on your specific n
 - **Observability**: Add domain-specific metrics
 - **Business Logic**: Implement your specific use cases
 - **API Structure**: Adapt endpoints to your domain
+
+---
+
+## 🔧 Troubleshooting - Problemas Comuns
+
+### 1. Erro: "Cannot find module 'sqlite3'"
+
+**Causa:** Tentar usar SQLite em testes sem instalar dependência
+**Solução:**
+
+```bash
+yarn add -D sqlite3
+# OU melhor: usar mocks em vez de SQLite (recomendado)
+```
+
+### 2. Erro: "Unknown authentication strategy 'jwt'"
+
+**Causa:** Strategy JWT não configurada nos testes
+**Solução:** Mock completo do guard:
+
+```typescript
+.overrideGuard(JwtAuthGuard)
+.useValue({
+  canActivate: jest.fn().mockReturnValue(true),
+  handleRequest: jest.fn().mockImplementation(() => ({
+    id: 'user-id',
+    email: 'test@example.com',
+  })),
+})
+```
+
+### 3. Erro: "Please tell me who you are"
+
+**Causa:** Git user não configurado
+**Solução:**
+
+```bash
+git config user.name "Seu Nome"
+git config user.email "seu.email@exemplo.com"
+```
+
+### 4. Erro: "relation does not exist" em testes
+
+**Causa:** Banco PostgreSQL não rodando ou não configurado
+**Solução:**
+
+```bash
+# Usar Docker para banco de testes
+docker run --name test-postgres -e POSTGRES_PASSWORD=postgres -d -p 5432:5432 postgres:16-alpine
+# OU usar mocks (recomendado)
+```
+
+### 5. Erro: "loggedEvents/recordedMetrics is not a function"
+
+**Causa:** Usar propriedades incorretas nos spies
+**Solução:** Usar métodos corretos:
+
+```typescript
+// ❌ Errado
+expect(loggerSpy.loggedEvents).toHaveLength(1);
+// ✅ Correto
+expect(loggerSpy.getBusinessEvents('event_name')).toHaveLength(1);
+```
+
+### 6. Testes E2E lentos ou falhando
+
+**Causa:** Usar banco de dados real em E2E
+**Solução:** Usar abordagem com mocks:
+
+```typescript
+// Mocks completos em vez de banco real
+providers: [
+  { provide: AddEntryUseCase, useValue: mockUseCase },
+  { provide: 'ContextAwareLoggerService', useValue: loggerSpy },
+];
+```
+
+### 7. Package manager inconsistente (npm vs yarn)
+
+**Causa:** Misturar npm e yarn no projeto
+**Solução:** Escolher um e usar consistentemente:
+
+```bash
+# ✅ Use apenas yarn
+yarn install
+yarn build
+yarn test
+
+# ❌ NÃO misture
+npm install  # Não fazer se já usa yarn
+```
 
 ---
 

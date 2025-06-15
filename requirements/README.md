@@ -1,213 +1,184 @@
-# 📚 Requirements & Guidelines Documentation
+# 📋 Requirements - Personal Financial Management API
 
-## Overview
+Esta pasta contém toda a documentação de requirements, guidelines e workflows para o desenvolvimento da API de Gestão Financeira Pessoal.
 
-Esta pasta contém toda a documentação de requisitos, guidelines e workflows organizados de forma estruturada para facilitar o desenvolvimento e manutenção de projetos de API.
+## 🚨 ATUALIZAÇÕES CRÍTICAS - Janeiro 2025
 
-## 📁 Estrutura Organizacional
+### Problemas Identificados e Corrigidos
 
-```
-requirements/
-├── README.md                           # Este arquivo
-├── guidelines/                         # Guidelines genéricas reutilizáveis
-│   ├── api-requirements.md            # Padrões para APIs RESTful
-│   ├── database-requirements.md       # Guidelines de banco de dados
-│   ├── docker-requirements.md         # Configurações Docker
-│   ├── testing-requirements.md        # Estratégias de teste
-│   ├── git-workflow-requirements.md   # Workflow Git/GitFlow
-│   ├── deploy-ci-cd-guidelines.md     # CI/CD e deployment
-│   ├── observability-requirements.md  # Observabilidade (original)
-│   └── observability-implementation-guidelines.md # Implementação observabilidade
-├── workflows/                          # Workflows de desenvolvimento
-│   ├── new-api-setup-boilerplate.md   # Setup de nova API do zero
-│   └── development-workflow.md         # Processo de desenvolvimento
-└── financial-project-specifics/        # Específico do projeto financeiro
-    ├── usecases-and-tasks-requirements.md # Casos de uso financeiros
-    └── mvp-requirements.md             # MVP do sistema financeiro
-```
+Durante a implementação e testes, foram identificados e corrigidos diversos problemas críticos na documentação:
 
-## 🎯 Como Usar Esta Documentação
+#### ✅ Problemas de Teste Resolvidos:
 
-### 📋 Para Novos Projetos
+1. **E2E Tests com SQLite vs PostgreSQL**
 
-1. **Leia primeiro**: `workflows/new-api-setup-boilerplate.md`
-2. **Siga as guidelines**: Todos os arquivos em `guidelines/`
-3. **Use o workflow**: `workflows/development-workflow.md`
+   - **Problema:** ENUMs PostgreSQL não funcionam em SQLite
+   - **Solução:** Abordagem com mocks completos em E2E
 
-### 🔄 Para Desenvolvimento Contínuo
+2. **JWT Strategy em Testes**
 
-1. **Processo de desenvolvimento**: `workflows/development-workflow.md`
-2. **Consulte guidelines específicas** conforme necessário
-3. **Mantenha consistência** com os padrões estabelecidos
+   - **Problema:** `Unknown authentication strategy 'jwt'`
+   - **Solução:** Mock guard com `handleRequest`
 
-### 🏗️ Para IAs e Automação
+3. **Spies com Métodos Incorretos**
+   - **Problema:** `loggedEvents/recordedMetrics is not a function`
+   - **Solução:** Usar métodos corretos como `getBusinessEvents()`
 
-Todos os workflows são projetados para serem seguidos tanto por humanos quanto por IAs:
+#### ✅ Problemas de Git Resolvidos:
 
-- Instruções passo-a-passo detalhadas
-- Checklists de validação
-- Padrões de código específicos
-- Critérios de qualidade bem definidos
+1. **Commits Falhando**
+   - **Problema:** `Please tell me who you are`
+   - **Solução:** Configuração obrigatória de Git user
 
-## 📖 Guidelines Genéricas (Reutilizáveis)
+#### ✅ Problemas de Configuração:
 
-### 🌐 API Development
+1. **Jest Configuration**
 
-- **`api-requirements.md`**: Padrões RESTful, versionamento, documentação
-- **`testing-requirements.md`**: Estratégias de teste, cobertura, mocks
-- **`database-requirements.md`**: Design de schema, migrations, performance
+   - **Problema:** Paths e estrutura incorreta
+   - **Solução:** Configuração atualizada com paths corretos
 
-### 🔧 Infrastructure & DevOps
+2. **Package Manager**
+   - **Problema:** Mistura npm/yarn
+   - **Solução:** Yarn consistente em toda documentação
 
-- **`docker-requirements.md`**: Containerização, multi-stage builds
-- **`deploy-ci-cd-guidelines.md`**: Pipelines, environments, rollback
-- **`git-workflow-requirements.md`**: Branching, commits, code review
+## 📂 Estrutura da Documentação
 
-### 📊 Observability & Monitoring
+### Guidelines (`/guidelines/`)
 
-- **`observability-requirements.md`**: Conceitos gerais de observabilidade
-- **`observability-implementation-guidelines.md`**: Implementação prática
+- **`testing-requirements.md`** ⚠️ **ATUALIZADO** - Estratégias de teste corrigidas
+- **`api-requirements.md`** - Especificações da API
+- **`database-requirements.md`** - Configurações de banco
+- **`docker-requirements.md`** - Configurações Docker
+- **`git-workflow-requirements.md`** - Workflow Git
+- **`observability-requirements.md`** - Observabilidade
+- **`deploy-ci-cd-guidelines.md`** - Deploy e CI/CD
 
-## 🚀 Workflows de Desenvolvimento
+### Workflows (`/workflows/`)
 
-### 🏗️ Setup de Novos Projetos
+- **`new-api-setup-boilerplate.md`** ⚠️ **ATUALIZADO** - Setup inicial corrigido
+- **`development-workflow.md`** ⚠️ **ATUALIZADO** - Workflow desenvolvimento corrigido
 
-**`workflows/new-api-setup-boilerplate.md`**
+### Específicos do Projeto (`/financial-project-specifics/`)
 
-- Configuração completa de uma nova API do zero
-- Estrutura de pastas seguindo Clean Architecture
-- Configuração de observabilidade desde o início
-- Scripts NPM organizados por ambiente
-- Docker configuration com multi-environment support
+- **`usecases-and-tasks-requirements.md`** - Use cases específicos
+- **`mvp-requirements.md`** - Requisitos MVP
 
-### 🔄 Processo de Desenvolvimento
+## 🔄 Status de Implementação
 
-**`workflows/development-workflow.md`**
+### ✅ Documentos Validados (Funcionando)
 
-- Implementação de novos casos de uso
-- Processo passo-a-passo from requirements to deployment
-- Checklists de qualidade e validação
-- Padrões de código para cada camada da arquitetura
-- Guidelines para IAs e desenvolvedores humanos
+- `testing-requirements.md` - Testado e funcionando
+- `new-api-setup-boilerplate.md` - Validado com correções
+- `development-workflow.md` - Testado com problemas resolvidos
 
-## 💼 Projeto Financeiro Específico
+### ⚠️ Documentos que Precisam Validação
 
-### 📋 Requisitos de Negócio
+- `deploy-ci-cd-guidelines.md` - Precisa validação com correções recentes
+- `docker-requirements.md` - Verificar consistência com práticas atuais
+- `observability-requirements.md` - Validar integração com correções
 
-**`financial-project-specifics/`**
+## 🛠️ Como Usar Esta Documentação
 
-- **`mvp-requirements.md`**: Requisitos mínimos do MVP
-- **`usecases-and-tasks-requirements.md`**: Casos de uso detalhados
+### Para Criar um Novo Projeto:
 
-Estes arquivos contêm informações específicas do domínio financeiro e não são reutilizáveis para outros projetos.
+1. **Siga:** `workflows/new-api-setup-boilerplate.md`
+2. **Configure Git:** Seção de configuração Git é OBRIGATÓRIA
+3. **Use:** Configurações Jest corrigidas
+4. **Evite:** SQLite em testes E2E - use mocks
 
-## 🎯 Princípios de Organização
+### Para Desenvolvimento:
 
-### 🔄 Separação de Responsabilidades
+1. **Siga:** `workflows/development-workflow.md`
+2. **Use:** Estratégias de mock atualizadas
+3. **Implemente:** Guards com `handleRequest`
+4. **Verifique:** UUIDs válidos em testes
 
-- **Guidelines**: Padrões genéricos aplicáveis a qualquer projeto
-- **Workflows**: Processos de desenvolvimento reutilizáveis
-- **Project Specifics**: Conteúdo específico do domínio de negócio
+### Para Testes:
 
-### 📈 Escalabilidade
+1. **Consulte:** `guidelines/testing-requirements.md`
+2. **Use:** Spies com métodos corretos
+3. **Implemente:** E2E com mocks, não banco real
+4. **Configure:** Jest com paths corretos
 
-- Guidelines podem ser referenciadas por múltiplos projetos
-- Workflows garantem consistência entre equipes
-- Documentação específica mantém contexto de negócio
+## 🚨 Problemas Conhecidos Evitados
 
-### 🤖 AI-Friendly
+### ❌ NÃO FAÇA:
 
-- Instruções precisas e sem ambiguidade
-- Checklists de validação objetivos
-- Padrões de código bem definidos
-- Critérios de qualidade mensuráveis
+```typescript
+// SQLite em E2E com PostgreSQL ENUMs
+TypeOrmModule.forRoot({ type: 'sqlite' })
 
-## 🔧 Como Contribuir
+// Guard sem handleRequest
+.overrideGuard(JwtAuthGuard).useValue({ canActivate: jest.fn() })
 
-### ✏️ Atualizando Guidelines
+// Spies com propriedades erradas
+expect(loggerSpy.loggedEvents).toHaveLength(1)
 
-1. **Guidelines genéricas**: Melhore para beneficiar todos os projetos
-2. **Workflows**: Otimize processos baseado em experiência prática
-3. **Validação**: Teste mudanças em projetos reais antes de documenta
-
-### 📝 Adicionando Novas Guidelines
-
-1. **Identifique padrão**: Encontre padrão que se repete em projetos
-2. **Documente completamente**: Inclua exemplos e casos de uso
-3. **Teste na prática**: Valide em projeto real
-4. **Adicione à estrutura**: Organize na pasta correta
-
-### 🎯 Critérios de Qualidade
-
-- **Clareza**: Instruções fáceis de seguir
-- **Completude**: Cobrir todos os cenários importantes
-- **Consistência**: Manter padrões estabelecidos
-- **Testabilidade**: Incluir critérios de validação
-
-## 🚀 Quick Start
-
-### Para Novo Projeto
-
-```bash
-# 1. Leia o setup boilerplate
-cat requirements/workflows/new-api-setup-boilerplate.md
-
-# 2. Siga o processo de setup
-# 3. Use o development workflow para features
+// Git sem configuração
+git commit // Falha sem user.name/email
 ```
 
-### Para Desenvolvimento
+### ✅ FAÇA:
 
-```bash
-# 1. Leia o workflow de desenvolvimento
-cat requirements/workflows/development-workflow.md
+```typescript
+// E2E com mocks
+providers: [{ provide: UseCase, useValue: mockUseCase }]
 
-# 2. Consulte guidelines específicas conforme necessário
-# 3. Siga os checklists de qualidade
+// Guard completo
+.overrideGuard(JwtAuthGuard).useValue({
+  canActivate: jest.fn().mockReturnValue(true),
+  handleRequest: jest.fn().mockImplementation(() => ({ id: 'valid-uuid' }))
+})
+
+// Spies com métodos corretos
+expect(loggerSpy.getBusinessEvents('event')).toHaveLength(1)
+
+// Git configurado
+git config user.name "Nome"
+git config user.email "email@exemplo.com"
 ```
 
-## 📞 Support
+## 📋 Checklist de Validação
 
-### 🤖 Para IAs
+### Antes de Seguir Qualquer Documento:
 
-- Todas as instruções são precisas e objetivas
-- Checklists fornecem critérios de validação claros
-- Padrões de código são bem definidos
-- Não hesite em pedir esclarecimentos se algo não estiver claro
+- [ ] Git user configurado (`git config --list | grep user`)
+- [ ] Node.js 20+ instalado
+- [ ] Yarn instalado (não npm)
+- [ ] Docker funcionando (se necessário)
 
-### 👨‍💻 Para Desenvolvedores
+### Para Novos Projetos:
 
-- Use esta documentação como referência constante
-- Contribua com melhorias baseadas na experiência prática
-- Mantenha consistência com os padrões estabelecidos
-- Compartilhe conhecimento com a equipe
+- [ ] Seguir boilerplate atualizado
+- [ ] Configurar Jest corretamente
+- [ ] Usar mocks em E2E
+- [ ] Configurar Git user
+
+### Para Desenvolvimento:
+
+- [ ] Workflow atualizado consultado
+- [ ] Estratégias de teste corretas
+- [ ] UUIDs válidos usados
+- [ ] Spies com métodos corretos
+
+## 🔗 Links Importantes
+
+- **Issues GitHub:** Para reportar problemas na documentação
+- **Conventional Commits:** Para padrão de commits
+- **Jest Documentation:** Para configurações de teste
+- **NestJS Testing:** Para estratégias específicas do framework
+
+## 📞 Suporte
+
+Se encontrar problemas não documentados aqui:
+
+1. **Verifique:** Seção de troubleshooting nos documentos
+2. **Compare:** Com exemplos corrigidos
+3. **Reporte:** Issues no repositório com detalhes
+4. **Documente:** Soluções encontradas para próximas implementações
 
 ---
 
-## 🎉 Benefícios desta Organização
-
-### ✅ **Reutilização**
-
-Guidelines genéricas podem ser aplicadas em múltiplos projetos
-
-### ✅ **Consistência**
-
-Workflows garantem desenvolvimento padronizado
-
-### ✅ **Manutenibilidade**
-
-Documentação organizada facilita atualizações
-
-### ✅ **Escalabilidade**
-
-Estrutura suporta crescimento e novos projetos
-
-### ✅ **AI-Friendly**
-
-Processos bem definidos para automação
-
-### ✅ **Quality Assurance**
-
-Checklists garantem qualidade consistente
-
-**Esta organização transforma documentação de requisitos em uma ferramenta poderosa para desenvolvimento eficiente e de alta qualidade! 🚀**
+**Última atualização:** Janeiro 2025
+**Status:** Documentação validada e funcionando
+**Próximos passos:** Validação contínua durante desenvolvimento

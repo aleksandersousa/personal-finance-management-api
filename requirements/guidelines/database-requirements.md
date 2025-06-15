@@ -20,14 +20,14 @@ A modelagem também prevê futuras integrações com gateways de pagamento para 
 
 ```typescript
 // src/infra/db/typeorm/config/data-source.ts
-import { DataSource } from "typeorm";
-import { ConfigService } from "@nestjs/config";
+import { DataSource } from 'typeorm';
+import { ConfigService } from '@nestjs/config';
 
 const configService = new ConfigService();
 
 export const typeOrmConfig = {
-  type: "postgres" as const,
-  url: configService.get<string>("DATABASE_URL"),
+  type: 'postgres' as const,
+  url: configService.get<string>('DATABASE_URL'),
   entities: [
     UserEntity,
     AuthProviderEntity,
@@ -38,13 +38,13 @@ export const typeOrmConfig = {
     SubscriptionEntity,
     PaymentEntity,
   ],
-  migrations: ["dist/infra/db/typeorm/migrations/*.js"],
-  synchronize: configService.get<string>("NODE_ENV") === "development",
-  logging: configService.get<string>("NODE_ENV") === "development",
+  migrations: ['dist/infra/db/typeorm/migrations/*.js'],
+  synchronize: configService.get<string>('NODE_ENV') === 'development',
+  logging: configService.get<string>('NODE_ENV') === 'development',
 
   // ⚠️ CRÍTICO: SSL por ambiente
   ssl:
-    configService.get<string>("NODE_ENV") === "production"
+    configService.get<string>('NODE_ENV') === 'production'
       ? { rejectUnauthorized: false }
       : false,
 
@@ -59,15 +59,47 @@ export const AppDataSource = new DataSource(typeOrmConfig);
 #### 🔧 **URLs de Conexão por Ambiente**:
 
 ```bash
-# Development - SSL desabilitado
+# Development - SSL desabilitado (Docker local)
+DATABASE_URL=postgresql://postgres:postgres@localhost:5432/financial_db?sslmode=disable
+DATABASE_SSL=false
+
+# Development Docker - SSL desabilitado (service name)
 DATABASE_URL=postgresql://postgres:postgres@db:5432/financial_db?sslmode=disable
+DATABASE_SSL=false
+
+# CI/CD Tests - SSL desabilitado
+DATABASE_URL=postgresql://postgres:postgres@localhost:5432/financial_db_test?sslmode=disable
 DATABASE_SSL=false
 
 # Staging - SSL opcional
 DATABASE_URL=postgresql://postgres:password@host:5432/financial_db_staging?sslmode=prefer
+DATABASE_SSL=true
 
 # Production - SSL obrigatório
 DATABASE_URL=postgresql://user:password@host:5432/financial_db?sslmode=require
+DATABASE_SSL=true
+```
+
+### ⚠️ Problemas Comuns de SSL
+
+#### Erro: "SSL connection required"
+
+```bash
+# ❌ Problema em produção sem SSL
+# FATAL: SSL connection required
+
+# ✅ Solução: Configurar SSL corretamente
+DATABASE_URL=postgresql://user:pass@host:5432/db?sslmode=require
+```
+
+#### Erro: "SSL not supported"
+
+```bash
+# ❌ Problema em desenvolvimento com SSL forçado
+# FATAL: SSL not supported
+
+# ✅ Solução: Desabilitar SSL em desenvolvimento
+DATABASE_URL=postgresql://postgres:postgres@localhost:5432/db?sslmode=disable
 ```
 
 ---
@@ -222,7 +254,7 @@ services:
       - postgres_data_dev:/var/lib/postgresql/data
       - ../scripts/init-db.sql:/docker-entrypoint-initdb.d/init.sql:ro # ⚠️ Script de inicialização
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -d financial_db"]
+      test: ['CMD-SHELL', 'pg_isready -U postgres -d financial_db']
       interval: 10s
       timeout: 5s
       retries: 5
@@ -356,31 +388,31 @@ services:
 #### `User`
 
 ```ts
-@Entity("users")
+@Entity('users')
 export class User {
-  @PrimaryGeneratedColumn("uuid") id: string;
+  @PrimaryGeneratedColumn('uuid') id: string;
 
   @Column() name: string;
   @Column({ unique: true }) email: string;
   @Column({ nullable: true }) password: string;
   @Column({ nullable: true }) avatar_url: string;
 
-  @OneToMany(() => AuthProvider, (auth) => auth.user)
+  @OneToMany(() => AuthProvider, auth => auth.user)
   auth_providers: AuthProvider[];
 
-  @OneToMany(() => Category, (category) => category.user)
+  @OneToMany(() => Category, category => category.user)
   categories: Category[];
 
-  @OneToMany(() => Entry, (entry) => entry.user)
+  @OneToMany(() => Entry, entry => entry.user)
   entries: Entry[];
 
-  @OneToMany(() => PaymentMethod, (pm) => pm.user)
+  @OneToMany(() => PaymentMethod, pm => pm.user)
   payment_methods: PaymentMethod[];
 
-  @OneToMany(() => Subscription, (subscription) => subscription.user)
+  @OneToMany(() => Subscription, subscription => subscription.user)
   subscriptions: Subscription[];
 
-  @OneToMany(() => Payment, (payment) => payment.user)
+  @OneToMany(() => Payment, payment => payment.user)
   payments: Payment[];
 
   @CreateDateColumn() created_at: Date;
@@ -391,12 +423,12 @@ export class User {
 #### `AuthProvider`
 
 ```ts
-@Entity("auth_providers")
+@Entity('auth_providers')
 export class AuthProvider {
-  @PrimaryGeneratedColumn("uuid") id: string;
+  @PrimaryGeneratedColumn('uuid') id: string;
 
-  @ManyToOne(() => User, (user) => user.auth_providers)
-  @JoinColumn({ name: "user_id" })
+  @ManyToOne(() => User, user => user.auth_providers)
+  @JoinColumn({ name: 'user_id' })
   user: User;
 
   @Column() provider: string;
@@ -404,7 +436,7 @@ export class AuthProvider {
   @Column({ nullable: true }) email: string;
   @Column({ nullable: true }) access_token: string;
   @Column({ nullable: true }) refresh_token: string;
-  @Column({ type: "timestamp", nullable: true }) expires_at: Date;
+  @Column({ type: 'timestamp', nullable: true }) expires_at: Date;
 
   @CreateDateColumn() created_at: Date;
   @UpdateDateColumn() updated_at: Date;
@@ -419,10 +451,10 @@ Para garantir controle de versão e transições seguras do esquema de banco de 
 
 ```ts
 // Exemplo de script de migração para TypeORM
-import { MigrationInterface, QueryRunner } from "typeorm";
+import { MigrationInterface, QueryRunner } from 'typeorm';
 
 export class CreateInitialTables1704000000000 implements MigrationInterface {
-  name = "CreateInitialTables1704000000000";
+  name = 'CreateInitialTables1704000000000';
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     // Criar enums
@@ -459,7 +491,7 @@ export class CreateInitialTables1704000000000 implements MigrationInterface {
     await queryRunner.query(`DROP INDEX IF EXISTS "idx_entries_type"`);
     await queryRunner.query(`DROP INDEX IF EXISTS "idx_auth_providers_user"`);
     await queryRunner.query(
-      `DROP INDEX IF EXISTS "idx_auth_providers_external"`
+      `DROP INDEX IF EXISTS "idx_auth_providers_external"`,
     );
 
     // Remover enums
@@ -585,14 +617,14 @@ log_min_duration_statement = 1000  # Log queries > 1s
 
 ```typescript
 // Exemplo para criptografar dados sensíveis
-import { BeforeInsert, BeforeUpdate } from "typeorm";
-import * as crypto from "crypto";
+import { BeforeInsert, BeforeUpdate } from 'typeorm';
+import * as crypto from 'crypto';
 
-@Entity("payment_methods")
+@Entity('payment_methods')
 export class PaymentMethod {
   // ... outros campos ...
 
-  @Column("text")
+  @Column('text')
   encrypted_details: string;
 
   @BeforeInsert()
@@ -600,15 +632,15 @@ export class PaymentMethod {
   encryptSensitiveData() {
     if (this.details) {
       const cipher = crypto.createCipher(
-        "aes-256-cbc",
-        process.env.ENCRYPTION_KEY
+        'aes-256-cbc',
+        process.env.ENCRYPTION_KEY,
       );
       this.encrypted_details = cipher.update(
         JSON.stringify(this.details),
-        "utf8",
-        "hex"
+        'utf8',
+        'hex',
       );
-      this.encrypted_details += cipher.final("hex");
+      this.encrypted_details += cipher.final('hex');
     }
   }
 
@@ -616,11 +648,11 @@ export class PaymentMethod {
     if (!this.encrypted_details) return null;
 
     const decipher = crypto.createDecipher(
-      "aes-256-cbc",
-      process.env.ENCRYPTION_KEY
+      'aes-256-cbc',
+      process.env.ENCRYPTION_KEY,
     );
-    let decrypted = decipher.update(this.encrypted_details, "hex", "utf8");
-    decrypted += decipher.final("utf8");
+    let decrypted = decipher.update(this.encrypted_details, 'hex', 'utf8');
+    decrypted += decipher.final('utf8');
     return JSON.parse(decrypted);
   }
 }
@@ -638,13 +670,13 @@ export abstract class AuditableEntity {
   @UpdateDateColumn()
   updated_at: Date;
 
-  @Column("uuid", { nullable: true })
+  @Column('uuid', { nullable: true })
   created_by: string;
 
-  @Column("uuid", { nullable: true })
+  @Column('uuid', { nullable: true })
   updated_by: string;
 
-  @Column("jsonb", { nullable: true })
+  @Column('jsonb', { nullable: true })
   audit_log: Record<string, any>[];
 }
 ```

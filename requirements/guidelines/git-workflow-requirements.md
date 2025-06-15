@@ -4,6 +4,52 @@
 
 This document outlines the git workflow, branching strategy, and commit conventions for the Personal Financial Management API project. The project follows **Git Flow** methodology with **Conventional Commits** to ensure clean, traceable, and maintainable version control.
 
+## ⚠️ CONFIGURAÇÃO CRÍTICA - LEIA PRIMEIRO
+
+### Problema Identificado: Git User Não Configurado
+
+**Erro comum:** `fatal: Please tell me who you are.`
+
+**Solução obrigatória ANTES de qualquer commit:**
+
+```bash
+# ✅ OBRIGATÓRIO: Configurar usuário Git
+git config --global user.name "Seu Nome Completo"
+git config --global user.email "seu.email@exemplo.com"
+
+# ✅ Para projetos específicos (recomendado)
+git config user.name "Seu Nome Completo"
+git config user.email "seu.email@trabalho.com"
+
+# ✅ VERIFICAR configuração (SEMPRE fazer antes de commitar)
+git config --list | grep user
+# Deve mostrar:
+# user.name=Seu Nome Completo
+# user.email=seu.email@exemplo.com
+```
+
+### Configuração de Autenticação
+
+#### HTTPS (Recomendado para iniciantes):
+
+```bash
+# ✅ Configurar helper de credenciais
+git config --global credential.helper store
+
+# ✅ Para GitHub, usar Personal Access Token como senha
+```
+
+#### SSH (Para usuários avançados):
+
+```bash
+# ✅ Gerar e configurar chave SSH
+ssh-keygen -t ed25519 -C "seu.email@exemplo.com"
+ssh-add ~/.ssh/id_ed25519
+
+# ✅ Testar conexão
+ssh -T git@github.com
+```
+
 ## Table of Contents
 
 1. [Git Flow Overview](#git-flow-overview)
@@ -427,9 +473,53 @@ git commit -m "fix(critical): resolve security vulnerability"
 
 ## Troubleshooting
 
+### ⚠️ Problemas Críticos Identificados
+
+#### 1. **"Please tell me who you are"**
+
+```bash
+# ❌ Erro ao tentar commitar
+git commit -m "Initial commit"
+# fatal: Please tell me who you are.
+
+# ✅ Solução
+git config user.name "Seu Nome"
+git config user.email "seu.email@exemplo.com"
+git commit -m "Initial commit"
+```
+
+#### 2. **"Permission denied (publickey)"**
+
+```bash
+# ❌ Erro de SSH
+git push origin main
+# Permission denied (publickey).
+
+# ✅ Soluções
+# Opção 1: Usar HTTPS
+git remote set-url origin https://github.com/usuario/repo.git
+
+# Opção 2: Configurar SSH
+ssh-keygen -t ed25519 -C "seu.email@exemplo.com"
+# Adicionar chave pública ao GitHub
+```
+
+#### 3. **"Authentication failed"**
+
+```bash
+# ❌ Erro de credenciais HTTPS
+git push origin main
+# Authentication failed
+
+# ✅ Solução
+# Usar Personal Access Token em vez de senha
+git config --global credential.helper store
+# No próximo push, usar token como senha
+```
+
 ### Common Issues
 
-1. **Merge Conflicts**
+4. **Merge Conflicts**
 
    ```bash
    git merge develop
@@ -438,7 +528,7 @@ git commit -m "fix(critical): resolve security vulnerability"
    git commit -m "merge: resolve conflicts with develop"
    ```
 
-2. **Accidentally Committed to Wrong Branch**
+5. **Accidentally Committed to Wrong Branch**
 
    ```bash
    git reset --soft HEAD~1
@@ -448,7 +538,7 @@ git commit -m "fix(critical): resolve security vulnerability"
    git commit -m "feat(correct): move commit to correct branch"
    ```
 
-3. **Need to Update Commit Message**
+6. **Need to Update Commit Message**
    ```bash
    git commit --amend -m "feat(auth): corrected commit message"
    ```
