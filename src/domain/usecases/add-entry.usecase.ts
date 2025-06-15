@@ -12,4 +12,4 @@ export interface AddEntryRequest {
 
 export interface AddEntryUseCase {
   execute(request: AddEntryRequest): Promise<EntryModel>;
-} 
+}

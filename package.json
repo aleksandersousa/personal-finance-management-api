@@ -95,7 +95,7 @@
     "postgresql",
     "financial-management"
   ],
-  "author": "",
+  "author": "Aleksander Sousa <aleksander-ssousa@outlook.com>",
   "license": "MIT",
   "dependencies": {
     "@nestjs/common": "^10.3.0",
@@ -151,5 +151,6 @@
     "ts-node": "^10.9.2",
     "tsconfig-paths": "^4.2.0",
     "typescript": "^5.3.3"
-  }
+  },
+  "repository": "https://github.com/aleksandersousa/personal-finance-management-api.git"
 }

@@ -1,10 +1,10 @@
-import { DbListEntriesByMonthUseCase } from "@data/usecases/db-list-entries-by-month.usecase";
-import { EntryRepository } from "@data/protocols/entry-repository";
-import { UserRepository } from "@data/protocols/user-repository";
-import { EntryModel } from "@domain/models/entry.model";
-import { UserModel } from "@domain/models/user.model";
+import { DbListEntriesByMonthUseCase } from '@data/usecases/db-list-entries-by-month.usecase';
+import { EntryRepository } from '@data/protocols/entry-repository';
+import { UserRepository } from '@data/protocols/user-repository';
+import { EntryModel } from '@domain/models/entry.model';
+import { UserModel } from '@domain/models/user.model';
 
-describe("DbListEntriesByMonthUseCase", () => {
+describe('DbListEntriesByMonthUseCase', () => {
   let sut: DbListEntriesByMonthUseCase;
   let mockEntryRepository: jest.Mocked<EntryRepository>;
   let mockUserRepository: jest.Mocked<UserRepository>;
@@ -28,16 +28,16 @@ describe("DbListEntriesByMonthUseCase", () => {
 
     sut = new DbListEntriesByMonthUseCase(
       mockEntryRepository,
-      mockUserRepository
+      mockUserRepository,
     );
   });
 
-  describe("execute", () => {
+  describe('execute', () => {
     const mockUser: UserModel = {
-      id: "user-123",
-      name: "Test User",
-      email: "test@example.com",
-      password: "hashed-password",
+      id: 'user-123',
+      name: 'Test User',
+      email: 'test@example.com',
+      password: 'hashed-password',
       avatarUrl: null,
       createdAt: new Date(),
       updatedAt: new Date(),
@@ -45,26 +45,26 @@ describe("DbListEntriesByMonthUseCase", () => {
 
     const mockEntries: EntryModel[] = [
       {
-        id: "entry-1",
-        userId: "user-123",
-        description: "Salary",
+        id: 'entry-1',
+        userId: 'user-123',
+        description: 'Salary',
         amount: 5000,
-        date: new Date("2025-01-15"),
-        type: "INCOME",
+        date: new Date('2025-01-15'),
+        type: 'INCOME',
         isFixed: true,
         categoryId: null,
         createdAt: new Date(),
         updatedAt: new Date(),
       },
       {
-        id: "entry-2",
-        userId: "user-123",
-        description: "Grocery shopping",
+        id: 'entry-2',
+        userId: 'user-123',
+        description: 'Grocery shopping',
         amount: 200,
-        date: new Date("2025-01-10"),
-        type: "EXPENSE",
+        date: new Date('2025-01-10'),
+        type: 'EXPENSE',
         isFixed: false,
-        categoryId: "category-123",
+        categoryId: 'category-123',
         createdAt: new Date(),
         updatedAt: new Date(),
       },
@@ -77,16 +77,16 @@ describe("DbListEntriesByMonthUseCase", () => {
       totalExpenses: 200,
     };
 
-    it("should list entries for a valid month successfully with default pagination", async () => {
+    it('should list entries for a valid month successfully with default pagination', async () => {
       const request = {
-        userId: "user-123",
+        userId: 'user-123',
         year: 2025,
         month: 1,
       };
 
       mockUserRepository.findById.mockResolvedValue(mockUser);
       mockEntryRepository.findByUserIdAndMonthWithFilters.mockResolvedValue(
-        mockRepositoryResult
+        mockRepositoryResult,
       );
 
       const result = await sut.execute(request);
@@ -106,61 +106,61 @@ describe("DbListEntriesByMonthUseCase", () => {
         balance: 4800,
         entriesCount: 2,
       });
-      expect(mockUserRepository.findById).toHaveBeenCalledWith("user-123");
+      expect(mockUserRepository.findById).toHaveBeenCalledWith('user-123');
       expect(
-        mockEntryRepository.findByUserIdAndMonthWithFilters
+        mockEntryRepository.findByUserIdAndMonthWithFilters,
       ).toHaveBeenCalledWith({
-        userId: "user-123",
+        userId: 'user-123',
         year: 2025,
         month: 1,
         page: 1,
         limit: 20,
-        sort: "date",
-        order: "desc",
-        type: "all",
+        sort: 'date',
+        order: 'desc',
+        type: 'all',
         categoryId: undefined,
       });
     });
 
-    it("should list entries with custom pagination and filters", async () => {
+    it('should list entries with custom pagination and filters', async () => {
       const request = {
-        userId: "user-123",
+        userId: 'user-123',
         year: 2025,
         month: 1,
         page: 2,
         limit: 10,
-        sort: "amount",
-        order: "asc" as const,
-        type: "INCOME" as const,
-        categoryId: "category-123",
+        sort: 'amount',
+        order: 'asc' as const,
+        type: 'INCOME' as const,
+        categoryId: 'category-123',
       };
 
       mockUserRepository.findById.mockResolvedValue(mockUser);
       mockEntryRepository.findByUserIdAndMonthWithFilters.mockResolvedValue(
-        mockRepositoryResult
+        mockRepositoryResult,
       );
 
       const result = await sut.execute(request);
 
       expect(result.data).toEqual(mockEntries);
       expect(
-        mockEntryRepository.findByUserIdAndMonthWithFilters
+        mockEntryRepository.findByUserIdAndMonthWithFilters,
       ).toHaveBeenCalledWith({
-        userId: "user-123",
+        userId: 'user-123',
         year: 2025,
         month: 1,
         page: 2,
         limit: 10,
-        sort: "amount",
-        order: "asc",
-        type: "INCOME",
-        categoryId: "category-123",
+        sort: 'amount',
+        order: 'asc',
+        type: 'INCOME',
+        categoryId: 'category-123',
       });
     });
 
-    it("should return empty data when no entries found for the month", async () => {
+    it('should return empty data when no entries found for the month', async () => {
       const request = {
-        userId: "user-123",
+        userId: 'user-123',
         year: 2025,
         month: 2,
       };
@@ -174,7 +174,7 @@ describe("DbListEntriesByMonthUseCase", () => {
 
       mockUserRepository.findById.mockResolvedValue(mockUser);
       mockEntryRepository.findByUserIdAndMonthWithFilters.mockResolvedValue(
-        emptyResult
+        emptyResult,
       );
 
       const result = await sut.execute(request);
@@ -184,81 +184,81 @@ describe("DbListEntriesByMonthUseCase", () => {
       expect(result.summary.entriesCount).toBe(0);
     });
 
-    it("should validate and sanitize pagination parameters", async () => {
+    it('should validate and sanitize pagination parameters', async () => {
       const request = {
-        userId: "user-123",
+        userId: 'user-123',
         year: 2025,
         month: 1,
         page: -1, // Should be corrected to 1
         limit: 200, // Should be corrected to 100 (max)
-        sort: "invalid", // Should be corrected to "date"
-        order: "invalid" as any, // Should be corrected to "desc"
-        type: "invalid" as any, // Should be corrected to "all"
+        sort: 'invalid', // Should be corrected to "date"
+        order: 'invalid' as any, // Should be corrected to "desc"
+        type: 'invalid' as any, // Should be corrected to "all"
       };
 
       mockUserRepository.findById.mockResolvedValue(mockUser);
       mockEntryRepository.findByUserIdAndMonthWithFilters.mockResolvedValue(
-        mockRepositoryResult
+        mockRepositoryResult,
       );
 
       await sut.execute(request);
 
       expect(
-        mockEntryRepository.findByUserIdAndMonthWithFilters
+        mockEntryRepository.findByUserIdAndMonthWithFilters,
       ).toHaveBeenCalledWith({
-        userId: "user-123",
+        userId: 'user-123',
         year: 2025,
         month: 1,
         page: 1, // Corrected
         limit: 100, // Corrected
-        sort: "date", // Corrected
-        order: "desc", // Corrected
-        type: "all", // Corrected
+        sort: 'date', // Corrected
+        order: 'desc', // Corrected
+        type: 'all', // Corrected
         categoryId: undefined,
       });
     });
 
-    it("should throw error if user ID is not provided", async () => {
+    it('should throw error if user ID is not provided', async () => {
       const request = {
-        userId: "",
+        userId: '',
         year: 2025,
         month: 1,
       };
 
-      await expect(sut.execute(request)).rejects.toThrow("User ID is required");
+      await expect(sut.execute(request)).rejects.toThrow('User ID is required');
     });
 
-    it("should throw error if year is invalid", async () => {
+    it('should throw error if year is invalid', async () => {
       const request = {
-        userId: "user-123",
+        userId: 'user-123',
         year: 1899,
         month: 1,
       };
 
-      await expect(sut.execute(request)).rejects.toThrow("Invalid year");
+      await expect(sut.execute(request)).rejects.toThrow('Invalid year');
     });
 
-    it("should throw error if month is invalid", async () => {
+    it('should throw error if month is invalid', async () => {
       const request = {
-        userId: "user-123",
+        userId: 'user-123',
         year: 2025,
         month: 13,
       };
 
-      await expect(sut.execute(request)).rejects.toThrow("Invalid month");
+      await expect(sut.execute(request)).rejects.toThrow('Invalid month');
     });
 
-    it("should throw error if user is not found", async () => {
+    it('should throw error if user is not found', async () => {
       const request = {
-        userId: "user-123",
+        userId: 'user-123',
         year: 2025,
         month: 1,
       };
 
       mockUserRepository.findById.mockResolvedValue(null);
 
-      await expect(sut.execute(request)).rejects.toThrow("User not found");
-      expect(mockUserRepository.findById).toHaveBeenCalledWith("user-123");
+      await expect(sut.execute(request)).rejects.toThrow('User not found');
+      expect(mockUserRepository.findById).toHaveBeenCalledWith('user-123');
     });
   });
 });

@@ -1,0 +1,71 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+build/
+
+# Logs
+logs/
+*.log
+
+# Coverage
+coverage/
+.nyc_output/
+
+# Environment files
+.env*
+
+# Cache
+.eslintcache
+.cache/
+
+# Docker
+.docker/
+Dockerfile*
+docker-compose*.yml
+
+# Git
+.git/
+.gitignore
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Temporary files
+tmp/
+temp/
+
+# Observability
+observability/
+prometheus_data*/
+grafana_data*/
+
+# Migrations (optional - uncomment if you want to skip linting migrations)
+# src/infra/db/typeorm/migrations/
+
+# Scripts
+scripts/
+*.sh
+
+# Config files that might contain dynamic content
+jest.config.js
+*.config.js
+
+# Documentation
+docs/
+*.md
+README*
+
+# Lock files
+package-lock.json
+yarn.lock
+
+# Test reports
+test-results/
+junit.xml 

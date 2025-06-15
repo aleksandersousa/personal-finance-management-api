@@ -1,17 +1,17 @@
-import { Module } from "@nestjs/common";
-import { getRepositoryToken, TypeOrmModule } from "@nestjs/typeorm";
-import { JwtModule } from "@nestjs/jwt";
-import { PassportModule } from "@nestjs/passport";
-import { ConfigModule, ConfigService } from "@nestjs/config";
-import { AuthController } from "@presentation/controllers/auth.controller";
-import { UserEntity } from "@infra/db/typeorm/entities/user.entity";
-import { makeUserRepository } from "@main/factories/auth.factory";
-import { BcryptHasher } from "@infra/implementations/bcrypt-hasher";
-import { JwtTokenGenerator } from "@infra/implementations/jwt-token-generator";
-import { DbRegisterUserUseCase } from "@data/usecases/db-register-user.usecase";
-import { DbLoginUserUseCase } from "@data/usecases/db-login-user.usecase";
-import { DbRefreshTokenUseCase } from "@data/usecases/db-refresh-token.usecase";
-import { JwtStrategy } from "@presentation/strategies/jwt.strategy";
+import { Module } from '@nestjs/common';
+import { TypeOrmModule, getRepositoryToken } from '@nestjs/typeorm';
+import { JwtModule } from '@nestjs/jwt';
+import { PassportModule } from '@nestjs/passport';
+import { ConfigModule, ConfigService } from '@nestjs/config';
+import { AuthController } from '@presentation/controllers/auth.controller';
+import { UserEntity } from '@infra/db/typeorm/entities/user.entity';
+import { makeUserRepository } from '@main/factories/auth.factory';
+import { BcryptHasher } from '@infra/implementations/bcrypt-hasher';
+import { JwtTokenGenerator } from '@infra/implementations/jwt-token-generator';
+import { DbRegisterUserUseCase } from '@data/usecases/db-register-user.usecase';
+import { DbLoginUserUseCase } from '@data/usecases/db-login-user.usecase';
+import { DbRefreshTokenUseCase } from '@data/usecases/db-refresh-token.usecase';
+import { JwtStrategy } from '@presentation/strategies/jwt.strategy';
 
 @Module({
   imports: [
@@ -20,8 +20,8 @@ import { JwtStrategy } from "@presentation/strategies/jwt.strategy";
     JwtModule.registerAsync({
       imports: [ConfigModule],
       useFactory: async (configService: ConfigService) => ({
-        secret: configService.get<string>("JWT_ACCESS_SECRET"),
-        signOptions: { expiresIn: configService.get<string>("JWT_EXPIRES_IN") },
+        secret: configService.get<string>('JWT_ACCESS_SECRET'),
+        signOptions: { expiresIn: configService.get<string>('JWT_EXPIRES_IN') },
       }),
       inject: [ConfigService],
     }),
@@ -29,49 +29,49 @@ import { JwtStrategy } from "@presentation/strategies/jwt.strategy";
   controllers: [AuthController],
   providers: [
     {
-      provide: "UserRepository",
-      useFactory: (repository) => makeUserRepository(repository),
+      provide: 'UserRepository',
+      useFactory: repository => makeUserRepository(repository),
       inject: [getRepositoryToken(UserEntity)],
     },
     {
-      provide: "Hasher",
+      provide: 'Hasher',
       useClass: BcryptHasher,
     },
     {
-      provide: "TokenGenerator",
+      provide: 'TokenGenerator',
       useClass: JwtTokenGenerator,
     },
     {
-      provide: "RegisterUserUseCase",
+      provide: 'RegisterUserUseCase',
       useFactory: (userRepository, hasher, tokenGenerator) =>
         new DbRegisterUserUseCase(userRepository, hasher, tokenGenerator),
-      inject: ["UserRepository", "Hasher", "TokenGenerator"],
+      inject: ['UserRepository', 'Hasher', 'TokenGenerator'],
     },
     {
-      provide: "LoginUserUseCase",
+      provide: 'LoginUserUseCase',
       useFactory: (userRepository, hasher, tokenGenerator) =>
         new DbLoginUserUseCase(userRepository, hasher, tokenGenerator),
-      inject: ["UserRepository", "Hasher", "TokenGenerator"],
+      inject: ['UserRepository', 'Hasher', 'TokenGenerator'],
     },
     {
-      provide: "RefreshTokenUseCase",
+      provide: 'RefreshTokenUseCase',
       useFactory: (tokenGenerator, userRepository) =>
         new DbRefreshTokenUseCase(tokenGenerator, userRepository),
-      inject: ["TokenGenerator", "UserRepository"],
+      inject: ['TokenGenerator', 'UserRepository'],
     },
     {
       provide: JwtStrategy,
       useFactory: (configService, userRepository) =>
         new JwtStrategy(configService, userRepository),
-      inject: [ConfigService, "UserRepository"],
+      inject: [ConfigService, 'UserRepository'],
     },
   ],
   exports: [
-    "RegisterUserUseCase",
-    "LoginUserUseCase",
-    "RefreshTokenUseCase",
+    'RegisterUserUseCase',
+    'LoginUserUseCase',
+    'RefreshTokenUseCase',
     JwtStrategy,
-    "UserRepository",
+    'UserRepository',
   ],
 })
 export class AuthModule {}

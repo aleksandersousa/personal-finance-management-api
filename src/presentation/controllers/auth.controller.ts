@@ -1,57 +1,57 @@
 import {
-  Controller,
-  Post,
+  BadRequestException,
   Body,
+  Controller,
   HttpCode,
   HttpStatus,
   Inject,
-  BadRequestException,
+  Post,
   UnauthorizedException,
-} from "@nestjs/common";
+} from '@nestjs/common';
 import {
-  ApiTags,
+  ApiBadRequestResponse,
+  ApiBody,
   ApiOperation,
   ApiResponse,
-  ApiBody,
-  ApiBadRequestResponse,
+  ApiTags,
   ApiUnauthorizedResponse,
-} from "@nestjs/swagger";
-import { RegisterUserUseCase } from "@domain/usecases/register-user.usecase";
-import { LoginUserUseCase } from "@domain/usecases/login-user.usecase";
-import { RefreshTokenUseCase } from "@domain/usecases/refresh-token.usecase";
-import { RegisterUserDto } from "../dtos/register-user.dto";
-import { LoginUserDto } from "../dtos/login-user.dto";
-import { RefreshTokenDto } from "../dtos/refresh-token.dto";
-import { RegisterResponseDto } from "../dtos/register-response.dto";
-import { LoginResponseDto } from "../dtos/login-response.dto";
-import { RefreshTokenResponseDto } from "../dtos/refresh-token-response.dto";
+} from '@nestjs/swagger';
+import { RegisterUserUseCase } from '@domain/usecases/register-user.usecase';
+import { LoginUserUseCase } from '@domain/usecases/login-user.usecase';
+import { RefreshTokenUseCase } from '@domain/usecases/refresh-token.usecase';
+import { RegisterUserDto } from '../dtos/register-user.dto';
+import { LoginUserDto } from '../dtos/login-user.dto';
+import { RefreshTokenDto } from '../dtos/refresh-token.dto';
+import { RegisterResponseDto } from '../dtos/register-response.dto';
+import { LoginResponseDto } from '../dtos/login-response.dto';
+import { RefreshTokenResponseDto } from '../dtos/refresh-token-response.dto';
 
-@ApiTags("auth")
-@Controller("auth")
+@ApiTags('auth')
+@Controller('auth')
 export class AuthController {
   constructor(
-    @Inject("RegisterUserUseCase")
+    @Inject('RegisterUserUseCase')
     private readonly registerUserUseCase: RegisterUserUseCase,
-    @Inject("LoginUserUseCase")
+    @Inject('LoginUserUseCase')
     private readonly loginUserUseCase: LoginUserUseCase,
-    @Inject("RefreshTokenUseCase")
-    private readonly refreshTokenUseCase: RefreshTokenUseCase
+    @Inject('RefreshTokenUseCase')
+    private readonly refreshTokenUseCase: RefreshTokenUseCase,
   ) {}
 
-  @Post("register")
+  @Post('register')
   @HttpCode(HttpStatus.CREATED)
-  @ApiOperation({ summary: "Register a new user" })
+  @ApiOperation({ summary: 'Register a new user' })
   @ApiResponse({
     status: 201,
-    description: "User registered successfully",
+    description: 'User registered successfully',
     type: RegisterResponseDto,
   })
   @ApiBadRequestResponse({
-    description: "Validation failed or user already exists",
+    description: 'Validation failed or user already exists',
   })
   @ApiBody({ type: RegisterUserDto })
   async register(
-    @Body() registerUserDto: RegisterUserDto
+    @Body() registerUserDto: RegisterUserDto,
   ): Promise<RegisterResponseDto> {
     try {
       const result = await this.registerUserUseCase.execute({
@@ -72,23 +72,23 @@ export class AuthController {
         },
       };
     } catch (error) {
-      if (error.message.includes("already exists")) {
-        throw new BadRequestException("User already exists");
+      if (error.message.includes('already exists')) {
+        throw new BadRequestException('User already exists');
       }
-      throw new BadRequestException("User registration failed");
+      throw new BadRequestException('User registration failed');
     }
   }
 
-  @Post("login")
+  @Post('login')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: "User login" })
+  @ApiOperation({ summary: 'User login' })
   @ApiResponse({
     status: 200,
-    description: "User logged in successfully",
+    description: 'User logged in successfully',
     type: LoginResponseDto,
   })
   @ApiUnauthorizedResponse({
-    description: "Invalid credentials",
+    description: 'Invalid credentials',
   })
   @ApiBody({ type: LoginUserDto })
   async login(@Body() loginUserDto: LoginUserDto): Promise<LoginResponseDto> {
@@ -111,24 +111,24 @@ export class AuthController {
         },
       };
     } catch (error) {
-      throw new UnauthorizedException("Invalid credentials");
+      throw new UnauthorizedException('Invalid credentials');
     }
   }
 
-  @Post("refresh")
+  @Post('refresh')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: "Refresh access token" })
+  @ApiOperation({ summary: 'Refresh access token' })
   @ApiResponse({
     status: 200,
-    description: "Token refreshed successfully",
+    description: 'Token refreshed successfully',
     type: RefreshTokenResponseDto,
   })
   @ApiUnauthorizedResponse({
-    description: "Invalid refresh token",
+    description: 'Invalid refresh token',
   })
   @ApiBody({ type: RefreshTokenDto })
   async refresh(
-    @Body() refreshTokenDto: RefreshTokenDto
+    @Body() refreshTokenDto: RefreshTokenDto,
   ): Promise<RefreshTokenResponseDto> {
     try {
       const result = await this.refreshTokenUseCase.execute({
@@ -140,7 +140,7 @@ export class AuthController {
         expiresIn: 900, // 15 minutes
       };
     } catch (error) {
-      throw new UnauthorizedException("Invalid refresh token");
+      throw new UnauthorizedException('Invalid refresh token');
     }
   }
 }

@@ -1,18 +1,18 @@
-import { Repository } from "typeorm";
-import { Injectable } from "@nestjs/common";
-import { InjectRepository } from "@nestjs/typeorm";
+import { Repository } from 'typeorm';
+import { Injectable } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
 import {
   CategoryRepository,
   CreateCategoryData,
-} from "@data/protocols/category-repository";
-import { CategoryModel, CategoryType } from "@domain/models/category.model";
-import { CategoryEntity } from "../entities/category.entity";
+} from '@data/protocols/category-repository';
+import { CategoryModel, CategoryType } from '@domain/models/category.model';
+import { CategoryEntity } from '../entities/category.entity';
 
 @Injectable()
 export class TypeormCategoryRepository implements CategoryRepository {
   constructor(
     @InjectRepository(CategoryEntity)
-    private readonly categoryRepository: Repository<CategoryEntity>
+    private readonly categoryRepository: Repository<CategoryEntity>,
   ) {}
 
   async create(data: CreateCategoryData): Promise<CategoryModel> {
@@ -35,37 +35,43 @@ export class TypeormCategoryRepository implements CategoryRepository {
   async findByUserId(userId: string): Promise<CategoryModel[]> {
     const categories = await this.categoryRepository.find({
       where: { userId },
-      order: { name: "ASC" },
+      order: { name: 'ASC' },
     });
     return categories.map(this.mapToModel);
   }
 
   async findByUserIdAndType(
     userId: string,
-    type: CategoryType
+    type: CategoryType,
   ): Promise<CategoryModel[]> {
     const categories = await this.categoryRepository.find({
       where: { userId, type },
-      order: { name: "ASC" },
+      order: { name: 'ASC' },
     });
     return categories.map(this.mapToModel);
   }
 
   async update(
     id: string,
-    data: Partial<CreateCategoryData>
+    data: Partial<CreateCategoryData>,
   ): Promise<CategoryModel> {
     const updateData: any = {};
-    if (data.name) updateData.name = data.name;
-    if (data.type) updateData.type = data.type;
-    if (data.userId) updateData.userId = data.userId;
+    if (data.name) {
+      updateData.name = data.name;
+    }
+    if (data.type) {
+      updateData.type = data.type;
+    }
+    if (data.userId) {
+      updateData.userId = data.userId;
+    }
 
     await this.categoryRepository.update(id, updateData);
     const updatedCategory = await this.categoryRepository.findOne({
       where: { id },
     });
     if (!updatedCategory) {
-      throw new Error("Category not found");
+      throw new Error('Category not found');
     }
     return this.mapToModel(updatedCategory);
   }
@@ -73,7 +79,7 @@ export class TypeormCategoryRepository implements CategoryRepository {
   async delete(id: string): Promise<void> {
     const result = await this.categoryRepository.delete(id);
     if (result.affected === 0) {
-      throw new Error("Category not found");
+      throw new Error('Category not found');
     }
   }
 

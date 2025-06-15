@@ -1,5 +1,5 @@
-import * as bcrypt from "bcrypt";
-import { Hasher } from "@data/protocols/hasher";
+import * as bcrypt from 'bcrypt';
+import { Hasher } from '@data/protocols/hasher';
 
 export class BcryptHasher implements Hasher {
   private readonly saltRounds = 12;

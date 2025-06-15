@@ -7,4 +7,4 @@ export interface CategoryModel {
   userId: string;
   createdAt: Date;
   updatedAt: Date;
-} 
+}

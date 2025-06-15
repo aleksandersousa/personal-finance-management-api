@@ -1,14 +1,14 @@
-import { Test, TestingModule } from "@nestjs/testing";
-import { BadRequestException, UnauthorizedException } from "@nestjs/common";
-import { AuthController } from "../../../src/presentation/controllers/auth.controller";
-import { RegisterUserUseCase } from "../../../src/domain/usecases/register-user.usecase";
-import { LoginUserUseCase } from "../../../src/domain/usecases/login-user.usecase";
-import { RefreshTokenUseCase } from "../../../src/domain/usecases/refresh-token.usecase";
-import { RegisterUserDto } from "../../../src/presentation/dtos/register-user.dto";
-import { LoginUserDto } from "../../../src/presentation/dtos/login-user.dto";
-import { RefreshTokenDto } from "../../../src/presentation/dtos/refresh-token.dto";
+import { Test, TestingModule } from '@nestjs/testing';
+import { BadRequestException, UnauthorizedException } from '@nestjs/common';
+import { AuthController } from '../../../src/presentation/controllers/auth.controller';
+import { RegisterUserUseCase } from '../../../src/domain/usecases/register-user.usecase';
+import { LoginUserUseCase } from '../../../src/domain/usecases/login-user.usecase';
+import { RefreshTokenUseCase } from '../../../src/domain/usecases/refresh-token.usecase';
+import { RegisterUserDto } from '../../../src/presentation/dtos/register-user.dto';
+import { LoginUserDto } from '../../../src/presentation/dtos/login-user.dto';
+import { RefreshTokenDto } from '../../../src/presentation/dtos/refresh-token.dto';
 
-describe("AuthController", () => {
+describe('AuthController', () => {
   let controller: AuthController;
   let mockRegisterUserUseCase: jest.Mocked<RegisterUserUseCase>;
   let mockLoginUserUseCase: jest.Mocked<LoginUserUseCase>;
@@ -31,15 +31,15 @@ describe("AuthController", () => {
       controllers: [AuthController],
       providers: [
         {
-          provide: "RegisterUserUseCase",
+          provide: 'RegisterUserUseCase',
           useValue: mockRegisterUserUseCase,
         },
         {
-          provide: "LoginUserUseCase",
+          provide: 'LoginUserUseCase',
           useValue: mockLoginUserUseCase,
         },
         {
-          provide: "RefreshTokenUseCase",
+          provide: 'RefreshTokenUseCase',
           useValue: mockRefreshTokenUseCase,
         },
       ],
@@ -52,29 +52,29 @@ describe("AuthController", () => {
     jest.clearAllMocks();
   });
 
-  it("should be defined", () => {
+  it('should be defined', () => {
     expect(controller).toBeDefined();
   });
 
-  describe("register", () => {
-    it("should register a user successfully", async () => {
+  describe('register', () => {
+    it('should register a user successfully', async () => {
       const registerDto: RegisterUserDto = {
-        name: "John Doe",
-        email: "john@example.com",
-        password: "password123",
+        name: 'John Doe',
+        email: 'john@example.com',
+        password: 'password123',
       };
 
       const mockResponse = {
         user: {
-          id: "user-id",
-          name: "John Doe",
-          email: "john@example.com",
+          id: 'user-id',
+          name: 'John Doe',
+          email: 'john@example.com',
           createdAt: new Date(),
           updatedAt: new Date(),
         },
         tokens: {
-          accessToken: "access-token",
-          refreshToken: "refresh-token",
+          accessToken: 'access-token',
+          refreshToken: 'refresh-token',
         },
       };
 
@@ -101,63 +101,63 @@ describe("AuthController", () => {
       });
     });
 
-    it("should throw BadRequestException when user already exists", async () => {
+    it('should throw BadRequestException when user already exists', async () => {
       const registerDto: RegisterUserDto = {
-        name: "John Doe",
-        email: "john@example.com",
-        password: "password123",
+        name: 'John Doe',
+        email: 'john@example.com',
+        password: 'password123',
       };
 
       mockRegisterUserUseCase.execute.mockRejectedValue(
-        new Error("User already exists")
+        new Error('User already exists'),
       );
 
       await expect(controller.register(registerDto)).rejects.toThrow(
-        BadRequestException
+        BadRequestException,
       );
       await expect(controller.register(registerDto)).rejects.toThrow(
-        "User already exists"
+        'User already exists',
       );
     });
 
-    it("should throw BadRequestException for other registration errors", async () => {
+    it('should throw BadRequestException for other registration errors', async () => {
       const registerDto: RegisterUserDto = {
-        name: "John Doe",
-        email: "john@example.com",
-        password: "password123",
+        name: 'John Doe',
+        email: 'john@example.com',
+        password: 'password123',
       };
 
       mockRegisterUserUseCase.execute.mockRejectedValue(
-        new Error("Some other error")
+        new Error('Some other error'),
       );
 
       await expect(controller.register(registerDto)).rejects.toThrow(
-        BadRequestException
+        BadRequestException,
       );
       await expect(controller.register(registerDto)).rejects.toThrow(
-        "User registration failed"
+        'User registration failed',
       );
     });
   });
 
-  describe("login", () => {
-    it("should login a user successfully", async () => {
+  describe('login', () => {
+    it('should login a user successfully', async () => {
       const loginDto: LoginUserDto = {
-        email: "john@example.com",
-        password: "password123",
+        email: 'john@example.com',
+        password: 'password123',
       };
 
       const mockResponse = {
         user: {
-          id: "user-id",
-          name: "John Doe",
-          email: "john@example.com",
+          id: 'user-id',
+          name: 'John Doe',
+          email: 'john@example.com',
           createdAt: new Date(),
           updatedAt: new Date(),
         },
         tokens: {
-          accessToken: "access-token",
-          refreshToken: "refresh-token",
+          accessToken: 'access-token',
+          refreshToken: 'refresh-token',
         },
       };
 
@@ -184,34 +184,34 @@ describe("AuthController", () => {
       });
     });
 
-    it("should throw UnauthorizedException for invalid credentials", async () => {
+    it('should throw UnauthorizedException for invalid credentials', async () => {
       const loginDto: LoginUserDto = {
-        email: "john@example.com",
-        password: "wrongpassword",
+        email: 'john@example.com',
+        password: 'wrongpassword',
       };
 
       mockLoginUserUseCase.execute.mockRejectedValue(
-        new Error("Invalid credentials")
+        new Error('Invalid credentials'),
       );
 
       await expect(controller.login(loginDto)).rejects.toThrow(
-        UnauthorizedException
+        UnauthorizedException,
       );
       await expect(controller.login(loginDto)).rejects.toThrow(
-        "Invalid credentials"
+        'Invalid credentials',
       );
     });
   });
 
-  describe("refresh", () => {
-    it("should refresh token successfully", async () => {
+  describe('refresh', () => {
+    it('should refresh token successfully', async () => {
       const refreshTokenDto: RefreshTokenDto = {
-        refreshToken: "valid-refresh-token",
+        refreshToken: 'valid-refresh-token',
       };
 
       const mockResponse = {
-        accessToken: "new-access-token",
-        refreshToken: "new-refresh-token",
+        accessToken: 'new-access-token',
+        refreshToken: 'new-refresh-token',
       };
 
       mockRefreshTokenUseCase.execute.mockResolvedValue(mockResponse);
@@ -228,67 +228,67 @@ describe("AuthController", () => {
       });
     });
 
-    it("should throw UnauthorizedException for invalid refresh token", async () => {
+    it('should throw UnauthorizedException for invalid refresh token', async () => {
       const refreshTokenDto: RefreshTokenDto = {
-        refreshToken: "invalid-refresh-token",
+        refreshToken: 'invalid-refresh-token',
       };
 
       mockRefreshTokenUseCase.execute.mockRejectedValue(
-        new Error("Invalid refresh token")
+        new Error('Invalid refresh token'),
       );
 
       await expect(controller.refresh(refreshTokenDto)).rejects.toThrow(
-        UnauthorizedException
+        UnauthorizedException,
       );
       await expect(controller.refresh(refreshTokenDto)).rejects.toThrow(
-        "Invalid refresh token"
+        'Invalid refresh token',
       );
     });
   });
 
-  describe("error handling", () => {
-    it("should handle unexpected errors in register", async () => {
+  describe('error handling', () => {
+    it('should handle unexpected errors in register', async () => {
       const registerDto: RegisterUserDto = {
-        name: "John Doe",
-        email: "john@example.com",
-        password: "password123",
+        name: 'John Doe',
+        email: 'john@example.com',
+        password: 'password123',
       };
 
       mockRegisterUserUseCase.execute.mockRejectedValue(
-        new Error("Database connection failed")
+        new Error('Database connection failed'),
       );
 
       await expect(controller.register(registerDto)).rejects.toThrow(
-        BadRequestException
+        BadRequestException,
       );
     });
 
-    it("should handle unexpected errors in login", async () => {
+    it('should handle unexpected errors in login', async () => {
       const loginDto: LoginUserDto = {
-        email: "john@example.com",
-        password: "password123",
+        email: 'john@example.com',
+        password: 'password123',
       };
 
       mockLoginUserUseCase.execute.mockRejectedValue(
-        new Error("Database connection failed")
+        new Error('Database connection failed'),
       );
 
       await expect(controller.login(loginDto)).rejects.toThrow(
-        UnauthorizedException
+        UnauthorizedException,
       );
     });
 
-    it("should handle unexpected errors in refresh", async () => {
+    it('should handle unexpected errors in refresh', async () => {
       const refreshTokenDto: RefreshTokenDto = {
-        refreshToken: "valid-refresh-token",
+        refreshToken: 'valid-refresh-token',
       };
 
       mockRefreshTokenUseCase.execute.mockRejectedValue(
-        new Error("Database connection failed")
+        new Error('Database connection failed'),
       );
 
       await expect(controller.refresh(refreshTokenDto)).rejects.toThrow(
-        UnauthorizedException
+        UnauthorizedException,
       );
     });
   });

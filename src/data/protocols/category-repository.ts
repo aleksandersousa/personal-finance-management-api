@@ -1,4 +1,4 @@
-import { CategoryModel, CategoryType } from "@domain/models/category.model";
+import { CategoryModel, CategoryType } from '@domain/models/category.model';
 
 export interface CreateCategoryData {
   name: string;
@@ -12,7 +12,7 @@ export interface CategoryRepository {
   findByUserId(userId: string): Promise<CategoryModel[]>;
   findByUserIdAndType(
     userId: string,
-    type: CategoryType
+    type: CategoryType,
   ): Promise<CategoryModel[]>;
   update(id: string, data: Partial<CreateCategoryData>): Promise<CategoryModel>;
   delete(id: string): Promise<void>;

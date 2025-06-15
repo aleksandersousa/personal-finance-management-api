@@ -11,7 +11,7 @@ export class MetricsSpy {
       this.recordedMetrics.push({
         name,
         labels,
-        type: "timer",
+        type: 'timer',
         timestamp: new Date(),
       });
     });
@@ -28,7 +28,7 @@ export class MetricsSpy {
     this.recordedMetrics.push({
       name,
       labels,
-      type: "counter",
+      type: 'counter',
       timestamp: new Date(),
     });
   }
@@ -38,7 +38,7 @@ export class MetricsSpy {
       name,
       value,
       labels,
-      type: "gauge",
+      type: 'gauge',
       timestamp: new Date(),
     });
   }
@@ -48,7 +48,7 @@ export class MetricsSpy {
       name,
       value,
       labels,
-      type: "histogram",
+      type: 'histogram',
       timestamp: new Date(),
     });
   }
@@ -70,11 +70,11 @@ export class MetricsSpy {
     let filtered = this.recordedMetrics;
 
     if (name) {
-      filtered = filtered.filter((m) => m.name === name);
+      filtered = filtered.filter(m => m.name === name);
     }
 
     if (type) {
-      filtered = filtered.filter((m) => m.type === type);
+      filtered = filtered.filter(m => m.type === type);
     }
 
     return filtered;
@@ -85,7 +85,7 @@ export class MetricsSpy {
    */
   getTimers(name?: string): TimerRecord[] {
     return name
-      ? this.startedTimers.filter((t) => t.name === name)
+      ? this.startedTimers.filter(t => t.name === name)
       : this.startedTimers;
   }
 
@@ -93,14 +93,14 @@ export class MetricsSpy {
    * Get the count of metrics with a specific name
    */
   getMetricCount(name: string): number {
-    return this.recordedMetrics.filter((m) => m.name === name).length;
+    return this.recordedMetrics.filter(m => m.name === name).length;
   }
 
   /**
    * Check if a metric was recorded
    */
   hasRecordedMetric(name: string): boolean {
-    return this.recordedMetrics.some((m) => m.name === name);
+    return this.recordedMetrics.some(m => m.name === name);
   }
 
   /**
@@ -108,7 +108,7 @@ export class MetricsSpy {
    */
   getErrorMetrics(): MetricRecord[] {
     return this.recordedMetrics.filter(
-      (m) => m.labels && m.labels.status === "error"
+      m => m.labels && m.labels.status === 'error',
     );
   }
 }
@@ -118,7 +118,7 @@ interface MetricRecord {
   name: string;
   value?: number;
   labels?: any;
-  type: "counter" | "gauge" | "histogram" | "summary" | "timer";
+  type: 'counter' | 'gauge' | 'histogram' | 'summary' | 'timer';
   timestamp: Date;
 }
 

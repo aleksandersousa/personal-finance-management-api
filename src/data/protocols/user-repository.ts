@@ -1,4 +1,4 @@
-import { UserModel } from "@domain/models/user.model";
+import { UserModel } from '@domain/models/user.model';
 
 export interface CreateUserData {
   name: string;

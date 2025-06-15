@@ -1,44 +1,44 @@
 import {
-  Entity,
-  PrimaryGeneratedColumn,
   Column,
   CreateDateColumn,
-  UpdateDateColumn,
-  ManyToOne,
+  Entity,
   JoinColumn,
+  ManyToOne,
   OneToMany,
-} from "typeorm";
-import { CategoryType } from "@domain/models/category.model";
-import { UserEntity } from "./user.entity";
-import { EntryEntity } from "./entry.entity";
+  PrimaryGeneratedColumn,
+  UpdateDateColumn,
+} from 'typeorm';
+import { CategoryType } from '@domain/models/category.model';
+import { UserEntity } from './user.entity';
+import { EntryEntity } from './entry.entity';
 
-@Entity("categories")
+@Entity('categories')
 export class CategoryEntity {
-  @PrimaryGeneratedColumn("uuid")
+  @PrimaryGeneratedColumn('uuid')
   id: string;
 
   @Column()
   name: string;
 
   @Column({
-    type: "enum",
-    enum: ["INCOME", "EXPENSE"],
+    type: 'enum',
+    enum: ['INCOME', 'EXPENSE'],
   })
   type: CategoryType;
 
-  @Column({ name: "user_id" })
+  @Column({ name: 'user_id' })
   userId: string;
 
-  @ManyToOne(() => UserEntity, (user) => user.categories)
-  @JoinColumn({ name: "user_id" })
+  @ManyToOne(() => UserEntity, user => user.categories)
+  @JoinColumn({ name: 'user_id' })
   user: UserEntity;
 
-  @OneToMany(() => EntryEntity, (entry) => entry.category)
+  @OneToMany(() => EntryEntity, entry => entry.category)
   entries: EntryEntity[];
 
-  @CreateDateColumn({ name: "created_at" })
+  @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;
 
-  @UpdateDateColumn({ name: "updated_at" })
+  @UpdateDateColumn({ name: 'updated_at' })
   updatedAt: Date;
 }

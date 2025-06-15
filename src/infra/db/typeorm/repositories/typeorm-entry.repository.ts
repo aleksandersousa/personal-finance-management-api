@@ -1,20 +1,20 @@
-import { Repository } from "typeorm";
-import { Injectable } from "@nestjs/common";
-import { InjectRepository } from "@nestjs/typeorm";
+import { Repository } from 'typeorm';
+import { Injectable } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
 import {
-  EntryRepository,
   CreateEntryData,
+  EntryRepository,
   FindEntriesByMonthFilters,
   FindEntriesByMonthResult,
-} from "@data/protocols/entry-repository";
-import { EntryModel } from "@domain/models/entry.model";
-import { EntryEntity } from "../entities/entry.entity";
+} from '@data/protocols/entry-repository';
+import { EntryModel } from '@domain/models/entry.model';
+import { EntryEntity } from '../entities/entry.entity';
 
 @Injectable()
 export class TypeormEntryRepository implements EntryRepository {
   constructor(
     @InjectRepository(EntryEntity)
-    private readonly entryRepository: Repository<EntryEntity>
+    private readonly entryRepository: Repository<EntryEntity>,
   ) {}
 
   async create(data: CreateEntryData): Promise<EntryModel> {
@@ -34,7 +34,7 @@ export class TypeormEntryRepository implements EntryRepository {
   async findById(id: string): Promise<EntryModel | null> {
     const entry = await this.entryRepository.findOne({
       where: { id },
-      relations: ["user", "category"],
+      relations: ['user', 'category'],
     });
     return entry ? this.mapToModel(entry) : null;
   }
@@ -42,8 +42,8 @@ export class TypeormEntryRepository implements EntryRepository {
   async findByUserId(userId: string): Promise<EntryModel[]> {
     const entries = await this.entryRepository.find({
       where: { userId },
-      relations: ["user", "category"],
-      order: { date: "DESC" },
+      relations: ['user', 'category'],
+      order: { date: 'DESC' },
     });
     return entries.map(this.mapToModel);
   }
@@ -51,26 +51,26 @@ export class TypeormEntryRepository implements EntryRepository {
   async findByUserIdAndMonth(
     userId: string,
     year: number,
-    month: number
+    month: number,
   ): Promise<EntryModel[]> {
     const startDate = new Date(year, month - 1, 1);
     const endDate = new Date(year, month, 0, 23, 59, 59);
 
     const entries = await this.entryRepository
-      .createQueryBuilder("entry")
-      .where("entry.userId = :userId", { userId })
-      .andWhere("entry.date >= :startDate", { startDate })
-      .andWhere("entry.date <= :endDate", { endDate })
-      .leftJoinAndSelect("entry.user", "user")
-      .leftJoinAndSelect("entry.category", "category")
-      .orderBy("entry.date", "DESC")
+      .createQueryBuilder('entry')
+      .where('entry.userId = :userId', { userId })
+      .andWhere('entry.date >= :startDate', { startDate })
+      .andWhere('entry.date <= :endDate', { endDate })
+      .leftJoinAndSelect('entry.user', 'user')
+      .leftJoinAndSelect('entry.category', 'category')
+      .orderBy('entry.date', 'DESC')
       .getMany();
 
     return entries.map(this.mapToModel);
   }
 
   async findByUserIdAndMonthWithFilters(
-    filters: FindEntriesByMonthFilters
+    filters: FindEntriesByMonthFilters,
   ): Promise<FindEntriesByMonthResult> {
     const {
       userId,
@@ -78,9 +78,9 @@ export class TypeormEntryRepository implements EntryRepository {
       month,
       page = 1,
       limit = 20,
-      sort = "date",
-      order = "desc",
-      type = "all",
+      sort = 'date',
+      order = 'desc',
+      type = 'all',
       categoryId,
     } = filters;
 
@@ -89,31 +89,31 @@ export class TypeormEntryRepository implements EntryRepository {
 
     // Build base query
     let queryBuilder = this.entryRepository
-      .createQueryBuilder("entry")
-      .where("entry.userId = :userId", { userId })
-      .andWhere("entry.date >= :startDate", { startDate })
-      .andWhere("entry.date <= :endDate", { endDate })
-      .leftJoinAndSelect("entry.user", "user")
-      .leftJoinAndSelect("entry.category", "category");
+      .createQueryBuilder('entry')
+      .where('entry.userId = :userId', { userId })
+      .andWhere('entry.date >= :startDate', { startDate })
+      .andWhere('entry.date <= :endDate', { endDate })
+      .leftJoinAndSelect('entry.user', 'user')
+      .leftJoinAndSelect('entry.category', 'category');
 
     // Apply type filter
-    if (type !== "all") {
-      queryBuilder = queryBuilder.andWhere("entry.type = :type", { type });
+    if (type !== 'all') {
+      queryBuilder = queryBuilder.andWhere('entry.type = :type', { type });
     }
 
     // Apply category filter
-    if (categoryId && categoryId !== "all") {
-      queryBuilder = queryBuilder.andWhere("entry.categoryId = :categoryId", {
+    if (categoryId && categoryId !== 'all') {
+      queryBuilder = queryBuilder.andWhere('entry.categoryId = :categoryId', {
         categoryId,
       });
     }
 
     // Apply sorting
-    const validSortFields = ["date", "amount", "description"];
-    const sortField = validSortFields.includes(sort) ? sort : "date";
+    const validSortFields = ['date', 'amount', 'description'];
+    const sortField = validSortFields.includes(sort) ? sort : 'date';
     queryBuilder = queryBuilder.orderBy(
       `entry.${sortField}`,
-      order.toUpperCase() as "ASC" | "DESC"
+      order.toUpperCase() as 'ASC' | 'DESC',
     );
 
     // Get total count
@@ -128,26 +128,26 @@ export class TypeormEntryRepository implements EntryRepository {
 
     // Calculate summary - need separate query for totals without pagination
     const summaryQuery = this.entryRepository
-      .createQueryBuilder("entry")
+      .createQueryBuilder('entry')
       .select(
         "SUM(CASE WHEN entry.type = 'INCOME' THEN entry.amount ELSE 0 END)",
-        "totalIncome"
+        'totalIncome',
       )
       .addSelect(
         "SUM(CASE WHEN entry.type = 'EXPENSE' THEN entry.amount ELSE 0 END)",
-        "totalExpenses"
+        'totalExpenses',
       )
-      .where("entry.userId = :userId", { userId })
-      .andWhere("entry.date >= :startDate", { startDate })
-      .andWhere("entry.date <= :endDate", { endDate });
+      .where('entry.userId = :userId', { userId })
+      .andWhere('entry.date >= :startDate', { startDate })
+      .andWhere('entry.date <= :endDate', { endDate });
 
     // Apply same filters to summary query
-    if (type !== "all") {
-      summaryQuery.andWhere("entry.type = :type", { type });
+    if (type !== 'all') {
+      summaryQuery.andWhere('entry.type = :type', { type });
     }
 
-    if (categoryId && categoryId !== "all") {
-      summaryQuery.andWhere("entry.categoryId = :categoryId", { categoryId });
+    if (categoryId && categoryId !== 'all') {
+      summaryQuery.andWhere('entry.categoryId = :categoryId', { categoryId });
     }
 
     const summaryResult = await summaryQuery.getRawOne();
@@ -155,31 +155,45 @@ export class TypeormEntryRepository implements EntryRepository {
     return {
       data: entries.map(this.mapToModel),
       total,
-      totalIncome: parseFloat(summaryResult?.totalIncome || "0"),
-      totalExpenses: parseFloat(summaryResult?.totalExpenses || "0"),
+      totalIncome: parseFloat(summaryResult?.totalIncome || '0'),
+      totalExpenses: parseFloat(summaryResult?.totalExpenses || '0'),
     };
   }
 
   async update(
     id: string,
-    data: Partial<CreateEntryData>
+    data: Partial<CreateEntryData>,
   ): Promise<EntryModel> {
     const updateData: any = {};
-    if (data.userId) updateData.userId = data.userId;
-    if (data.description) updateData.description = data.description;
-    if (data.amount !== undefined) updateData.amount = data.amount;
-    if (data.date) updateData.date = data.date;
-    if (data.type) updateData.type = data.type;
-    if (data.isFixed !== undefined) updateData.isFixed = data.isFixed;
-    if (data.categoryId !== undefined) updateData.categoryId = data.categoryId;
+    if (data.userId) {
+      updateData.userId = data.userId;
+    }
+    if (data.description) {
+      updateData.description = data.description;
+    }
+    if (data.amount !== undefined) {
+      updateData.amount = data.amount;
+    }
+    if (data.date) {
+      updateData.date = data.date;
+    }
+    if (data.type) {
+      updateData.type = data.type;
+    }
+    if (data.isFixed !== undefined) {
+      updateData.isFixed = data.isFixed;
+    }
+    if (data.categoryId !== undefined) {
+      updateData.categoryId = data.categoryId;
+    }
 
     await this.entryRepository.update(id, updateData);
     const updatedEntry = await this.entryRepository.findOne({
       where: { id },
-      relations: ["user", "category"],
+      relations: ['user', 'category'],
     });
     if (!updatedEntry) {
-      throw new Error("Entry not found");
+      throw new Error('Entry not found');
     }
     return this.mapToModel(updatedEntry);
   }
@@ -187,7 +201,7 @@ export class TypeormEntryRepository implements EntryRepository {
   async delete(id: string): Promise<void> {
     const result = await this.entryRepository.delete(id);
     if (result.affected === 0) {
-      throw new Error("Entry not found");
+      throw new Error('Entry not found');
     }
   }
 

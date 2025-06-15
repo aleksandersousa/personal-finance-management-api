@@ -1,5 +1,5 @@
-import { CategoryRepository } from "@data/protocols/category-repository";
-import { CategoryModel } from "@domain/models/category.model";
+import { CategoryRepository } from '@data/protocols/category-repository';
+import { CategoryModel } from '@domain/models/category.model';
 
 /**
  * Category Repository Stub for Data Layer Testing
@@ -12,7 +12,7 @@ export class CategoryRepositoryStub implements CategoryRepository {
   private nextId = 1;
 
   async create(
-    data: Omit<CategoryModel, "id" | "createdAt" | "updatedAt">
+    data: Omit<CategoryModel, 'id' | 'createdAt' | 'updatedAt'>,
   ): Promise<CategoryModel> {
     if (this.shouldFail && this.errorToThrow) {
       throw this.errorToThrow;
@@ -41,25 +41,25 @@ export class CategoryRepositoryStub implements CategoryRepository {
       throw this.errorToThrow;
     }
     return Array.from(this.categories.values()).filter(
-      (category) => category.userId === userId
+      category => category.userId === userId,
     );
   }
 
   async findByUserIdAndType(
     userId: string,
-    type: "INCOME" | "EXPENSE"
+    type: 'INCOME' | 'EXPENSE',
   ): Promise<CategoryModel[]> {
     if (this.shouldFail && this.errorToThrow) {
       throw this.errorToThrow;
     }
     return Array.from(this.categories.values()).filter(
-      (category) => category.userId === userId && category.type === type
+      category => category.userId === userId && category.type === type,
     );
   }
 
   async update(
     id: string,
-    data: Partial<CategoryModel>
+    data: Partial<CategoryModel>,
   ): Promise<CategoryModel> {
     if (this.shouldFail && this.errorToThrow) {
       throw this.errorToThrow;
@@ -67,7 +67,7 @@ export class CategoryRepositoryStub implements CategoryRepository {
 
     const existing = this.categories.get(id);
     if (!existing) {
-      throw new Error("Category not found");
+      throw new Error('Category not found');
     }
 
     const updated = {
@@ -85,7 +85,7 @@ export class CategoryRepositoryStub implements CategoryRepository {
     }
 
     if (!this.categories.has(id)) {
-      throw new Error("Category not found");
+      throw new Error('Category not found');
     }
 
     this.categories.delete(id);
@@ -107,9 +107,7 @@ export class CategoryRepositoryStub implements CategoryRepository {
    * Seed the repository with predefined categories
    */
   seed(categories: CategoryModel[]): void {
-    categories.forEach((category) =>
-      this.categories.set(category.id, category)
-    );
+    categories.forEach(category => this.categories.set(category.id, category));
   }
 
   /**
@@ -146,6 +144,6 @@ export class CategoryRepositoryStub implements CategoryRepository {
    * Simulate connection errors
    */
   mockConnectionError(): void {
-    this.mockFailure(new Error("Database connection failed"));
+    this.mockFailure(new Error('Database connection failed'));
   }
 }

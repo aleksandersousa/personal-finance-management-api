@@ -1,5 +1,15 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsNotEmpty, IsString, IsNumber, IsBoolean, IsDateString, IsEnum, IsOptional, IsUUID, Min } from 'class-validator';
+import {
+  IsBoolean,
+  IsDateString,
+  IsEnum,
+  IsNotEmpty,
+  IsNumber,
+  IsOptional,
+  IsString,
+  IsUUID,
+  Min,
+} from 'class-validator';
 import { Type } from 'class-transformer';
 import { EntryType } from '@domain/models/entry.model';
 
@@ -14,7 +24,7 @@ export class CreateEntryDto {
 
   @ApiProperty({
     description: 'Entry amount',
-    example: 5000.00,
+    example: 5000.0,
     minimum: 0.01,
   })
   @IsNotEmpty()
@@ -56,4 +66,4 @@ export class CreateEntryDto {
   @IsOptional()
   @IsUUID()
   categoryId?: string;
-} 
+}
