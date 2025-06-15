@@ -1,0 +1,15 @@
+#!/usr/bin/env sh
+. "$(dirname -- "$0")/_/husky.sh"
+
+echo "🔍 Running pre-commit quality checks..."
+
+# Run linting
+echo "📝 Checking code style..."
+yarn lint
+
+# Check build
+echo "🏗️ Verifying build..."
+yarn build
+
+echo "✅ Pre-commit checks passed!"
+echo "💡 Run 'yarn test:all' and 'yarn test:coverage' manually before pushing"

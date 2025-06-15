@@ -87,6 +87,114 @@ Follow this order when implementing new features:
   ⚠️ **NOVA ABORDAGEM**: Use **mocked use cases** e **spies** para observabilidade em vez de banco de dados real.  
   Cover full API flow from request to mocked business logic with full observability.
 
+## 🚀 MANDATORY TEST EXECUTION GUIDELINES
+
+### 🛡️ CRITICAL RULE: Post-Implementation Testing
+
+**⚠️ OBRIGATÓRIO: Após finalizar qualquer implementação (caso de uso, bug fix, nova feature), SEMPRE:**
+
+```bash
+# 1. Execute TODOS os testes unitários
+yarn test
+
+# 2. Execute TODOS os testes de integração (se existirem)
+yarn test:integration
+
+# 3. Execute TODOS os testes E2E
+yarn test:e2e
+
+# 4. Verifique coverage de 100%
+yarn test:coverage
+
+# 5. Execute build para verificar se não há erros de compilação
+yarn build
+```
+
+**NUNCA faça commit sem que TODOS os testes passem e tenha 100% de coverage!**
+
+### 📊 Coverage Requirements
+
+- **Minimum Coverage**: 100% (sem exceções)
+- **Lines Coverage**: 100%
+- **Functions Coverage**: 100%
+- **Branches Coverage**: 100%
+- **Statements Coverage**: 100%
+
+**Comando para verificar coverage:**
+
+```bash
+# Verificar coverage completo
+yarn test:coverage
+
+# Verificar coverage específico
+yarn test:coverage --collectCoverageFrom="src/**/*.ts"
+
+# Gerar relatório HTML para análise detalhada
+yarn test:coverage --coverageReporters=html
+open coverage/lcov-report/index.html
+```
+
+### 🔍 Test Quality Standards
+
+**Cada teste deve:**
+
+- ✅ Testar um comportamento específico
+- ✅ Ter nome descritivo e claro
+- ✅ Usar padrão AAA (Arrange, Act, Assert)
+- ✅ Ser independente (não depender de outros testes)
+- ✅ Ser determinístico (sempre mesmo resultado)
+- ✅ Ser rápido (< 100ms por teste unitário)
+
+**Coverage Analysis:**
+
+```bash
+# Verificar quais linhas NÃO estão cobertas
+yarn test:coverage --verbose
+
+# Identificar arquivos com coverage < 100%
+yarn test:coverage | grep -E "^[^|]*\|[^|]*\|[^|]*\|[^|]*\|.*[0-9][0-9]?\.[0-9]"
+
+# Executar testes específicos para melhorar coverage
+yarn test --testPathPattern=specific-file.spec.ts --coverage
+```
+
+### 🚫 BLOQUEIOS OBRIGATÓRIOS
+
+**O push/merge será BLOQUEADO se:**
+
+- ❌ Qualquer teste falhar (unitário, integração, E2E)
+- ❌ Coverage estiver abaixo de 100%
+- ❌ Build falhar
+- ❌ Linting falhar
+- ❌ Husky hooks falharem
+
+### 🎯 Test Execution Order
+
+**Ordem recomendada para execução:**
+
+```bash
+# 1. Testes rápidos primeiro (TDD)
+yarn test --watch # Durante desenvolvimento
+
+# 2. Verificação completa antes de commit
+yarn test:all # Inclui todos os tipos de teste
+
+# 3. Verificação final antes de push
+yarn test:ci # Simula ambiente CI/CD
+```
+
+### 📋 Pre-Commit Checklist
+
+Antes de cada commit, verificar:
+
+- [ ] `yarn test` - Todos os testes unitários passando
+- [ ] `yarn test:e2e` - Todos os testes E2E passando
+- [ ] `yarn test:coverage` - Coverage 100%
+- [ ] `yarn build` - Build sem erros
+- [ ] `yarn lint` - Linting passando
+- [ ] Código limpo e sem console.logs
+- [ ] Documentação atualizada se necessário
+
 ## ⚠️ PROBLEMAS COMUNS E SOLUÇÕES
 
 ### Problema 1: E2E Tests com SQLite vs PostgreSQL

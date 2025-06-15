@@ -104,8 +104,29 @@ Before any commit, always verify:
 - [ ] No unused imports or variables
 - [ ] All methods are being used
 - [ ] Build passes: `yarn build`
-- [ ] Tests pass: `yarn test`
+- [ ] **ALL tests pass: `yarn test` + `yarn test:e2e`**
+- [ ] **100% test coverage: `yarn test:coverage`**
 - [ ] Linting passes: `yarn lint`
+
+### 🚀 MANDATORY POST-IMPLEMENTATION WORKFLOW
+
+**⚠️ CRITICAL: After completing ANY use case implementation or bug fix:**
+
+```bash
+# 1. Execute ALL test suites
+yarn test            # Unit tests
+yarn test:e2e        # End-to-end tests
+yarn test:coverage   # Coverage verification (must be 100%)
+
+# 2. Build verification
+yarn build           # Ensure no compilation errors
+yarn lint            # Code quality verification
+
+# 3. Only proceed if ALL tests pass and coverage is 100%
+# 4. Then commit and push
+```
+
+**NEVER commit without 100% test coverage and all tests passing!**
 
 ### 🧪 Test-Driven Development (TDD) Guidelines
 
