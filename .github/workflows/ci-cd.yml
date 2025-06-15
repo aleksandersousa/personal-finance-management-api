@@ -402,17 +402,25 @@ jobs:
       - name: 📥 Checkout code
         uses: actions/checkout@v4
 
+      - name: 🔍 Extract primary image tag
+        id: extract-tag
+        run: |
+          # Extract the first tag from the multi-line output
+          PRIMARY_TAG=$(echo "${{ needs.build.outputs.image-tag }}" | head -n1)
+          echo "primary-tag=$PRIMARY_TAG" >> $GITHUB_OUTPUT
+          echo "🏷️ Primary tag for deployment: $PRIMARY_TAG"
+
       - name: 🔧 Setup deployment environment
         run: |
           echo "Setting up development environment..."
-          echo "IMAGE_TAG=${{ needs.build.outputs.image-tag }}" >> $GITHUB_ENV
+          echo "IMAGE_TAG=${{ steps.extract-tag.outputs.primary-tag }}" >> $GITHUB_ENV
           echo "ENVIRONMENT=development" >> $GITHUB_ENV
 
       - name: 🚀 Deploy to Development
         id: deploy
         run: |
           echo "🚀 Deploying to Development environment..."
-          echo "Image: ${{ needs.build.outputs.image-tag }}"
+          echo "Image: ${{ steps.extract-tag.outputs.primary-tag }}"
           echo "Environment: development"
 
           # Aqui será implementado o deploy real
@@ -430,7 +438,7 @@ jobs:
         run: |
           echo "📊 Deployment Status: SUCCESS"
           echo "🔗 URL: ${{ steps.deploy.outputs.app-url }}"
-          echo "🏷️ Image Tag: ${{ needs.build.outputs.image-tag }}"
+          echo "🏷️ Image Tag: ${{ steps.extract-tag.outputs.primary-tag }}"
 
   # 🚀 Deploy to Staging
   deploy-staging:
@@ -452,17 +460,25 @@ jobs:
       - name: 📥 Checkout code
         uses: actions/checkout@v4
 
+      - name: 🔍 Extract primary image tag
+        id: extract-tag
+        run: |
+          # Extract the first tag from the multi-line output
+          PRIMARY_TAG=$(echo "${{ needs.build.outputs.image-tag }}" | head -n1)
+          echo "primary-tag=$PRIMARY_TAG" >> $GITHUB_OUTPUT
+          echo "🏷️ Primary tag for deployment: $PRIMARY_TAG"
+
       - name: 🔧 Setup deployment environment
         run: |
           echo "Setting up staging environment..."
-          echo "IMAGE_TAG=${{ needs.build.outputs.image-tag }}" >> $GITHUB_ENV
+          echo "IMAGE_TAG=${{ steps.extract-tag.outputs.primary-tag }}" >> $GITHUB_ENV
           echo "ENVIRONMENT=staging" >> $GITHUB_ENV
 
       - name: 🚀 Deploy to Staging
         id: deploy
         run: |
           echo "🚀 Deploying to Staging environment..."
-          echo "Image: ${{ needs.build.outputs.image-tag }}"
+          echo "Image: ${{ steps.extract-tag.outputs.primary-tag }}"
           echo "Environment: staging"
 
           # Aqui será implementado o deploy real
@@ -486,7 +502,7 @@ jobs:
         run: |
           echo "📊 Deployment Status: SUCCESS"
           echo "🔗 URL: ${{ steps.deploy.outputs.app-url }}"
-          echo "🏷️ Image Tag: ${{ needs.build.outputs.image-tag }}"
+          echo "🏷️ Image Tag: ${{ steps.extract-tag.outputs.primary-tag }}"
 
   # 🚀 Deploy to Production
   deploy-production:
@@ -508,17 +524,25 @@ jobs:
       - name: 📥 Checkout code
         uses: actions/checkout@v4
 
+      - name: 🔍 Extract primary image tag
+        id: extract-tag
+        run: |
+          # Extract the first tag from the multi-line output
+          PRIMARY_TAG=$(echo "${{ needs.build.outputs.image-tag }}" | head -n1)
+          echo "primary-tag=$PRIMARY_TAG" >> $GITHUB_OUTPUT
+          echo "🏷️ Primary tag for deployment: $PRIMARY_TAG"
+
       - name: 🔧 Setup deployment environment
         run: |
           echo "Setting up production environment..."
-          echo "IMAGE_TAG=${{ needs.build.outputs.image-tag }}" >> $GITHUB_ENV
+          echo "IMAGE_TAG=${{ steps.extract-tag.outputs.primary-tag }}" >> $GITHUB_ENV
           echo "ENVIRONMENT=production" >> $GITHUB_ENV
 
       - name: 🚀 Deploy to Production
         id: deploy
         run: |
           echo "🚀 Deploying to Production environment..."
-          echo "Image: ${{ needs.build.outputs.image-tag }}"
+          echo "Image: ${{ steps.extract-tag.outputs.primary-tag }}"
           echo "Environment: production"
 
           # Aqui será implementado o deploy real
@@ -540,9 +564,9 @@ jobs:
 
       - name: 📊 Update deployment status
         run: |
-          echo "📊 Production Deployment Status: SUCCESS"
+          echo "📊 Deployment Status: SUCCESS"
           echo "🔗 URL: ${{ steps.deploy.outputs.app-url }}"
-          echo "🏷️ Image Tag: ${{ needs.build.outputs.image-tag }}"
+          echo "🏷️ Image Tag: ${{ steps.extract-tag.outputs.primary-tag }}"
 
       - name: 🔔 Notify deployment success
         run: |
