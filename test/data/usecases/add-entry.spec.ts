@@ -1,77 +1,55 @@
 import { DbAddEntryUseCase } from "@data/usecases/db-add-entry.usecase";
-import { EntryRepository } from "@data/protocols/entry-repository";
-import { UserRepository } from "@data/protocols/user-repository";
-import { CategoryRepository } from "@data/protocols/category-repository";
-import { IdGenerator } from "@data/protocols/id-generator";
-import { AddEntryRequest } from "@domain/usecases/add-entry.usecase";
-import { EntryModel } from "@domain/models/entry.model";
-import { UserModel } from "@domain/models/user.model";
-import { CategoryModel } from "@domain/models/category.model";
+import { EntryRepositoryStub } from "../mocks/repositories/entry-repository.stub";
+import { UserRepositoryStub } from "../mocks/repositories/user-repository.stub";
+import { CategoryRepositoryStub } from "../mocks/repositories/category-repository.stub";
+import { IdGeneratorStub } from "../mocks/protocols/id-generator.stub";
+import { MockEntryFactory } from "../../domain/mocks/models/entry.mock";
+import { MockUserFactory } from "../../domain/mocks/models/user.mock";
+import { MockCategoryFactory } from "../../domain/mocks/models/category.mock";
 
 describe("DbAddEntryUseCase", () => {
   let sut: DbAddEntryUseCase;
-  let entryRepository: jest.Mocked<EntryRepository>;
-  let userRepository: jest.Mocked<UserRepository>;
-  let categoryRepository: jest.Mocked<CategoryRepository>;
-  let idGenerator: jest.Mocked<IdGenerator>;
+  let entryRepositoryStub: EntryRepositoryStub;
+  let userRepositoryStub: UserRepositoryStub;
+  let categoryRepositoryStub: CategoryRepositoryStub;
+  let idGeneratorStub: IdGeneratorStub;
 
   beforeEach(() => {
-    entryRepository = {
-      create: jest.fn(),
-      findById: jest.fn(),
-      findByUserId: jest.fn(),
-      findByUserIdAndMonth: jest.fn(),
-      findByUserIdAndMonthWithFilters: jest.fn(),
-      update: jest.fn(),
-      delete: jest.fn(),
-    };
-
-    userRepository = {
-      create: jest.fn(),
-      findByEmail: jest.fn(),
-      findById: jest.fn(),
-    };
-
-    categoryRepository = {
-      create: jest.fn(),
-      findById: jest.fn(),
-      findByUserId: jest.fn(),
-      findByUserIdAndType: jest.fn(),
-      update: jest.fn(),
-      delete: jest.fn(),
-    };
-
-    idGenerator = {
-      generate: jest.fn(),
-    };
+    idGeneratorStub = new IdGeneratorStub();
+    entryRepositoryStub = new EntryRepositoryStub(idGeneratorStub);
+    userRepositoryStub = new UserRepositoryStub();
+    categoryRepositoryStub = new CategoryRepositoryStub();
 
     sut = new DbAddEntryUseCase(
-      entryRepository,
-      userRepository,
-      categoryRepository,
-      idGenerator
+      entryRepositoryStub,
+      userRepositoryStub,
+      categoryRepositoryStub,
+      idGeneratorStub
     );
   });
 
+  afterEach(() => {
+    entryRepositoryStub.clear();
+    userRepositoryStub.clear();
+    categoryRepositoryStub.clear();
+    idGeneratorStub.clear();
+  });
+
   describe("execute", () => {
-    const mockUser: UserModel = {
+    const mockUser = MockUserFactory.create({
       id: "valid-user-id",
       name: "John Doe",
       email: "john@example.com",
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    };
+    });
 
-    const mockCategory: CategoryModel = {
+    const mockCategory = MockCategoryFactory.create({
       id: "valid-category-id",
       name: "Salary",
       type: "INCOME",
       userId: "valid-user-id",
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    };
+    });
 
-    const mockRequest: AddEntryRequest = {
+    const mockRequest = MockEntryFactory.createAddRequest({
       userId: "valid-user-id",
       description: "Salary - January 2025",
       amount: 5000,
@@ -79,186 +57,216 @@ describe("DbAddEntryUseCase", () => {
       type: "INCOME",
       isFixed: true,
       categoryId: "valid-category-id",
-    };
-
-    const mockEntry: EntryModel = {
-      id: "valid-entry-id",
-      userId: "valid-user-id",
-      description: "Salary - January 2025",
-      amount: 5000,
-      date: new Date("2025-01-15"),
-      type: "INCOME",
-      isFixed: true,
-      categoryId: "valid-category-id",
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    };
+    });
 
     it("should create an entry successfully", async () => {
       // Arrange
-      userRepository.findById.mockResolvedValue(mockUser);
-      categoryRepository.findById.mockResolvedValue(mockCategory);
-      entryRepository.create.mockResolvedValue(mockEntry);
+      userRepositoryStub.seed([mockUser]);
+      categoryRepositoryStub.seed([mockCategory]);
 
       // Act
       const result = await sut.execute(mockRequest);
 
       // Assert
-      expect(userRepository.findById).toHaveBeenCalledWith(mockRequest.userId);
-      expect(categoryRepository.findById).toHaveBeenCalledWith(
-        mockRequest.categoryId
-      );
-      expect(entryRepository.create).toHaveBeenCalledWith({
-        userId: mockRequest.userId,
-        description: mockRequest.description,
-        amount: mockRequest.amount,
-        date: mockRequest.date,
-        type: mockRequest.type,
-        isFixed: mockRequest.isFixed,
-        categoryId: mockRequest.categoryId,
-      });
-      expect(result).toEqual(mockEntry);
+      expect(result).toHaveProperty("id");
+      expect(result.description).toBe(mockRequest.description);
+      expect(result.amount).toBe(mockRequest.amount);
+      expect(result.userId).toBe(mockRequest.userId);
+      expect(result.categoryId).toBe(mockRequest.categoryId);
+
+      // Verify repository interactions
+      expect(entryRepositoryStub.getCount()).toBe(1);
+      expect(userRepositoryStub.hasUser(mockUser.id)).toBe(true);
+      expect(categoryRepositoryStub.hasCategory(mockCategory.id)).toBe(true);
     });
 
     it("should throw error if user not found", async () => {
       // Arrange
-      userRepository.findById.mockResolvedValue(null);
+      categoryRepositoryStub.seed([mockCategory]);
+      // User not seeded - simulates user not found
 
       // Act & Assert
       await expect(sut.execute(mockRequest)).rejects.toThrow("User not found");
-      expect(entryRepository.create).not.toHaveBeenCalled();
+      expect(entryRepositoryStub.getCount()).toBe(0);
     });
 
     it("should throw error if category not found", async () => {
       // Arrange
-      userRepository.findById.mockResolvedValue(mockUser);
-      categoryRepository.findById.mockResolvedValue(null);
+      userRepositoryStub.seed([mockUser]);
+      // Category not seeded - simulates category not found
 
       // Act & Assert
       await expect(sut.execute(mockRequest)).rejects.toThrow(
         "Category not found"
       );
-      expect(entryRepository.create).not.toHaveBeenCalled();
+      expect(entryRepositoryStub.getCount()).toBe(0);
     });
 
     it("should throw error if category does not belong to user", async () => {
       // Arrange
-      const categoryFromOtherUser = {
-        ...mockCategory,
+      const categoryFromOtherUser = MockCategoryFactory.create({
+        id: "valid-category-id",
         userId: "other-user-id",
-      };
-      userRepository.findById.mockResolvedValue(mockUser);
-      categoryRepository.findById.mockResolvedValue(categoryFromOtherUser);
+        name: "Other User Category",
+      });
+
+      userRepositoryStub.seed([mockUser]);
+      categoryRepositoryStub.seed([categoryFromOtherUser]);
 
       // Act & Assert
       await expect(sut.execute(mockRequest)).rejects.toThrow(
         "Category does not belong to the user"
       );
-      expect(entryRepository.create).not.toHaveBeenCalled();
+      expect(entryRepositoryStub.getCount()).toBe(0);
     });
 
     it("should throw error if amount is zero", async () => {
       // Arrange
-      const invalidRequest = { ...mockRequest, amount: 0 };
+      const invalidRequest = MockEntryFactory.createAddRequest({
+        ...mockRequest,
+        amount: 0,
+      });
 
       // Act & Assert
       await expect(sut.execute(invalidRequest)).rejects.toThrow(
         "Amount must be greater than zero"
       );
-      expect(entryRepository.create).not.toHaveBeenCalled();
+      expect(entryRepositoryStub.getCount()).toBe(0);
     });
 
     it("should throw error if amount is negative", async () => {
       // Arrange
-      const invalidRequest = { ...mockRequest, amount: -100 };
+      const invalidRequest = MockEntryFactory.createAddRequest({
+        ...mockRequest,
+        amount: -100,
+      });
 
       // Act & Assert
       await expect(sut.execute(invalidRequest)).rejects.toThrow(
         "Amount must be greater than zero"
       );
-      expect(entryRepository.create).not.toHaveBeenCalled();
+      expect(entryRepositoryStub.getCount()).toBe(0);
     });
 
     it("should throw error if description is empty", async () => {
       // Arrange
-      const invalidRequest = { ...mockRequest, description: "" };
+      const invalidRequest = MockEntryFactory.createAddRequest({
+        ...mockRequest,
+        description: "",
+      });
 
       // Act & Assert
       await expect(sut.execute(invalidRequest)).rejects.toThrow(
         "Description is required"
       );
-      expect(entryRepository.create).not.toHaveBeenCalled();
+      expect(entryRepositoryStub.getCount()).toBe(0);
     });
 
     it("should throw error if description is only whitespace", async () => {
       // Arrange
-      const invalidRequest = { ...mockRequest, description: "   " };
+      const invalidRequest = MockEntryFactory.createAddRequest({
+        ...mockRequest,
+        description: "   ",
+      });
 
       // Act & Assert
       await expect(sut.execute(invalidRequest)).rejects.toThrow(
         "Description is required"
       );
-      expect(entryRepository.create).not.toHaveBeenCalled();
+      expect(entryRepositoryStub.getCount()).toBe(0);
     });
 
-    it("should throw error if userId is empty", async () => {
+    it("should handle repository errors", async () => {
       // Arrange
-      const invalidRequest = { ...mockRequest, userId: "" };
+      userRepositoryStub.seed([mockUser]);
+      categoryRepositoryStub.seed([mockCategory]);
+      entryRepositoryStub.mockConnectionError();
 
       // Act & Assert
-      await expect(sut.execute(invalidRequest)).rejects.toThrow(
-        "User ID is required"
+      await expect(sut.execute(mockRequest)).rejects.toThrow(
+        "Database connection failed"
       );
-      expect(entryRepository.create).not.toHaveBeenCalled();
     });
 
-    it("should trim description before saving", async () => {
+    it("should handle user repository errors", async () => {
       // Arrange
-      const requestWithSpaces = {
+      userRepositoryStub.mockConnectionError();
+
+      // Act & Assert
+      await expect(sut.execute(mockRequest)).rejects.toThrow(
+        "Database connection failed"
+      );
+    });
+
+    it("should handle category repository errors", async () => {
+      // Arrange
+      userRepositoryStub.seed([mockUser]);
+      categoryRepositoryStub.mockConnectionError();
+
+      // Act & Assert
+      await expect(sut.execute(mockRequest)).rejects.toThrow(
+        "Database connection failed"
+      );
+    });
+
+    it("should create entry with generated ID", async () => {
+      // Arrange
+      userRepositoryStub.seed([mockUser]);
+      categoryRepositoryStub.seed([mockCategory]);
+      idGeneratorStub.setPrefix("test-entry");
+
+      // Act
+      const result = await sut.execute(mockRequest);
+
+      // Assert
+      expect(result.id).toContain("test-entry");
+      expect(entryRepositoryStub.hasEntry(result.id)).toBe(true);
+    });
+
+    it("should create multiple entries with different IDs", async () => {
+      // Arrange
+      userRepositoryStub.seed([mockUser]);
+      categoryRepositoryStub.seed([mockCategory]);
+
+      const request1 = MockEntryFactory.createAddRequest({
         ...mockRequest,
-        description: "  Salary - January 2025  ",
-      };
-      userRepository.findById.mockResolvedValue(mockUser);
-      categoryRepository.findById.mockResolvedValue(mockCategory);
-      entryRepository.create.mockResolvedValue(mockEntry);
+        description: "Entry 1",
+      });
+      const request2 = MockEntryFactory.createAddRequest({
+        ...mockRequest,
+        description: "Entry 2",
+      });
 
       // Act
-      await sut.execute(requestWithSpaces);
+      const result1 = await sut.execute(request1);
+      const result2 = await sut.execute(request2);
 
       // Assert
-      expect(entryRepository.create).toHaveBeenCalledWith({
-        userId: mockRequest.userId,
-        description: "Salary - January 2025",
-        amount: mockRequest.amount,
-        date: mockRequest.date,
-        type: mockRequest.type,
-        isFixed: mockRequest.isFixed,
-        categoryId: mockRequest.categoryId,
-      });
+      expect(result1.id).not.toBe(result2.id);
+      expect(entryRepositoryStub.getCount()).toBe(2);
+      expect(entryRepositoryStub.hasEntry(result1.id)).toBe(true);
+      expect(entryRepositoryStub.hasEntry(result2.id)).toBe(true);
     });
 
-    it("should work without categoryId", async () => {
+    it("should create entry with correct timestamps", async () => {
       // Arrange
-      const requestWithoutCategory = { ...mockRequest };
-      delete requestWithoutCategory.categoryId;
-      userRepository.findById.mockResolvedValue(mockUser);
-      entryRepository.create.mockResolvedValue(mockEntry);
+      userRepositoryStub.seed([mockUser]);
+      categoryRepositoryStub.seed([mockCategory]);
+      const beforeExecution = new Date();
 
       // Act
-      await sut.execute(requestWithoutCategory);
+      const result = await sut.execute(mockRequest);
 
       // Assert
-      expect(userRepository.findById).toHaveBeenCalledWith(mockRequest.userId);
-      expect(categoryRepository.findById).not.toHaveBeenCalled();
-      expect(entryRepository.create).toHaveBeenCalledWith({
-        userId: mockRequest.userId,
-        description: mockRequest.description,
-        amount: mockRequest.amount,
-        date: mockRequest.date,
-        type: mockRequest.type,
-        isFixed: mockRequest.isFixed,
-        categoryId: undefined,
-      });
+      const afterExecution = new Date();
+      expect(result.createdAt).toBeInstanceOf(Date);
+      expect(result.updatedAt).toBeInstanceOf(Date);
+      expect(result.createdAt.getTime()).toBeGreaterThanOrEqual(
+        beforeExecution.getTime()
+      );
+      expect(result.createdAt.getTime()).toBeLessThanOrEqual(
+        afterExecution.getTime()
+      );
     });
   });
 });

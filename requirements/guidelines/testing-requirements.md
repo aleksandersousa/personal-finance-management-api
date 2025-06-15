@@ -2,57 +2,446 @@
 
 ## File Structure
 
+```
 tests/
 ├── data/
-│ └── usecases/
-│ └── add-entry.spec.ts
+│   ├── mocks/           # Stubs and spies for data layer
+│   │   ├── repositories/
+│   │   └── protocols/
+│   └── usecases/
+│       └── add-entry.spec.ts
+├── domain/
+│   └── mocks/           # Domain models and use case mocks
+│       ├── models/
+│       └── usecases/
 ├── infra/
+│   ├── mocks/           # Infrastructure stubs and spies
+│   │   ├── db/
+│   │   ├── logging/
+│   │   └── metrics/
+│   └── db/
+│       └── typeorm/
+│           └── repositories/
 ├── presentation/
-├── main/
+│   ├── mocks/           # Controller and middleware mocks
+│   │   ├── controllers/
+│   │   ├── middlewares/
+│   │   └── guards/
+│   └── controllers/
+└── main/
+    └── mocks/           # Factory and module mocks
+```
 
 Tests must mirror the project folder structure. For example, tests for `src/data/usecases/add-entry.ts` must be placed in `tests/data/usecases/add-entry.spec.ts`.
 
-## Test Types
+## Test Types & Mock Strategy
 
 - **Unit Tests:**  
-  Test individual use case implementations and repository interfaces in isolation (mock dependencies).  
-  Focus on domain and data layers.
+  Test individual use case implementations and repository interfaces in isolation using **mocks** for dependencies.  
+  Focus on domain and data layers with complete isolation.
 
 - **Integration Tests:**  
-  Test controllers integrated with the database and use cases.  
+  Test controllers integrated with the database and use cases using **stubs** for external services.  
   Use an isolated test database to verify request-response cycles.
 
 - **End-to-End (E2E) Tests:**  
-  Use Supertest to test API routes through HTTP calls, covering full API flow from request to database persistence.
+  Use **spies** to monitor real system interactions while using Supertest for HTTP calls.  
+  Cover full API flow from request to database persistence.
+
+## 🎭 Mocks, Stubs, and Spies Strategy
+
+### Terminology & Usage
+
+- **Mocks**: Complete fake implementations for isolated unit testing
+- **Stubs**: Simplified implementations that provide predictable responses
+- **Spies**: Wrappers around real implementations to observe interactions
+
+### Layer-Specific Mock Organization
+
+#### Domain Layer Mocks (`tests/domain/mocks/`)
+
+```typescript
+// tests/domain/mocks/models/entry.mock.ts
+export const mockEntry: Entry = {
+  id: "550e8400-e29b-41d4-a716-446655440000",
+  userId: "user-123",
+  description: "Test Entry",
+  amount: 10000, // 100.00 in cents
+  category: "Food",
+  type: "EXPENSE",
+  isFixed: false,
+  date: new Date("2025-06-01"),
+  createdAt: new Date("2025-06-01T10:00:00Z"),
+  updatedAt: new Date("2025-06-01T10:00:00Z"),
+};
+
+export const mockEntryCreateData: EntryCreateData = {
+  userId: "user-123",
+  description: "Test Entry",
+  amount: 10000,
+  category: "Food",
+  type: "EXPENSE",
+  isFixed: false,
+  date: new Date("2025-06-01"),
+};
+
+export class MockEntryFactory {
+  static create(overrides: Partial<Entry> = {}): Entry {
+    return { ...mockEntry, ...overrides };
+  }
+
+  static createMany(count: number, overrides: Partial<Entry> = {}): Entry[] {
+    return Array.from({ length: count }, (_, index) =>
+      this.create({ ...overrides, id: `entry-${index + 1}` })
+    );
+  }
+}
+```
+
+```typescript
+// tests/domain/mocks/usecases/add-entry.mock.ts
+export const mockAddEntryUseCase: jest.Mocked<AddEntryUseCase> = {
+  execute: jest.fn(),
+};
+
+export class AddEntryUseCaseMockFactory {
+  static createSuccess(entry: Entry = mockEntry): jest.Mocked<AddEntryUseCase> {
+    return {
+      execute: jest.fn().mockResolvedValue(entry),
+    };
+  }
+
+  static createFailure(error: Error): jest.Mocked<AddEntryUseCase> {
+    return {
+      execute: jest.fn().mockRejectedValue(error),
+    };
+  }
+}
+```
+
+#### Data Layer Stubs (`tests/data/mocks/`)
+
+```typescript
+// tests/data/mocks/repositories/entry-repository.stub.ts
+export class EntryRepositoryStub implements EntryRepository {
+  private entries: Map<string, Entry> = new Map();
+
+  async create(data: EntryCreateData): Promise<Entry> {
+    const entry: Entry = {
+      ...data,
+      id: `stub-entry-${Date.now()}`,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+    this.entries.set(entry.id, entry);
+    return entry;
+  }
+
+  async findById(id: string): Promise<Entry | null> {
+    return this.entries.get(id) || null;
+  }
+
+  async findByUserId(userId: string): Promise<Entry[]> {
+    return Array.from(this.entries.values()).filter(
+      (entry) => entry.userId === userId
+    );
+  }
+
+  async update(id: string, data: EntryUpdateData): Promise<Entry> {
+    const existing = this.entries.get(id);
+    if (!existing) throw new Error("Entry not found");
+
+    const updated = { ...existing, ...data, updatedAt: new Date() };
+    this.entries.set(id, updated);
+    return updated;
+  }
+
+  async delete(id: string): Promise<void> {
+    this.entries.delete(id);
+  }
+
+  // Test utility methods
+  clear(): void {
+    this.entries.clear();
+  }
+
+  seed(entries: Entry[]): void {
+    entries.forEach((entry) => this.entries.set(entry.id, entry));
+  }
+}
+```
+
+```typescript
+// tests/data/mocks/protocols/validation.stub.ts
+export class ValidationStub implements ValidationProtocol<any> {
+  private shouldFail = false;
+  private errors: ValidationError[] = [];
+
+  validate(data: any): ValidationResult {
+    return {
+      isValid: !this.shouldFail,
+      errors: this.errors,
+    };
+  }
+
+  // Test utility methods
+  mockValidationSuccess(): void {
+    this.shouldFail = false;
+    this.errors = [];
+  }
+
+  mockValidationFailure(errors: ValidationError[]): void {
+    this.shouldFail = true;
+    this.errors = errors;
+  }
+}
+```
+
+#### Infrastructure Layer Spies (`tests/infra/mocks/`)
+
+```typescript
+// tests/infra/mocks/logging/logger.spy.ts
+export class LoggerSpy implements ContextAwareLoggerService {
+  public loggedEvents: any[] = [];
+  public loggedBusinessEvents: any[] = [];
+  public loggedSecurityEvents: any[] = [];
+  public loggedErrors: any[] = [];
+
+  log(message: string, ...args: any[]): void {
+    this.loggedEvents.push({ level: "log", message, args });
+  }
+
+  error(message: string, stack?: string): void {
+    this.loggedErrors.push({ message, stack });
+  }
+
+  warn(message: string): void {
+    this.loggedEvents.push({ level: "warn", message });
+  }
+
+  debug(message: string): void {
+    this.loggedEvents.push({ level: "debug", message });
+  }
+
+  logBusinessEvent(event: any): void {
+    this.loggedBusinessEvents.push(event);
+  }
+
+  logSecurityEvent(event: any): void {
+    this.loggedSecurityEvents.push(event);
+  }
+
+  // Test utility methods
+  clear(): void {
+    this.loggedEvents = [];
+    this.loggedBusinessEvents = [];
+    this.loggedSecurityEvents = [];
+    this.loggedErrors = [];
+  }
+
+  getBusinessEvents(eventType?: string): any[] {
+    return eventType
+      ? this.loggedBusinessEvents.filter((e) => e.event === eventType)
+      : this.loggedBusinessEvents;
+  }
+
+  getSecurityEvents(severity?: string): any[] {
+    return severity
+      ? this.loggedSecurityEvents.filter((e) => e.severity === severity)
+      : this.loggedSecurityEvents;
+  }
+}
+```
+
+```typescript
+// tests/infra/mocks/metrics/metrics.spy.ts
+export class MetricsSpy implements MetricsService {
+  public recordedMetrics: any[] = [];
+  public startedTimers: any[] = [];
+
+  startTimer(name: string): any {
+    const timerFn = jest.fn((labels: any) => {
+      this.recordedMetrics.push({ name, labels, type: "timer" });
+    });
+
+    this.startedTimers.push({ name, timer: timerFn });
+    return timerFn;
+  }
+
+  incrementCounter(name: string, labels: any = {}): void {
+    this.recordedMetrics.push({ name, labels, type: "counter" });
+  }
+
+  recordGauge(name: string, value: number, labels: any = {}): void {
+    this.recordedMetrics.push({ name, value, labels, type: "gauge" });
+  }
+
+  recordHistogram(name: string, value: number, labels: any = {}): void {
+    this.recordedMetrics.push({ name, value, labels, type: "histogram" });
+  }
+
+  // Test utility methods
+  clear(): void {
+    this.recordedMetrics = [];
+    this.startedTimers = [];
+  }
+
+  getMetrics(name?: string): any[] {
+    return name
+      ? this.recordedMetrics.filter((m) => m.name === name)
+      : this.recordedMetrics;
+  }
+
+  getTimers(name?: string): any[] {
+    return name
+      ? this.startedTimers.filter((t) => t.name === name)
+      : this.startedTimers;
+  }
+}
+```
+
+#### Presentation Layer Mocks (`tests/presentation/mocks/`)
+
+```typescript
+// tests/presentation/mocks/guards/auth.mock.ts
+export const mockJwtAuthGuard = {
+  canActivate: jest.fn().mockReturnValue(true),
+};
+
+export class AuthGuardMockFactory {
+  static createAuthorized(): any {
+    return {
+      canActivate: jest.fn().mockReturnValue(true),
+    };
+  }
+
+  static createUnauthorized(): any {
+    return {
+      canActivate: jest.fn().mockReturnValue(false),
+    };
+  }
+}
+```
+
+```typescript
+// tests/presentation/mocks/controllers/request.mock.ts
+export const mockRequest = {
+  user: {
+    userId: "user-123",
+    email: "test@example.com",
+  },
+  traceId: "trace-123",
+  headers: {
+    authorization: "Bearer mock-token",
+  },
+};
+
+export class RequestMockFactory {
+  static create(overrides: any = {}): any {
+    return { ...mockRequest, ...overrides };
+  }
+
+  static createWithUser(
+    userId: string,
+    email: string = "test@example.com"
+  ): any {
+    return this.create({
+      user: { userId, email },
+    });
+  }
+}
+```
 
 ## Tools
 
 - **Jest:** Test runner and assertion library for unit and integration tests.
 - **Supertest:** HTTP assertions for E2E API testing.
-- **TypeORM Test Utils (optional):** For managing test database connection and cleanup.
+- **TypeORM Test Utils:** For managing test database connection and cleanup.
+- **Jest Mocks:** For creating mocks, stubs, and spies with full type safety.
 
 ## Test Guidelines
 
-- Each use case must have at least one unit test verifying all core logic and edge cases.
-- Controller tests must verify HTTP request handling, validation, and error management.
-- Use mock implementations for repositories in unit tests.
-- For integration and E2E tests, use a test database instance; clean state before each test suite.
+- Each use case must have at least one unit test verifying all core logic and edge cases using **mocks**.
+- Controller tests must verify HTTP request handling, validation, and error management using **stubs**.
+- Use **spies** for integration tests to observe real system interactions.
+- Organize mocks by architectural layer in dedicated `mocks/` folders.
+- Use factory patterns for creating test data with variations.
 - Use descriptive test names and group related tests with `describe` blocks.
 - Coverage should target 80%+ of critical code paths.
+- Clean up test state between tests using mock utilities.
+
+## Mock Guidelines by Test Type
+
+### Unit Tests - Use Mocks
+
+- **Purpose**: Complete isolation of unit under test
+- **When**: Testing business logic, use cases, validators
+- **Implementation**: Full mock implementations with Jest mocks
+- **Benefits**: Fast execution, predictable behavior, complete control
+
+### Integration Tests - Use Stubs
+
+- **Purpose**: Test component interactions with predictable external dependencies
+- **When**: Testing repository patterns, service integration
+- **Implementation**: Simplified real implementations
+- **Benefits**: Faster than real dependencies, controllable responses
+
+### E2E Tests - Use Spies
+
+- **Purpose**: Monitor real system behavior while maintaining observability
+- **When**: Full API testing, system behavior verification
+- **Implementation**: Wrap real services with observation capabilities
+- **Benefits**: Real behavior validation, interaction monitoring
 
 ## Example: AddEntry Use Case Unit Test Structure
 
 ```ts
+// tests/data/usecases/add-entry.spec.ts
+import { AddEntryUseCase } from "../../../src/data/usecases/add-entry.usecase";
+import { EntryRepositoryStub } from "../mocks/repositories/entry-repository.stub";
+import { ValidationStub } from "../mocks/protocols/validation.stub";
+import { MockEntryFactory } from "../../domain/mocks/models/entry.mock";
+
 describe("AddEntry Use Case", () => {
+  let useCase: AddEntryUseCase;
+  let repositoryStub: EntryRepositoryStub;
+  let validationStub: ValidationStub;
+
+  beforeEach(() => {
+    repositoryStub = new EntryRepositoryStub();
+    validationStub = new ValidationStub();
+    useCase = new AddEntryUseCase(repositoryStub, validationStub);
+  });
+
+  afterEach(() => {
+    repositoryStub.clear();
+  });
+
   it("should add a valid entry", async () => {
-    // Arrange: mock repository, input data
-    // Act: execute use case
-    // Assert: verify repository call and returned result
+    // Arrange
+    const inputData = MockEntryFactory.create().createData;
+    validationStub.mockValidationSuccess();
+
+    // Act
+    const result = await useCase.execute(inputData);
+
+    // Assert
+    expect(result).toHaveProperty("id");
+    expect(result.description).toBe(inputData.description);
+    expect(result.amount).toBe(inputData.amount);
   });
 
   it("should throw an error on invalid data", async () => {
-    // Arrange invalid input
-    // Act & Assert: expect error
+    // Arrange
+    const inputData = MockEntryFactory.create({ amount: -100 }).createData;
+    validationStub.mockValidationFailure([
+      { field: "amount", message: "Amount must be positive" },
+    ]);
+
+    // Act & Assert
+    await expect(useCase.execute(inputData)).rejects.toThrow(
+      "Validation failed"
+    );
   });
 });
 ```
@@ -60,26 +449,128 @@ describe("AddEntry Use Case", () => {
 ## Example: Controller Integration Test Structure
 
 ```ts
+// tests/presentation/controllers/entry.controller.spec.ts
+import { Test, TestingModule } from "@nestjs/testing";
+import { EntryController } from "../../../src/presentation/controllers/entry.controller";
+import { AddEntryUseCaseMockFactory } from "../../domain/mocks/usecases/add-entry.mock";
+import { LoggerSpy } from "../../infra/mocks/logging/logger.spy";
+import { MetricsSpy } from "../../infra/mocks/metrics/metrics.spy";
+import { RequestMockFactory } from "../mocks/controllers/request.mock";
+
 describe("Entry Controller", () => {
+  let controller: EntryController;
+  let addEntryUseCase: jest.Mocked<AddEntryUseCase>;
+  let loggerSpy: LoggerSpy;
+  let metricsSpy: MetricsSpy;
+
+  beforeEach(async () => {
+    addEntryUseCase = AddEntryUseCaseMockFactory.createSuccess();
+    loggerSpy = new LoggerSpy();
+    metricsSpy = new MetricsSpy();
+
+    const module: TestingModule = await Test.createTestingModule({
+      controllers: [EntryController],
+      providers: [
+        { provide: AddEntryUseCase, useValue: addEntryUseCase },
+        { provide: ContextAwareLoggerService, useValue: loggerSpy },
+        { provide: MetricsService, useValue: metricsSpy },
+      ],
+    }).compile();
+
+    controller = module.get<EntryController>(EntryController);
+  });
+
+  afterEach(() => {
+    loggerSpy.clear();
+    metricsSpy.clear();
+  });
+
+  it("should create entry and log business event", async () => {
+    // Arrange
+    const createDto = { description: "Test", amount: 100 /* ... */ };
+    const mockRequest = RequestMockFactory.createWithUser("user-123");
+
+    // Act
+    const result = await controller.create(createDto, mockRequest);
+
+    // Assert
+    expect(result).toHaveProperty("id");
+    expect(addEntryUseCase.execute).toHaveBeenCalledWith({
+      ...createDto,
+      userId: "user-123",
+    });
+
+    // Verify logging
+    const businessEvents = loggerSpy.getBusinessEvents(
+      "entry_api_create_success"
+    );
+    expect(businessEvents).toHaveLength(1);
+    expect(businessEvents[0]).toMatchObject({
+      userId: "user-123",
+      traceId: "trace-123",
+    });
+
+    // Verify metrics
+    const timerMetrics = metricsSpy.getTimers("http_request_duration");
+    expect(timerMetrics).toHaveLength(1);
+  });
+});
+```
+
+## Example: E2E Test with Database
+
+```ts
+// tests/presentation/controllers/entry.controller.e2e-spec.ts
+describe("Entry Controller (e2e)", () => {
+  let app: INestApplication;
+  let authToken: string;
+  let loggerSpy: LoggerSpy;
+
   beforeAll(async () => {
-    // Setup test database connection
+    loggerSpy = new LoggerSpy();
+
+    const moduleFixture: TestingModule = await Test.createTestingModule({
+      imports: [AppModule],
+    })
+      .overrideProvider(ContextAwareLoggerService)
+      .useValue(loggerSpy)
+      .compile();
+
+    app = moduleFixture.createNestApplication();
+    await app.init();
+
+    authToken = await getAuthToken(app);
   });
 
   afterAll(async () => {
-    // Close connection
+    await app.close();
+  });
+
+  afterEach(() => {
+    loggerSpy.clear();
   });
 
   it("should create entry via POST /entries", async () => {
-    const response = await request(app).post("/entries").send({
-      description: "Salary",
-      amount: 5000,
-      date: "2025-06-01T00:00:00Z",
-      category: "Salary",
-      type: "INCOME",
-      is_fixed: true,
-    });
+    const response = await request(app.getHttpServer())
+      .post("/api/v1/entries")
+      .set("Authorization", `Bearer ${authToken}`)
+      .send({
+        description: "Salary",
+        amount: 5000,
+        date: "2025-06-01T00:00:00Z",
+        category: "Salary",
+        type: "INCOME",
+        is_fixed: true,
+      });
+
     expect(response.status).toBe(201);
     expect(response.body).toHaveProperty("id");
+
+    // Verify business events were logged
+    const businessEvents = loggerSpy.getBusinessEvents(
+      "entry_api_create_success"
+    );
+    expect(businessEvents).toHaveLength(1);
   });
 });
 ```
@@ -496,11 +987,28 @@ describe("Financial Data Validation", () => {
 
 Antes de liberar a API financeira para produção, verifique:
 
-- [ ] Testes de unidade para regras de negócio financeiras (cálculos de saldo, juros, etc.)
-- [ ] Testes de integração para fluxos completos (cadastro → lançamento → relatório)
+### Organização de Mocks
+
+- [ ] Mocks organizados por layer arquitetural
+- [ ] Factory patterns implementados para criação de test data
+- [ ] Stubs com métodos de utilidade para testes (clear, seed, etc.)
+- [ ] Spies implementados para observabilidade em testes
+
+### Tipos de Teste
+
+- [ ] Testes de unidade com mocks completos para isolamento
+- [ ] Testes de integração com stubs para dependências externas
+- [ ] Testes E2E com spies para monitoramento de comportamento real
 - [ ] Testes de autorização e controle de acesso para dados financeiros
 - [ ] Testes de validação de entrada para valores monetários
 - [ ] Testes de sanitização para evitar injeção SQL e XSS
 - [ ] Testes de performance para picos de uso (início/fim do mês)
 - [ ] Testes de integração com gateways de pagamento (quando aplicável)
 - [ ] Testes de persistência de transações (ACID)
+
+### Qualidade dos Mocks
+
+- [ ] Mocks mantêm contratos de interface
+- [ ] Test utilities facilitam setup e cleanup
+- [ ] Comportamentos de erro simulados corretamente
+- [ ] Estado dos mocks limpo entre testes
