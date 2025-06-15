@@ -4,23 +4,23 @@ on:
   pull_request:
     branches: [develop, staging, main]
     paths-ignore:
-      - "**.md"
-      - "docs/**"
-      - ".vscode/**"
-      - ".gitignore"
+      - '**.md'
+      - 'docs/**'
+      - '.vscode/**'
+      - '.gitignore'
   push:
     branches: [develop, staging, main]
     paths-ignore:
-      - "**.md"
-      - "docs/**"
-      - ".vscode/**"
-      - ".gitignore"
+      - '**.md'
+      - 'docs/**'
+      - '.vscode/**'
+      - '.gitignore'
   workflow_dispatch:
     inputs:
       environment:
-        description: "Environment to deploy"
+        description: 'Environment to deploy'
         required: true
-        default: "develop"
+        default: 'develop'
         type: choice
         options:
           - develop
@@ -28,7 +28,7 @@ on:
           - production
 
 env:
-  NODE_VERSION: "20"
+  NODE_VERSION: '20'
   REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository }}
 
@@ -49,7 +49,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: "yarn"
+          cache: 'yarn'
 
       - name: 📦 Install dependencies
         run: yarn install --frozen-lockfile
@@ -97,7 +97,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: "yarn"
+          cache: 'yarn'
 
       - name: 📦 Install dependencies
         run: yarn install --frozen-lockfile
@@ -182,6 +182,11 @@ jobs:
 
       - name: 🔧 Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
+        with:
+          driver-opts: |
+            network=host
+          buildkitd-flags: |
+            --allow-insecure-entitlement network.host
 
       - name: 🏗️ Build and push Docker image
         id: build
@@ -195,6 +200,56 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
           platforms: linux/amd64,linux/arm64
+          build-args: |
+            BUILDKIT_INLINE_CACHE=1
+          provenance: false
+          sbom: false
+        timeout-minutes: 45
+
+      # Fallback: Build architectures separately if multi-arch fails
+      - name: 🏗️ Build AMD64 image (fallback)
+        if: failure()
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: .docker/Dockerfile.prod
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}-amd64
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          platforms: linux/amd64
+          build-args: |
+            BUILDKIT_INLINE_CACHE=1
+          provenance: false
+          sbom: false
+        timeout-minutes: 30
+
+      - name: 🏗️ Build ARM64 image (fallback)
+        if: failure()
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: .docker/Dockerfile.prod
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}-arm64
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          platforms: linux/arm64
+          build-args: |
+            BUILDKIT_INLINE_CACHE=1
+          provenance: false
+          sbom: false
+        timeout-minutes: 30
+
+      - name: 🔗 Create multi-arch manifest (fallback)
+        if: failure()
+        run: |
+          docker buildx imagetools create \
+            --tag ${{ steps.meta.outputs.tags }} \
+            ${{ steps.meta.outputs.tags }}-amd64 \
+            ${{ steps.meta.outputs.tags }}-arm64
 
   # 🛡️ Security Scan
   security-scan:
@@ -208,14 +263,14 @@ jobs:
         uses: aquasecurity/trivy-action@master
         with:
           image-ref: ${{ needs.build.outputs.image-tag }}
-          format: "sarif"
-          output: "trivy-results.sarif"
+          format: 'sarif'
+          output: 'trivy-results.sarif'
 
       - name: 📊 Upload Trivy scan results
         uses: github/codeql-action/upload-sarif@v3
         if: always()
         with:
-          sarif_file: "trivy-results.sarif"
+          sarif_file: 'trivy-results.sarif'
 
   # 🚀 Deploy to Development
   deploy-development:

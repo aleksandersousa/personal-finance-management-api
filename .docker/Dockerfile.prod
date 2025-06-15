@@ -1,4 +1,4 @@
-# Dockerfile para produção - Multi-stage build
+# Dockerfile para produção - Multi-stage build otimizado
 FROM node:20-alpine AS builder
 
 # Adiciona dependências para compressão e segurança
@@ -9,37 +9,65 @@ RUN addgroup -S appgroup && adduser -S appuser -G appgroup
 
 WORKDIR /app
 
+# Configura npm para builds mais robustos (alternativa ao yarn)
+RUN npm config set fetch-timeout 300000 && \
+  npm config set fetch-retry-mintimeout 20000 && \
+  npm config set fetch-retry-maxtimeout 120000 && \
+  npm config set fetch-retries 5 && \
+  npm config set registry https://registry.npmjs.org/
+
 # Copia arquivos de dependências
 COPY package.json yarn.lock ./
 
-# Instala dependências usando Yarn
-RUN yarn install --frozen-lockfile
+# Instala dependências - tenta yarn primeiro, npm como fallback
+RUN yarn config set network-timeout 300000 && \
+  yarn config set registry https://registry.npmjs.org/ && \
+  yarn install --frozen-lockfile --network-timeout 300000 || \
+  (echo "Yarn failed, trying with npm..." && \
+  npm ci --only=production --no-audit --no-fund --maxsockets 1)
 
 # Copia código fonte
 COPY --chown=appuser:appgroup . .
 
 # Constrói a aplicação
-RUN yarn build
+RUN yarn build || npm run build
 
 # Production stage - Menor e mais seguro
 FROM node:20-alpine AS production
 
 # Adiciona ferramentas de segurança e sanitização
-RUN apk add --no-cache dumb-init
+RUN apk add --no-cache dumb-init wget
 
 # Define variáveis de ambiente
 ENV NODE_ENV=production \
   TZ=UTC \
-  PORT=3000
+  PORT=3000 \
+  NPM_CONFIG_LOGLEVEL=warn
 
 # Cria usuário não-root (segurança)
 RUN addgroup -S appgroup && adduser -S appuser -G appgroup
 
 WORKDIR /app
 
+# Configura npm para produção com timeouts maiores
+RUN npm config set fetch-timeout 300000 && \
+  npm config set fetch-retry-mintimeout 20000 && \
+  npm config set fetch-retry-maxtimeout 120000 && \
+  npm config set fetch-retries 5 && \
+  npm config set registry https://registry.npmjs.org/
+
 # Copia package.json e yarn.lock para instalar apenas dependências de produção
 COPY package.json yarn.lock ./
-RUN yarn install --frozen-lockfile --production && yarn cache clean
+
+# Instala dependências de produção com múltiplas estratégias de fallback
+RUN (yarn config set network-timeout 300000 && \
+  yarn install --frozen-lockfile --production --network-timeout 300000) || \
+  (echo "Yarn failed, trying npm ci..." && \
+  npm ci --only=production --no-audit --no-fund --maxsockets 1) || \
+  (echo "npm ci failed, trying npm install..." && \
+  npm install --only=production --no-audit --no-fund --maxsockets 1) && \
+  (yarn cache clean 2>/dev/null || npm cache clean --force) && \
+  rm -rf /tmp/.yarn-cache /tmp/.npm /root/.npm
 
 # Copia apenas arquivos necessários do estágio de build
 COPY --from=builder --chown=appuser:appgroup /app/dist ./dist
