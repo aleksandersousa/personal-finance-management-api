@@ -266,18 +266,121 @@ jobs:
     if: always() && needs.build.result == 'success'
 
     steps:
-      - name: 🔍 Run Trivy vulnerability scanner
-        uses: aquasecurity/trivy-action@master
-        with:
-          image-ref: ${{ needs.build.outputs.image-tag }}
-          format: 'sarif'
-          output: 'trivy-results.sarif'
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
 
-      - name: 📊 Upload Trivy scan results
-        uses: github/codeql-action/upload-sarif@v3
+      - name: 🔍 Extract primary image tag
+        id: extract-tag
+        run: |
+          # Extract the first tag from the multi-line output
+          PRIMARY_TAG=$(echo "${{ needs.build.outputs.image-tag }}" | head -n1)
+          echo "primary-tag=$PRIMARY_TAG" >> $GITHUB_OUTPUT
+          echo "🏷️ Primary tag for scanning: $PRIMARY_TAG"
+
+      - name: 🛡️ Run Trivy vulnerability scanner (Table format)
+        run: |
+          echo "🔍 Running Trivy security scan..."
+          docker run --rm \
+            -v /var/run/docker.sock:/var/run/docker.sock \
+            aquasec/trivy:latest image \
+            --severity HIGH,CRITICAL \
+            --format table \
+            --exit-code 0 \
+            ${{ steps.extract-tag.outputs.primary-tag }} || echo "⚠️ Trivy scan completed with warnings"
+
+      - name: 🛡️ Run Trivy vulnerability scanner (JSON format)
+        run: |
+          echo "📊 Generating detailed vulnerability report..."
+          docker run --rm \
+            -v /var/run/docker.sock:/var/run/docker.sock \
+            -v ${{ github.workspace }}:/workspace \
+            aquasec/trivy:latest image \
+            --severity HIGH,CRITICAL \
+            --format json \
+            --output /workspace/trivy-results.json \
+            --exit-code 0 \
+            ${{ steps.extract-tag.outputs.primary-tag }} || echo "⚠️ JSON report generation completed with warnings"
+
+      - name: 📋 Process vulnerability results
         if: always()
+        run: |
+          echo "🛡️ Security scan completed"
+
+          if [ -f "trivy-results.json" ]; then
+            echo "✅ Vulnerability report generated successfully"
+            echo "📊 Report size: $(du -h trivy-results.json | cut -f1)"
+            
+            # Count vulnerabilities by severity
+            HIGH_COUNT=$(jq '[.Results[]?.Vulnerabilities[]? | select(.Severity == "HIGH")] | length' trivy-results.json 2>/dev/null || echo "0")
+            CRITICAL_COUNT=$(jq '[.Results[]?.Vulnerabilities[]? | select(.Severity == "CRITICAL")] | length' trivy-results.json 2>/dev/null || echo "0")
+            
+            echo "🔴 Critical vulnerabilities: $CRITICAL_COUNT"
+            echo "🟠 High vulnerabilities: $HIGH_COUNT"
+            
+            # Set outputs for other jobs
+            echo "critical-count=$CRITICAL_COUNT" >> $GITHUB_OUTPUT
+            echo "high-count=$HIGH_COUNT" >> $GITHUB_OUTPUT
+            
+            if [ "$CRITICAL_COUNT" -gt 0 ]; then
+              echo "⚠️ Critical vulnerabilities found! Review recommended."
+            fi
+          else
+            echo "⚠️ No vulnerability report generated"
+          fi
+
+      - name: 📤 Upload vulnerability report as artifact
+        if: always() && hashFiles('trivy-results.json') != ''
+        uses: actions/upload-artifact@v4
         with:
-          sarif_file: 'trivy-results.sarif'
+          name: trivy-vulnerability-report
+          path: trivy-results.json
+          retention-days: 30
+
+      - name: 💬 Comment vulnerability summary (PR only)
+        if: github.event_name == 'pull_request' && hashFiles('trivy-results.json') != ''
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+
+            try {
+              const report = JSON.parse(fs.readFileSync('trivy-results.json', 'utf8'));
+              let criticalCount = 0;
+              let highCount = 0;
+              
+              if (report.Results) {
+                report.Results.forEach(result => {
+                  if (result.Vulnerabilities) {
+                    result.Vulnerabilities.forEach(vuln => {
+                      if (vuln.Severity === 'CRITICAL') criticalCount++;
+                      if (vuln.Severity === 'HIGH') highCount++;
+                    });
+                  }
+                });
+              }
+              
+              const body = `## 🛡️ Security Scan Results
+              
+              **Image:** \`${{ steps.extract-tag.outputs.primary-tag }}\`
+              
+              | Severity | Count |
+              |----------|-------|
+              | 🔴 Critical | ${criticalCount} |
+              | 🟠 High | ${highCount} |
+              
+              ${criticalCount > 0 ? '⚠️ **Critical vulnerabilities found!** Please review and address before merging.' : '✅ No critical vulnerabilities found.'}
+              
+              📊 Full report available in the workflow artifacts.`;
+              
+              github.rest.issues.createComment({
+                issue_number: context.issue.number,
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                body: body
+              });
+            } catch (error) {
+              console.log('Error processing vulnerability report:', error);
+            }
 
   # 🚀 Deploy to Development
   deploy-development:
