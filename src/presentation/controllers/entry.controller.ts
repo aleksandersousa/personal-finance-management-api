@@ -1,71 +1,71 @@
 import {
-  Controller,
-  Post,
-  Get,
-  Body,
-  Query,
-  ValidationPipe,
-  HttpStatus,
-  HttpCode,
-  UseGuards,
   BadRequestException,
-  NotFoundException,
+  Body,
+  Controller,
+  Get,
+  HttpCode,
+  HttpStatus,
   Inject,
-} from "@nestjs/common";
+  NotFoundException,
+  Post,
+  Query,
+  UseGuards,
+  ValidationPipe,
+} from '@nestjs/common';
 import {
-  ApiTags,
-  ApiOperation,
-  ApiResponse,
-  ApiBody,
-  ApiQuery,
-  ApiBearerAuth,
   ApiBadRequestResponse,
-  ApiUnauthorizedResponse,
+  ApiBearerAuth,
+  ApiBody,
   ApiNotFoundResponse,
-} from "@nestjs/swagger";
-import { DbAddEntryUseCase } from "@data/usecases/db-add-entry.usecase";
-import { DbListEntriesByMonthUseCase } from "@data/usecases/db-list-entries-by-month.usecase";
-import { CreateEntryDto } from "../dtos/create-entry.dto";
-import { EntryResponseDto } from "../dtos/entry-response.dto";
-import { EntryListResponseDto } from "../dtos/entry-list-response.dto";
-import { JwtAuthGuard } from "../guards/jwt-auth.guard";
-import { User } from "../decorators/user.decorator";
+  ApiOperation,
+  ApiQuery,
+  ApiResponse,
+  ApiTags,
+  ApiUnauthorizedResponse,
+} from '@nestjs/swagger';
+import { DbAddEntryUseCase } from '@data/usecases/db-add-entry.usecase';
+import { DbListEntriesByMonthUseCase } from '@data/usecases/db-list-entries-by-month.usecase';
+import { CreateEntryDto } from '../dtos/create-entry.dto';
+import { EntryResponseDto } from '../dtos/entry-response.dto';
+import { EntryListResponseDto } from '../dtos/entry-list-response.dto';
+import { JwtAuthGuard } from '../guards/jwt-auth.guard';
+import { User } from '../decorators/user.decorator';
 
 interface UserPayload {
   id: string;
   email: string;
 }
 
-@ApiTags("entries")
-@Controller("entries")
+@ApiTags('entries')
+@Controller('entries')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard)
 export class EntryController {
   constructor(
     private readonly addEntryUseCase: DbAddEntryUseCase,
-    @Inject("ListEntriesByMonthUseCase")
-    private readonly listEntriesByMonthUseCase: DbListEntriesByMonthUseCase
+    @Inject('ListEntriesByMonthUseCase')
+    private readonly listEntriesByMonthUseCase: DbListEntriesByMonthUseCase,
   ) {}
 
   @Post()
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({
-    summary: "Create a new financial entry",
+    summary: 'Create a new financial entry',
     description:
-      "Creates a new financial entry (income or expense) for the authenticated user. Supports UC-01 to UC-04 (Register Fixed/Dynamic Income/Expense).",
+      'Creates a new financial entry (income or expense) for the authenticated user. Supports UC-01 to UC-04 (Register Fixed/Dynamic Income/Expense).',
   })
   @ApiResponse({
     status: 201,
-    description: "Entry created successfully",
+    description: 'Entry created successfully',
     type: EntryResponseDto,
   })
-  @ApiBadRequestResponse({ description: "Validation failed or invalid data" })
-  @ApiUnauthorizedResponse({ description: "Invalid or missing JWT token" })
-  @ApiNotFoundResponse({ description: "Category not found" })
+  @ApiBadRequestResponse({ description: 'Validation failed or invalid data' })
+  @ApiUnauthorizedResponse({ description: 'Invalid or missing JWT token' })
+  @ApiNotFoundResponse({ description: 'Category not found' })
   @ApiBody({ type: CreateEntryDto })
   async create(
     @Body(ValidationPipe) createEntryDto: CreateEntryDto,
-    @User() user: UserPayload
+    @User() user: UserPayload,
   ): Promise<EntryResponseDto> {
     try {
       const entry = await this.addEntryUseCase.execute({
@@ -85,7 +85,7 @@ export class EntryController {
         type: entry.type,
         isFixed: entry.isFixed,
         categoryId: entry.categoryId,
-        categoryName: "Category Name", // Would come from category service
+        categoryName: 'Category Name', // Would come from category service
         userId: entry.userId,
         date: entry.date,
         createdAt: entry.createdAt,
@@ -93,84 +93,84 @@ export class EntryController {
       };
     } catch (error) {
       if (this.isNotFoundError(error.message)) {
-        throw new NotFoundException("Category not found");
+        throw new NotFoundException('Category not found');
       }
       if (this.isClientError(error.message)) {
         throw new BadRequestException(error.message);
       }
-      throw new BadRequestException("Failed to create entry");
+      throw new BadRequestException('Failed to create entry');
     }
   }
 
   @Get()
   @ApiOperation({
-    summary: "List entries by month with pagination and filters",
+    summary: 'List entries by month with pagination and filters',
     description:
-      "Retrieves financial entries for a specific month with pagination, sorting, and filtering options. Implements UC-05 (List Entries by Month).",
+      'Retrieves financial entries for a specific month with pagination, sorting, and filtering options. Implements UC-05 (List Entries by Month).',
   })
   @ApiResponse({
     status: 200,
-    description: "Entries retrieved successfully",
+    description: 'Entries retrieved successfully',
     type: EntryListResponseDto,
   })
   @ApiQuery({
-    name: "month",
+    name: 'month',
     required: true,
-    description: "Month in YYYY-MM format",
-    example: "2024-01",
+    description: 'Month in YYYY-MM format',
+    example: '2024-01',
   })
   @ApiQuery({
-    name: "page",
+    name: 'page',
     required: false,
-    description: "Page number (default: 1)",
+    description: 'Page number (default: 1)',
     example: 1,
   })
   @ApiQuery({
-    name: "limit",
+    name: 'limit',
     required: false,
-    description: "Items per page (default: 20, max: 100)",
+    description: 'Items per page (default: 20, max: 100)',
     example: 20,
   })
   @ApiQuery({
-    name: "sort",
+    name: 'sort',
     required: false,
-    description: "Sort field: date, amount, description (default: date)",
-    example: "date",
+    description: 'Sort field: date, amount, description (default: date)',
+    example: 'date',
   })
   @ApiQuery({
-    name: "order",
+    name: 'order',
     required: false,
-    description: "Sort order: asc, desc (default: desc)",
-    example: "desc",
+    description: 'Sort order: asc, desc (default: desc)',
+    example: 'desc',
   })
   @ApiQuery({
-    name: "type",
+    name: 'type',
     required: false,
-    description: "Filter by type: INCOME, EXPENSE, all (default: all)",
-    example: "all",
+    description: 'Filter by type: INCOME, EXPENSE, all (default: all)',
+    example: 'all',
   })
   @ApiQuery({
-    name: "category",
+    name: 'category',
     required: false,
     description: "Filter by category ID or 'all' (default: all)",
-    example: "all",
+    example: 'all',
   })
-  @ApiBadRequestResponse({ description: "Invalid query parameters" })
-  @ApiUnauthorizedResponse({ description: "Invalid or missing JWT token" })
+  @ApiBadRequestResponse({ description: 'Invalid query parameters' })
+  @ApiUnauthorizedResponse({ description: 'Invalid or missing JWT token' })
   async listByMonth(
-    @Query("month") month: string,
-    @Query("page") page: string = "1",
-    @Query("limit") limit: string = "20",
-    @Query("sort") sort: string = "date",
-    @Query("order") order: string = "desc",
-    @Query("type") type: string = "all",
-    @Query("category") category: string = "all",
-    @User() user: UserPayload
+    @Query('month') month: string,
+    @Query('page') page: string = '1',
+    @Query('limit') limit: string = '20',
+    @Query('sort') sort: string = 'date',
+    @Query('order') order: string = 'desc',
+    @Query('type') type: string = 'all',
+    @Query('category') category: string = 'all',
+    @User() user: UserPayload,
   ): Promise<EntryListResponseDto> {
     try {
       // Validate month format
       if (!month || !/^\d{4}-\d{2}$/.test(month)) {
-        throw new BadRequestException("Month must be in YYYY-MM format");
+        throw new BadRequestException('Month must be in YYYY-MM format');
       }
 
       // Parse and validate pagination parameters
@@ -178,35 +178,35 @@ export class EntryController {
       const limitNum = Math.min(100, Math.max(1, parseInt(limit, 10) || 20));
 
       // Parse month
-      const [yearStr, monthStr] = month.split("-");
+      const [yearStr, monthStr] = month.split('-');
       const year = parseInt(yearStr, 10);
       const monthNum = parseInt(monthStr, 10);
 
       // Validate date range
       if (year < 1900 || year > 2100 || monthNum < 1 || monthNum > 12) {
-        throw new BadRequestException("Invalid year or month value");
+        throw new BadRequestException('Invalid year or month value');
       }
 
       // Validate query parameters
-      const validSortFields = ["date", "amount", "description"];
-      const validOrders = ["asc", "desc"];
-      const validTypes = ["INCOME", "EXPENSE", "all"];
+      const validSortFields = ['date', 'amount', 'description'];
+      const validOrders = ['asc', 'desc'];
+      const validTypes = ['INCOME', 'EXPENSE', 'all'];
 
       if (!validSortFields.includes(sort)) {
         throw new BadRequestException(
-          `Invalid sort field. Must be one of: ${validSortFields.join(", ")}`
+          `Invalid sort field. Must be one of: ${validSortFields.join(', ')}`,
         );
       }
 
       if (!validOrders.includes(order)) {
         throw new BadRequestException(
-          `Invalid order. Must be one of: ${validOrders.join(", ")}`
+          `Invalid order. Must be one of: ${validOrders.join(', ')}`,
         );
       }
 
       if (!validTypes.includes(type)) {
         throw new BadRequestException(
-          `Invalid type. Must be one of: ${validTypes.join(", ")}`
+          `Invalid type. Must be one of: ${validTypes.join(', ')}`,
         );
       }
 
@@ -218,21 +218,21 @@ export class EntryController {
         page: pageNum,
         limit: limitNum,
         sort,
-        order: order as "asc" | "desc",
-        type: type as "INCOME" | "EXPENSE" | "all",
-        categoryId: category !== "all" ? category : undefined,
+        order: order as 'asc' | 'desc',
+        type: type as 'INCOME' | 'EXPENSE' | 'all',
+        categoryId: category !== 'all' ? category : undefined,
       });
 
       // Map to response DTO format - data is already processed by use case
       return {
-        data: result.data.map((entry) => ({
+        data: result.data.map(entry => ({
           id: entry.id,
           amount: entry.amount,
           description: entry.description,
           type: entry.type,
           isFixed: entry.isFixed,
           categoryId: entry.categoryId,
-          categoryName: "Category Name", // TODO: This should come from category service
+          categoryName: 'Category Name', // TODO: This should come from category service
           userId: entry.userId,
           date: entry.date,
           createdAt: entry.createdAt,
@@ -245,28 +245,28 @@ export class EntryController {
       if (this.isClientError(error.message)) {
         throw new BadRequestException(error.message);
       }
-      throw new BadRequestException("Failed to retrieve entries");
+      throw new BadRequestException('Failed to retrieve entries');
     }
   }
 
   private isClientError(message: string): boolean {
     const clientErrorPatterns = [
-      "validation",
-      "invalid",
-      "required",
-      "must be",
-      "cannot be",
-      "already exists",
-      "not found",
-      "unauthorized",
-      "forbidden",
+      'validation',
+      'invalid',
+      'required',
+      'must be',
+      'cannot be',
+      'already exists',
+      'not found',
+      'unauthorized',
+      'forbidden',
     ];
-    return clientErrorPatterns.some((pattern) =>
-      message.toLowerCase().includes(pattern)
+    return clientErrorPatterns.some(pattern =>
+      message.toLowerCase().includes(pattern),
     );
   }
 
   private isNotFoundError(message: string): boolean {
-    return message.toLowerCase().includes("not found");
+    return message.toLowerCase().includes('not found');
   }
 }

@@ -1,4 +1,4 @@
-export type EntryType = "INCOME" | "EXPENSE";
+export type EntryType = 'INCOME' | 'EXPENSE';
 
 export interface EntryModel {
   id: string;

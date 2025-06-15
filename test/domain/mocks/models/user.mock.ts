@@ -1,13 +1,13 @@
-import { UserModel } from "@domain/models/user.model";
+import { UserModel } from '@domain/models/user.model';
 
 const mockUser: UserModel = {
-  id: "user-123",
-  name: "Test User",
-  email: "test@example.com",
-  password: "hashed-password",
+  id: 'user-123',
+  name: 'Test User',
+  email: 'test@example.com',
+  password: 'hashed-password',
   avatarUrl: null,
-  createdAt: new Date("2024-01-01T00:00:00Z"),
-  updatedAt: new Date("2024-01-01T00:00:00Z"),
+  createdAt: new Date('2024-01-01T00:00:00Z'),
+  updatedAt: new Date('2024-01-01T00:00:00Z'),
 };
 
 /**
@@ -20,7 +20,7 @@ export class MockUserFactory {
 
   static createMany(
     count: number,
-    overrides: Partial<UserModel> = {}
+    overrides: Partial<UserModel> = {},
   ): UserModel[] {
     return Array.from({ length: count }, (_, index) =>
       this.create({
@@ -28,7 +28,7 @@ export class MockUserFactory {
         id: `user-${index + 1}`,
         name: `User ${index + 1}`,
         email: `user${index + 1}@example.com`,
-      })
+      }),
     );
   }
 }

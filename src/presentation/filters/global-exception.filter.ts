@@ -1,14 +1,14 @@
 import {
-  ExceptionFilter,
-  Catch,
   ArgumentsHost,
+  Catch,
+  ExceptionFilter,
   HttpException,
   HttpStatus,
-  Logger,
   Injectable,
-} from "@nestjs/common";
-import { Request, Response } from "express";
-import { ContextAwareLoggerService } from "../../infra/logging/context-aware-logger.service";
+  Logger,
+} from '@nestjs/common';
+import { Request, Response } from 'express';
+import { ContextAwareLoggerService } from '../../infra/logging/context-aware-logger.service';
 
 @Catch()
 @Injectable()
@@ -21,7 +21,6 @@ export class GlobalExceptionFilter implements ExceptionFilter {
     const ctx = host.switchToHttp();
     const response = ctx.getResponse<Response>();
     const request = ctx.getRequest<Request>();
-    const logger = this.customLogger || this.defaultLogger;
 
     // Extract trace context if available
     const { traceId, spanId } = (request as any).traceContext || {};
@@ -36,26 +35,26 @@ export class GlobalExceptionFilter implements ExceptionFilter {
       status = exception.getStatus();
       const exceptionResponse = exception.getResponse();
 
-      if (typeof exceptionResponse === "string") {
+      if (typeof exceptionResponse === 'string') {
         message = exceptionResponse;
-        error = HttpStatus[status] || "HTTP Exception";
+        error = HttpStatus[status] || 'HTTP Exception';
       } else {
         message = (exceptionResponse as any).message || exception.message;
         error =
           (exceptionResponse as any).error ||
           HttpStatus[status] ||
-          "HTTP Exception";
+          'HTTP Exception';
       }
 
       // Log HTTP exceptions with context
       if (this.customLogger) {
         this.customLogger.logSecurityEvent({
-          event: "http_exception",
-          severity: status >= 500 ? "high" : status >= 400 ? "medium" : "low",
+          event: 'http_exception',
+          severity: status >= 500 ? 'high' : status >= 400 ? 'medium' : 'low',
           statusCode: status,
-          message: Array.isArray(message) ? message.join(", ") : message,
+          message: Array.isArray(message) ? message.join(', ') : message,
           endpoint: `${request.method} ${request.url}`,
-          userAgent: request.headers["user-agent"],
+          userAgent: request.headers['user-agent'],
           clientIp,
           traceId,
           details: {
@@ -67,25 +66,25 @@ export class GlobalExceptionFilter implements ExceptionFilter {
         this.defaultLogger.error(
           `HTTP ${status}: ${JSON.stringify(message)}`,
           exception.stack,
-          `${request.method} ${request.url}`
+          `${request.method} ${request.url}`,
         );
       }
     } else {
       // Handle unexpected errors (sensitive - don't expose details)
       status = HttpStatus.INTERNAL_SERVER_ERROR;
-      message = "Internal server error occurred";
-      error = "Internal Server Error";
+      message = 'Internal server error occurred';
+      error = 'Internal Server Error';
 
       // Log unexpected errors with full context
       if (this.customLogger) {
         this.customLogger.logSecurityEvent({
-          event: "unexpected_error",
-          severity: "critical",
+          event: 'unexpected_error',
+          severity: 'critical',
           statusCode: status,
           message:
             exception instanceof Error ? exception.message : String(exception),
           endpoint: `${request.method} ${request.url}`,
-          userAgent: request.headers["user-agent"],
+          userAgent: request.headers['user-agent'],
           clientIp,
           traceId,
           spanId,
@@ -98,7 +97,7 @@ export class GlobalExceptionFilter implements ExceptionFilter {
         this.defaultLogger.error(
           `Unexpected error: ${exception}`,
           exception instanceof Error ? exception.stack : undefined,
-          `${request.method} ${request.url}`
+          `${request.method} ${request.url}`,
         );
       }
     }

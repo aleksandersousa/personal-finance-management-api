@@ -1,18 +1,18 @@
-import { Injectable } from "@nestjs/common";
-import { InjectRepository } from "@nestjs/typeorm";
-import { Repository } from "typeorm";
+import { Injectable } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
 import {
-  UserRepository,
   CreateUserData,
-} from "@data/protocols/user-repository";
-import { UserModel } from "@domain/models/user.model";
-import { UserEntity } from "../entities/user.entity";
+  UserRepository,
+} from '@data/protocols/user-repository';
+import { UserModel } from '@domain/models/user.model';
+import { UserEntity } from '../entities/user.entity';
 
 @Injectable()
 export class TypeormUserRepository implements UserRepository {
   constructor(
     @InjectRepository(UserEntity)
-    private readonly userRepository: Repository<UserEntity>
+    private readonly userRepository: Repository<UserEntity>,
   ) {}
 
   async create(userData: CreateUserData): Promise<UserModel> {

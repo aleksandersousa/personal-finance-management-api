@@ -1,5 +1,5 @@
-import { UserRepository } from "@data/protocols/user-repository";
-import { UserModel } from "@domain/models/user.model";
+import { UserRepository } from '@data/protocols/user-repository';
+import { UserModel } from '@domain/models/user.model';
 
 /**
  * User Repository Stub for Data Layer Testing
@@ -12,7 +12,7 @@ export class UserRepositoryStub implements UserRepository {
   private nextId = 1;
 
   async create(
-    data: Omit<UserModel, "id" | "createdAt" | "updatedAt">
+    data: Omit<UserModel, 'id' | 'createdAt' | 'updatedAt'>,
   ): Promise<UserModel> {
     if (this.shouldFail && this.errorToThrow) {
       throw this.errorToThrow;
@@ -41,8 +41,7 @@ export class UserRepositoryStub implements UserRepository {
       throw this.errorToThrow;
     }
     return (
-      Array.from(this.users.values()).find((user) => user.email === email) ||
-      null
+      Array.from(this.users.values()).find(user => user.email === email) || null
     );
   }
 
@@ -62,7 +61,7 @@ export class UserRepositoryStub implements UserRepository {
    * Seed the repository with predefined users
    */
   seed(users: UserModel[]): void {
-    users.forEach((user) => this.users.set(user.id, user));
+    users.forEach(user => this.users.set(user.id, user));
   }
 
   /**
@@ -99,6 +98,6 @@ export class UserRepositoryStub implements UserRepository {
    * Simulate connection errors
    */
   mockConnectionError(): void {
-    this.mockFailure(new Error("Database connection failed"));
+    this.mockFailure(new Error('Database connection failed'));
   }
 }

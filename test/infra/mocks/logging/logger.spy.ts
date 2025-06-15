@@ -4,9 +4,9 @@
  */
 import {
   BusinessEvent,
-  SecurityEvent,
   PerformanceEvent,
-} from "../../../../src/infra/logging/context-aware-logger.service";
+  SecurityEvent,
+} from '../../../../src/infra/logging/context-aware-logger.service';
 
 export class LoggerSpy {
   public loggedEvents: any[] = [];
@@ -16,7 +16,7 @@ export class LoggerSpy {
 
   log(message: any, context?: string): void {
     this.loggedEvents.push({
-      level: "info",
+      level: 'info',
       message,
       context,
       timestamp: new Date(),
@@ -33,7 +33,7 @@ export class LoggerSpy {
 
   warn(message: any, context?: string): void {
     this.loggedEvents.push({
-      level: "warn",
+      level: 'warn',
       message,
       context,
       timestamp: new Date(),
@@ -42,7 +42,7 @@ export class LoggerSpy {
 
   debug(message: any, context?: string): void {
     this.loggedEvents.push({
-      level: "debug",
+      level: 'debug',
       message,
       context,
       timestamp: new Date(),
@@ -51,7 +51,7 @@ export class LoggerSpy {
 
   verbose(message: any, context?: string): void {
     this.loggedEvents.push({
-      level: "verbose",
+      level: 'verbose',
       message,
       context,
       timestamp: new Date(),
@@ -74,8 +74,8 @@ export class LoggerSpy {
 
   logPerformanceEvent(event: PerformanceEvent): void {
     this.loggedEvents.push({
-      level: "info",
-      type: "performance_event",
+      level: 'info',
+      type: 'performance_event',
       ...event,
       timestamp: new Date(),
     });
@@ -98,7 +98,7 @@ export class LoggerSpy {
    */
   getBusinessEvents(eventName?: string): BusinessEvent[] {
     return eventName
-      ? this.loggedBusinessEvents.filter((e) => e.event === eventName)
+      ? this.loggedBusinessEvents.filter(e => e.event === eventName)
       : this.loggedBusinessEvents;
   }
 
@@ -107,7 +107,7 @@ export class LoggerSpy {
    */
   getSecurityEvents(severity?: string): SecurityEvent[] {
     return severity
-      ? this.loggedSecurityEvents.filter((e) => e.severity === severity)
+      ? this.loggedSecurityEvents.filter(e => e.severity === severity)
       : this.loggedSecurityEvents;
   }
 
@@ -122,7 +122,7 @@ export class LoggerSpy {
    * Check if a specific event was logged
    */
   hasLoggedEvent(eventName: string): boolean {
-    return this.loggedBusinessEvents.some((e) => e.event === eventName);
+    return this.loggedBusinessEvents.some(e => e.event === eventName);
   }
 }
 

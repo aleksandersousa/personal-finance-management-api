@@ -1,4 +1,4 @@
-import { EntryModel } from "../models/entry.model";
+import { EntryModel } from '../models/entry.model';
 
 export interface ListEntriesByMonthRequest {
   userId: string;
@@ -7,8 +7,8 @@ export interface ListEntriesByMonthRequest {
   page?: number;
   limit?: number;
   sort?: string;
-  order?: "asc" | "desc";
-  type?: "INCOME" | "EXPENSE" | "all";
+  order?: 'asc' | 'desc';
+  type?: 'INCOME' | 'EXPENSE' | 'all';
   categoryId?: string;
 }
 
@@ -32,6 +32,6 @@ export interface ListEntriesByMonthResponse {
 
 export interface ListEntriesByMonthUseCase {
   execute(
-    request: ListEntriesByMonthRequest
+    request: ListEntriesByMonthRequest,
   ): Promise<ListEntriesByMonthResponse>;
 }

@@ -6,4 +6,4 @@ export interface UserModel {
   avatarUrl?: string;
   createdAt: Date;
   updatedAt: Date;
-} 
+}

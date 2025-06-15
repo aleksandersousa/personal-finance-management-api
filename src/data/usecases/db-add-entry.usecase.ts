@@ -1,53 +1,53 @@
 import {
-  AddEntryUseCase,
   AddEntryRequest,
-} from "@domain/usecases/add-entry.usecase";
-import { EntryModel } from "@domain/models/entry.model";
-import { EntryRepository } from "../protocols/entry-repository";
-import { UserRepository } from "../protocols/user-repository";
-import { CategoryRepository } from "../protocols/category-repository";
-import { IdGenerator } from "../protocols/id-generator";
+  AddEntryUseCase,
+} from '@domain/usecases/add-entry.usecase';
+import { EntryModel } from '@domain/models/entry.model';
+import { EntryRepository } from '../protocols/entry-repository';
+import { UserRepository } from '../protocols/user-repository';
+import { CategoryRepository } from '../protocols/category-repository';
+import { IdGenerator } from '../protocols/id-generator';
 
 export class DbAddEntryUseCase implements AddEntryUseCase {
   constructor(
     private readonly entryRepository: EntryRepository,
     private readonly userRepository: UserRepository,
     private readonly categoryRepository: CategoryRepository,
-    private readonly idGenerator: IdGenerator
+    private readonly idGenerator: IdGenerator,
   ) {}
 
   async execute(request: AddEntryRequest): Promise<EntryModel> {
     // Validate amount
     if (request.amount <= 0) {
-      throw new Error("Amount must be greater than zero");
+      throw new Error('Amount must be greater than zero');
     }
 
     // Validate description
     if (!request.description || request.description.trim().length === 0) {
-      throw new Error("Description is required");
+      throw new Error('Description is required');
     }
 
     // Validate user ID
     if (!request.userId) {
-      throw new Error("User ID is required");
+      throw new Error('User ID is required');
     }
 
     // Verify user exists
     const user = await this.userRepository.findById(request.userId);
     if (!user) {
-      throw new Error("User not found");
+      throw new Error('User not found');
     }
 
     // Verify category exists and belongs to user (if provided)
     if (request.categoryId) {
       const category = await this.categoryRepository.findById(
-        request.categoryId
+        request.categoryId,
       );
       if (!category) {
-        throw new Error("Category not found");
+        throw new Error('Category not found');
       }
       if (category.userId !== request.userId) {
-        throw new Error("Category does not belong to the user");
+        throw new Error('Category does not belong to the user');
       }
     }
 

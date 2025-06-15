@@ -1,21 +1,21 @@
-import { Module, MiddlewareConsumer, NestModule } from "@nestjs/common";
-import { ConfigModule } from "@nestjs/config";
-import { TypeOrmModule } from "@nestjs/typeorm";
-import { ThrottlerModule } from "@nestjs/throttler";
-import { EntryModule } from "./entry.module";
-import { AuthModule } from "./auth.module";
-import { ObservabilityModule } from "./observability.module";
-import { HealthController } from "@presentation/controllers/health.controller";
-import { MetricsController } from "@presentation/controllers/metrics.controller";
-import { TraceContextMiddleware } from "../../infra/middleware/trace-context.middleware";
-import { typeOrmConfig } from "@infra/db/typeorm/config/data-source";
+import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common';
+import { ConfigModule } from '@nestjs/config';
+import { TypeOrmModule } from '@nestjs/typeorm';
+import { ThrottlerModule } from '@nestjs/throttler';
+import { EntryModule } from './entry.module';
+import { AuthModule } from './auth.module';
+import { ObservabilityModule } from './observability.module';
+import { HealthController } from '@presentation/controllers/health.controller';
+import { MetricsController } from '@presentation/controllers/metrics.controller';
+import { TraceContextMiddleware } from '../../infra/middleware/trace-context.middleware';
+import { typeOrmConfig } from '@infra/db/typeorm/config/data-source';
 
 @Module({
   imports: [
     // Configuration
     ConfigModule.forRoot({
       isGlobal: true,
-      envFilePath: [".env", ".env.dev", ".env.prod"],
+      envFilePath: ['.env', '.env.dev', '.env.prod'],
     }),
 
     // Database
@@ -26,8 +26,8 @@ import { typeOrmConfig } from "@infra/db/typeorm/config/data-source";
     // Throttling (Rate Limiting)
     ThrottlerModule.forRoot([
       {
-        ttl: parseInt(process.env.THROTTLE_TTL || "60"),
-        limit: parseInt(process.env.THROTTLE_LIMIT || "10"),
+        ttl: parseInt(process.env.THROTTLE_TTL || '60'),
+        limit: parseInt(process.env.THROTTLE_LIMIT || '10'),
       },
     ]),
 
@@ -44,6 +44,6 @@ import { typeOrmConfig } from "@infra/db/typeorm/config/data-source";
 export class AppModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {
     // Apply trace context middleware to all routes
-    consumer.apply(TraceContextMiddleware).forRoutes("*");
+    consumer.apply(TraceContextMiddleware).forRoutes('*');
   }
 }

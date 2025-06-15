@@ -1,5 +1,5 @@
-import { Injectable, LoggerService } from "@nestjs/common";
-import * as winston from "winston";
+import { Injectable, LoggerService } from '@nestjs/common';
+import * as winston from 'winston';
 
 export interface BusinessEvent {
   event: string;
@@ -12,7 +12,7 @@ export interface BusinessEvent {
 
 export interface SecurityEvent {
   event: string;
-  severity: "low" | "medium" | "high" | "critical";
+  severity: 'low' | 'medium' | 'high' | 'critical';
   traceId?: string;
   clientIp?: string;
   userAgent?: string;
@@ -33,25 +33,25 @@ export class ContextAwareLoggerService implements LoggerService {
 
   constructor() {
     this.logger = winston.createLogger({
-      level: process.env.LOG_LEVEL || "info",
+      level: process.env.LOG_LEVEL || 'info',
       format: winston.format.combine(
         winston.format.timestamp(),
         winston.format.errors({ stack: true }),
-        winston.format.json()
+        winston.format.json(),
       ),
       transports: [
         new winston.transports.Console({
           format: winston.format.combine(
             winston.format.colorize(),
-            winston.format.simple()
+            winston.format.simple(),
           ),
         }),
         new winston.transports.File({
-          filename: "logs/error.log",
-          level: "error",
+          filename: 'logs/error.log',
+          level: 'error',
         }),
         new winston.transports.File({
-          filename: "logs/combined.log",
+          filename: 'logs/combined.log',
         }),
       ],
     });
@@ -79,7 +79,7 @@ export class ContextAwareLoggerService implements LoggerService {
 
   logBusinessEvent(event: BusinessEvent) {
     this.logger.info({
-      type: "business_event",
+      type: 'business_event',
       timestamp: new Date().toISOString(),
       ...event,
     });
@@ -87,7 +87,7 @@ export class ContextAwareLoggerService implements LoggerService {
 
   logSecurityEvent(event: SecurityEvent) {
     this.logger.warn({
-      type: "security_event",
+      type: 'security_event',
       timestamp: new Date().toISOString(),
       ...event,
     });
@@ -95,7 +95,7 @@ export class ContextAwareLoggerService implements LoggerService {
 
   logPerformanceEvent(event: PerformanceEvent) {
     this.logger.info({
-      type: "performance_event",
+      type: 'performance_event',
       timestamp: new Date().toISOString(),
       ...event,
     });

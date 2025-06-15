@@ -1,11 +1,11 @@
 import {
+  CreateEntryData,
   EntryRepository,
   FindEntriesByMonthFilters,
   FindEntriesByMonthResult,
-  CreateEntryData,
-} from "@data/protocols/entry-repository";
-import { EntryModel } from "@domain/models/entry.model";
-import { IdGenerator } from "@data/protocols/id-generator";
+} from '@data/protocols/entry-repository';
+import { EntryModel } from '@domain/models/entry.model';
+import { IdGenerator } from '@data/protocols/id-generator';
 
 /**
  * Entry Repository Stub for Data Layer Testing
@@ -54,20 +54,20 @@ export class EntryRepositoryStub implements EntryRepository {
       throw this.errorToThrow;
     }
     return Array.from(this.entries.values()).filter(
-      (entry) => entry.userId === userId
+      entry => entry.userId === userId,
     );
   }
 
   async findByUserIdAndMonth(
     userId: string,
     year: number,
-    month: number
+    month: number,
   ): Promise<EntryModel[]> {
     if (this.shouldFail && this.errorToThrow) {
       throw this.errorToThrow;
     }
 
-    return Array.from(this.entries.values()).filter((entry) => {
+    return Array.from(this.entries.values()).filter(entry => {
       const entryDate = new Date(entry.date);
       return (
         entry.userId === userId &&
@@ -78,7 +78,7 @@ export class EntryRepositoryStub implements EntryRepository {
   }
 
   async findByUserIdAndMonthWithFilters(
-    filters: FindEntriesByMonthFilters
+    filters: FindEntriesByMonthFilters,
   ): Promise<FindEntriesByMonthResult> {
     if (this.shouldFail && this.errorToThrow) {
       throw this.errorToThrow;
@@ -90,9 +90,9 @@ export class EntryRepositoryStub implements EntryRepository {
       month,
       page = 1,
       limit = 20,
-      sort = "date",
-      order = "desc",
-      type = "all",
+      sort = 'date',
+      order = 'desc',
+      type = 'all',
       categoryId,
     } = filters;
 
@@ -100,13 +100,13 @@ export class EntryRepositoryStub implements EntryRepository {
     let entries = await this.findByUserIdAndMonth(userId, year, month);
 
     // Apply type filter
-    if (type && type !== "all") {
-      entries = entries.filter((entry) => entry.type === type);
+    if (type && type !== 'all') {
+      entries = entries.filter(entry => entry.type === type);
     }
 
     // Apply category filter
-    if (categoryId && categoryId !== "all") {
-      entries = entries.filter((entry) => entry.categoryId === categoryId);
+    if (categoryId && categoryId !== 'all') {
+      entries = entries.filter(entry => entry.categoryId === categoryId);
     }
 
     // Apply sorting
@@ -115,22 +115,22 @@ export class EntryRepositoryStub implements EntryRepository {
       let bValue: any;
 
       switch (sort) {
-        case "amount":
+        case 'amount':
           aValue = a.amount;
           bValue = b.amount;
           break;
-        case "description":
+        case 'description':
           aValue = a.description;
           bValue = b.description;
           break;
-        case "date":
+        case 'date':
         default:
           aValue = a.date;
           bValue = b.date;
           break;
       }
 
-      if (order === "asc") {
+      if (order === 'asc') {
         return aValue > bValue ? 1 : aValue < bValue ? -1 : 0;
       } else {
         return aValue < bValue ? 1 : aValue > bValue ? -1 : 0;
@@ -139,11 +139,11 @@ export class EntryRepositoryStub implements EntryRepository {
 
     // Calculate totals
     const totalIncome = entries
-      .filter((entry) => entry.type === "INCOME")
+      .filter(entry => entry.type === 'INCOME')
       .reduce((sum, entry) => sum + entry.amount, 0);
 
     const totalExpenses = entries
-      .filter((entry) => entry.type === "EXPENSE")
+      .filter(entry => entry.type === 'EXPENSE')
       .reduce((sum, entry) => sum + entry.amount, 0);
 
     const total = entries.length;
@@ -163,7 +163,7 @@ export class EntryRepositoryStub implements EntryRepository {
 
   async update(
     id: string,
-    data: Partial<CreateEntryData>
+    data: Partial<CreateEntryData>,
   ): Promise<EntryModel> {
     if (this.shouldFail && this.errorToThrow) {
       throw this.errorToThrow;
@@ -171,7 +171,7 @@ export class EntryRepositoryStub implements EntryRepository {
 
     const existing = this.entries.get(id);
     if (!existing) {
-      throw new Error("Entry not found");
+      throw new Error('Entry not found');
     }
 
     const updated = {
@@ -189,7 +189,7 @@ export class EntryRepositoryStub implements EntryRepository {
     }
 
     if (!this.entries.has(id)) {
-      throw new Error("Entry not found");
+      throw new Error('Entry not found');
     }
 
     this.entries.delete(id);
@@ -211,7 +211,7 @@ export class EntryRepositoryStub implements EntryRepository {
    * Seed the repository with predefined entries
    */
   seed(entries: EntryModel[]): void {
-    entries.forEach((entry) => this.entries.set(entry.id, entry));
+    entries.forEach(entry => this.entries.set(entry.id, entry));
   }
 
   /**
@@ -248,6 +248,6 @@ export class EntryRepositoryStub implements EntryRepository {
    * Simulate connection errors
    */
   mockConnectionError(): void {
-    this.mockFailure(new Error("Database connection failed"));
+    this.mockFailure(new Error('Database connection failed'));
   }
 }

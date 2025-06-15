@@ -1,9 +1,9 @@
-import { Test, TestingModule } from "@nestjs/testing";
-import { ContextAwareLoggerService } from "../../../src/infra/logging/context-aware-logger.service";
-import * as winston from "winston";
+import { Test, TestingModule } from '@nestjs/testing';
+import { ContextAwareLoggerService } from '../../../src/infra/logging/context-aware-logger.service';
+import * as winston from 'winston';
 
 // Mock winston
-jest.mock("winston", () => ({
+jest.mock('winston', () => ({
   createLogger: jest.fn(() => ({
     info: jest.fn(),
     error: jest.fn(),
@@ -12,20 +12,20 @@ jest.mock("winston", () => ({
     verbose: jest.fn(),
   })),
   format: {
-    combine: jest.fn(() => "combined-format"),
-    timestamp: jest.fn(() => "timestamp"),
-    errors: jest.fn(() => "errors"),
-    json: jest.fn(() => "json"),
-    colorize: jest.fn(() => "colorize"),
-    simple: jest.fn(() => "simple"),
+    combine: jest.fn(() => 'combined-format'),
+    timestamp: jest.fn(() => 'timestamp'),
+    errors: jest.fn(() => 'errors'),
+    json: jest.fn(() => 'json'),
+    colorize: jest.fn(() => 'colorize'),
+    simple: jest.fn(() => 'simple'),
   },
   transports: {
-    Console: jest.fn(() => ({ type: "console" })),
-    File: jest.fn(() => ({ type: "file" })),
+    Console: jest.fn(() => ({ type: 'console' })),
+    File: jest.fn(() => ({ type: 'file' })),
   },
 }));
 
-describe("ContextAwareLoggerService", () => {
+describe('ContextAwareLoggerService', () => {
   let service: ContextAwareLoggerService;
   let mockLogger: any;
 
@@ -52,22 +52,22 @@ describe("ContextAwareLoggerService", () => {
     jest.clearAllMocks();
   });
 
-  it("should be defined", () => {
+  it('should be defined', () => {
     expect(service).toBeDefined();
   });
 
-  describe("log", () => {
-    it("should call winston logger info method", () => {
-      const message = "Test message";
-      const context = "TestContext";
+  describe('log', () => {
+    it('should call winston logger info method', () => {
+      const message = 'Test message';
+      const context = 'TestContext';
 
       service.log(message, context);
 
       expect(mockLogger.info).toHaveBeenCalledWith(message, { context });
     });
 
-    it("should handle object messages", () => {
-      const message = { event: "test", data: "value" };
+    it('should handle object messages', () => {
+      const message = { event: 'test', data: 'value' };
 
       service.log(message);
 
@@ -77,11 +77,11 @@ describe("ContextAwareLoggerService", () => {
     });
   });
 
-  describe("error", () => {
-    it("should call winston logger error method", () => {
-      const message = "Error message";
-      const trace = "Error trace";
-      const context = "ErrorContext";
+  describe('error', () => {
+    it('should call winston logger error method', () => {
+      const message = 'Error message';
+      const trace = 'Error trace';
+      const context = 'ErrorContext';
 
       service.error(message, trace, context);
 
@@ -92,10 +92,10 @@ describe("ContextAwareLoggerService", () => {
     });
   });
 
-  describe("warn", () => {
-    it("should call winston logger warn method", () => {
-      const message = "Warning message";
-      const context = "WarnContext";
+  describe('warn', () => {
+    it('should call winston logger warn method', () => {
+      const message = 'Warning message';
+      const context = 'WarnContext';
 
       service.warn(message, context);
 
@@ -103,10 +103,10 @@ describe("ContextAwareLoggerService", () => {
     });
   });
 
-  describe("debug", () => {
-    it("should call winston logger debug method", () => {
-      const message = "Debug message";
-      const context = "DebugContext";
+  describe('debug', () => {
+    it('should call winston logger debug method', () => {
+      const message = 'Debug message';
+      const context = 'DebugContext';
 
       service.debug(message, context);
 
@@ -114,10 +114,10 @@ describe("ContextAwareLoggerService", () => {
     });
   });
 
-  describe("verbose", () => {
-    it("should call winston logger verbose method", () => {
-      const message = "Verbose message";
-      const context = "VerboseContext";
+  describe('verbose', () => {
+    it('should call winston logger verbose method', () => {
+      const message = 'Verbose message';
+      const context = 'VerboseContext';
 
       service.verbose(message, context);
 
@@ -125,114 +125,114 @@ describe("ContextAwareLoggerService", () => {
     });
   });
 
-  describe("logBusinessEvent", () => {
-    it("should log business event with proper structure", () => {
+  describe('logBusinessEvent', () => {
+    it('should log business event with proper structure', () => {
       const event = {
-        event: "user_login",
-        userId: "123",
-        traceId: "trace-123",
+        event: 'user_login',
+        userId: '123',
+        traceId: 'trace-123',
         duration: 150,
       };
 
       service.logBusinessEvent(event);
 
       expect(mockLogger.info).toHaveBeenCalledWith({
-        type: "business_event",
+        type: 'business_event',
         timestamp: expect.any(String),
         ...event,
       });
     });
 
-    it("should handle minimal business event", () => {
+    it('should handle minimal business event', () => {
       const event = {
-        event: "simple_event",
+        event: 'simple_event',
       };
 
       service.logBusinessEvent(event);
 
       expect(mockLogger.info).toHaveBeenCalledWith({
-        type: "business_event",
+        type: 'business_event',
         timestamp: expect.any(String),
         ...event,
       });
     });
   });
 
-  describe("logSecurityEvent", () => {
-    it("should log security event with proper structure", () => {
+  describe('logSecurityEvent', () => {
+    it('should log security event with proper structure', () => {
       const event = {
-        event: "failed_login",
-        severity: "medium" as const,
-        traceId: "trace-123",
-        clientIp: "192.168.1.1",
-        userAgent: "Mozilla/5.0",
+        event: 'failed_login',
+        severity: 'medium' as const,
+        traceId: 'trace-123',
+        clientIp: '192.168.1.1',
+        userAgent: 'Mozilla/5.0',
       };
 
       service.logSecurityEvent(event);
 
       expect(mockLogger.warn).toHaveBeenCalledWith({
-        type: "security_event",
+        type: 'security_event',
         timestamp: expect.any(String),
         ...event,
       });
     });
 
-    it("should handle critical security event", () => {
+    it('should handle critical security event', () => {
       const event = {
-        event: "unauthorized_access",
-        severity: "critical" as const,
+        event: 'unauthorized_access',
+        severity: 'critical' as const,
       };
 
       service.logSecurityEvent(event);
 
       expect(mockLogger.warn).toHaveBeenCalledWith({
-        type: "security_event",
+        type: 'security_event',
         timestamp: expect.any(String),
         ...event,
       });
     });
   });
 
-  describe("logPerformanceEvent", () => {
-    it("should log performance event with proper structure", () => {
+  describe('logPerformanceEvent', () => {
+    it('should log performance event with proper structure', () => {
       const event = {
-        event: "slow_query",
+        event: 'slow_query',
         duration: 2500,
-        endpoint: "/api/entries",
-        traceId: "trace-123",
+        endpoint: '/api/entries',
+        traceId: 'trace-123',
       };
 
       service.logPerformanceEvent(event);
 
       expect(mockLogger.info).toHaveBeenCalledWith({
-        type: "performance_event",
+        type: 'performance_event',
         timestamp: expect.any(String),
         ...event,
       });
     });
 
-    it("should handle minimal performance event", () => {
+    it('should handle minimal performance event', () => {
       const event = {
-        event: "request_processed",
+        event: 'request_processed',
         duration: 100,
       };
 
       service.logPerformanceEvent(event);
 
       expect(mockLogger.info).toHaveBeenCalledWith({
-        type: "performance_event",
+        type: 'performance_event',
         timestamp: expect.any(String),
         ...event,
       });
     });
   });
 
-  describe("winston initialization", () => {
-    it("should create winston logger during service initialization", () => {
+  describe('winston initialization', () => {
+    it('should create winston logger during service initialization', () => {
       expect(winston.createLogger).toHaveBeenCalled();
     });
 
-    it("should call winston format methods", () => {
+    it('should call winston format methods', () => {
       expect(winston.format.combine).toHaveBeenCalled();
     });
   });

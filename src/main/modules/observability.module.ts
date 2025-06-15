@@ -1,15 +1,15 @@
-import { Module, Global } from "@nestjs/common";
-import { APP_INTERCEPTOR } from "@nestjs/core";
-import { ContextAwareLoggerService } from "../../infra/logging/context-aware-logger.service";
-import { FinancialMetricsService } from "../../infra/metrics/financial-metrics.service";
-import { MetricsInterceptor } from "../../presentation/interceptors/metrics.interceptor";
-import { MetricsController } from "../../presentation/controllers/metrics.controller";
+import { Global, Module } from '@nestjs/common';
+import { APP_INTERCEPTOR } from '@nestjs/core';
+import { ContextAwareLoggerService } from '../../infra/logging/context-aware-logger.service';
+import { FinancialMetricsService } from '../../infra/metrics/financial-metrics.service';
+import { MetricsInterceptor } from '../../presentation/interceptors/metrics.interceptor';
+import { MetricsController } from '../../presentation/controllers/metrics.controller';
 
 @Global()
 @Module({
   providers: [
     {
-      provide: "LoggerService",
+      provide: 'LoggerService',
       useClass: ContextAwareLoggerService,
     },
     ContextAwareLoggerService,
@@ -21,7 +21,7 @@ import { MetricsController } from "../../presentation/controllers/metrics.contro
   ],
   controllers: [MetricsController],
   exports: [
-    "LoggerService",
+    'LoggerService',
     ContextAwareLoggerService,
     FinancialMetricsService,
   ],

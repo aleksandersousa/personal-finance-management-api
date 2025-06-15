@@ -1,17 +1,17 @@
 import {
-  Entity,
-  PrimaryGeneratedColumn,
   Column,
   CreateDateColumn,
-  UpdateDateColumn,
+  Entity,
   OneToMany,
-} from "typeorm";
-import { EntryEntity } from "./entry.entity";
-import { CategoryEntity } from "./category.entity";
+  PrimaryGeneratedColumn,
+  UpdateDateColumn,
+} from 'typeorm';
+import { EntryEntity } from './entry.entity';
+import { CategoryEntity } from './category.entity';
 
-@Entity("users")
+@Entity('users')
 export class UserEntity {
-  @PrimaryGeneratedColumn("uuid")
+  @PrimaryGeneratedColumn('uuid')
   id: string;
 
   @Column()
@@ -23,18 +23,18 @@ export class UserEntity {
   @Column({ nullable: true })
   password: string;
 
-  @Column({ name: "avatar_url", nullable: true })
+  @Column({ name: 'avatar_url', nullable: true })
   avatarUrl: string;
 
-  @OneToMany(() => EntryEntity, (entry) => entry.user)
+  @OneToMany(() => EntryEntity, entry => entry.user)
   entries: EntryEntity[];
 
-  @OneToMany(() => CategoryEntity, (category) => category.user)
+  @OneToMany(() => CategoryEntity, category => category.user)
   categories: CategoryEntity[];
 
-  @CreateDateColumn({ name: "created_at" })
+  @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;
 
-  @UpdateDateColumn({ name: "updated_at" })
+  @UpdateDateColumn({ name: 'updated_at' })
   updatedAt: Date;
 }

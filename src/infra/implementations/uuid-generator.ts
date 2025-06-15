@@ -5,4 +5,4 @@ export class UuidGenerator implements IdGenerator {
   generate(): string {
     return uuidv4();
   }
-} 
+}

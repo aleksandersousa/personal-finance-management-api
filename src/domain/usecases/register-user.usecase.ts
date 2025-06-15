@@ -1,4 +1,4 @@
-import { UserModel } from "../models/user.model";
+import { UserModel } from '../models/user.model';
 
 export interface RegisterUserRequest {
   name: string;
@@ -7,7 +7,7 @@ export interface RegisterUserRequest {
 }
 
 export interface RegisterUserResponse {
-  user: Omit<UserModel, "password">;
+  user: Omit<UserModel, 'password'>;
   tokens: {
     accessToken: string;
     refreshToken: string;

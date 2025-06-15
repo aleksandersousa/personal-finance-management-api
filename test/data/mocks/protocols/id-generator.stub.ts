@@ -1,4 +1,4 @@
-import { IdGenerator } from "@data/protocols/id-generator";
+import { IdGenerator } from '@data/protocols/id-generator';
 
 /**
  * IdGenerator Stub for Data Layer Testing
@@ -8,7 +8,7 @@ export class IdGeneratorStub implements IdGenerator {
   private shouldFail = false;
   private errorToThrow: Error | null = null;
   private nextId = 1;
-  private prefix = "stub-id";
+  private prefix = 'stub-id';
 
   generate(): string {
     if (this.shouldFail && this.errorToThrow) {

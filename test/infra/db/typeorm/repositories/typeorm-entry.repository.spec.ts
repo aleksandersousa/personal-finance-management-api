@@ -1,11 +1,11 @@
-import { Test, TestingModule } from "@nestjs/testing";
-import { getRepositoryToken } from "@nestjs/typeorm";
-import { Repository, SelectQueryBuilder } from "typeorm";
-import { TypeormEntryRepository } from "@infra/db/typeorm/repositories/typeorm-entry.repository";
-import { EntryEntity } from "@infra/db/typeorm/entities/entry.entity";
-import { FindEntriesByMonthFilters } from "@data/protocols/entry-repository";
+import { Test, TestingModule } from '@nestjs/testing';
+import { getRepositoryToken } from '@nestjs/typeorm';
+import { Repository, SelectQueryBuilder } from 'typeorm';
+import { TypeormEntryRepository } from '@infra/db/typeorm/repositories/typeorm-entry.repository';
+import { EntryEntity } from '@infra/db/typeorm/entities/entry.entity';
+import { FindEntriesByMonthFilters } from '@data/protocols/entry-repository';
 
-describe("TypeormEntryRepository", () => {
+describe('TypeormEntryRepository', () => {
   let repository: TypeormEntryRepository;
   let testingModule: TestingModule;
   let mockRepository: jest.Mocked<Repository<EntryEntity>>;
@@ -47,7 +47,7 @@ describe("TypeormEntryRepository", () => {
     }).compile();
 
     repository = testingModule.get<TypeormEntryRepository>(
-      TypeormEntryRepository
+      TypeormEntryRepository,
     );
   });
 
@@ -55,27 +55,27 @@ describe("TypeormEntryRepository", () => {
     jest.clearAllMocks();
   });
 
-  describe("findByUserIdAndMonthWithFilters", () => {
+  describe('findByUserIdAndMonthWithFilters', () => {
     const mockEntries = [
       {
-        id: "entry-1",
-        userId: "user-123",
-        description: "Salary",
+        id: 'entry-1',
+        userId: 'user-123',
+        description: 'Salary',
         amount: 5000,
-        date: new Date("2024-01-15"),
-        type: "INCOME",
+        date: new Date('2024-01-15'),
+        type: 'INCOME',
         isFixed: true,
         categoryId: null,
         createdAt: new Date(),
         updatedAt: new Date(),
       },
       {
-        id: "entry-2",
-        userId: "user-123",
-        description: "Rent",
+        id: 'entry-2',
+        userId: 'user-123',
+        description: 'Rent',
         amount: 1500,
-        date: new Date("2024-01-01"),
-        type: "EXPENSE",
+        date: new Date('2024-01-01'),
+        type: 'EXPENSE',
         isFixed: true,
         categoryId: null,
         createdAt: new Date(),
@@ -83,9 +83,9 @@ describe("TypeormEntryRepository", () => {
       },
     ] as EntryEntity[];
 
-    it("should build correct query with basic filters", async () => {
+    it('should build correct query with basic filters', async () => {
       const filters: FindEntriesByMonthFilters = {
-        userId: "user-123",
+        userId: 'user-123',
         year: 2024,
         month: 1,
       };
@@ -93,108 +93,108 @@ describe("TypeormEntryRepository", () => {
       mockQueryBuilder.getCount.mockResolvedValue(2);
       mockQueryBuilder.getMany.mockResolvedValue(mockEntries);
       mockQueryBuilder.getRawOne.mockResolvedValue({
-        totalIncome: "5000",
-        totalExpenses: "1500",
+        totalIncome: '5000',
+        totalExpenses: '1500',
       });
 
       await repository.findByUserIdAndMonthWithFilters(filters);
 
-      expect(mockRepository.createQueryBuilder).toHaveBeenCalledWith("entry");
+      expect(mockRepository.createQueryBuilder).toHaveBeenCalledWith('entry');
       expect(mockQueryBuilder.where).toHaveBeenCalledWith(
-        "entry.userId = :userId",
-        { userId: "user-123" }
+        'entry.userId = :userId',
+        { userId: 'user-123' },
       );
       expect(mockQueryBuilder.andWhere).toHaveBeenCalledWith(
-        "entry.date >= :startDate",
-        expect.any(Object)
+        'entry.date >= :startDate',
+        expect.any(Object),
       );
       expect(mockQueryBuilder.andWhere).toHaveBeenCalledWith(
-        "entry.date <= :endDate",
-        expect.any(Object)
+        'entry.date <= :endDate',
+        expect.any(Object),
       );
       expect(mockQueryBuilder.leftJoinAndSelect).toHaveBeenCalledWith(
-        "entry.user",
-        "user"
+        'entry.user',
+        'user',
       );
       expect(mockQueryBuilder.leftJoinAndSelect).toHaveBeenCalledWith(
-        "entry.category",
-        "category"
+        'entry.category',
+        'category',
       );
     });
 
-    it("should apply type filter when provided", async () => {
+    it('should apply type filter when provided', async () => {
       const filters: FindEntriesByMonthFilters = {
-        userId: "user-123",
+        userId: 'user-123',
         year: 2024,
         month: 1,
-        type: "INCOME",
+        type: 'INCOME',
       };
 
       mockQueryBuilder.getCount.mockResolvedValue(1);
       mockQueryBuilder.getMany.mockResolvedValue([mockEntries[0]]);
       mockQueryBuilder.getRawOne.mockResolvedValue({
-        totalIncome: "5000",
-        totalExpenses: "0",
+        totalIncome: '5000',
+        totalExpenses: '0',
       });
 
       await repository.findByUserIdAndMonthWithFilters(filters);
 
       expect(mockQueryBuilder.andWhere).toHaveBeenCalledWith(
-        "entry.type = :type",
-        { type: "INCOME" }
+        'entry.type = :type',
+        { type: 'INCOME' },
       );
     });
 
-    it("should apply category filter when provided", async () => {
+    it('should apply category filter when provided', async () => {
       const filters: FindEntriesByMonthFilters = {
-        userId: "user-123",
+        userId: 'user-123',
         year: 2024,
         month: 1,
-        categoryId: "category-123",
+        categoryId: 'category-123',
       };
 
       mockQueryBuilder.getCount.mockResolvedValue(1);
       mockQueryBuilder.getMany.mockResolvedValue([mockEntries[0]]);
       mockQueryBuilder.getRawOne.mockResolvedValue({
-        totalIncome: "5000",
-        totalExpenses: "0",
+        totalIncome: '5000',
+        totalExpenses: '0',
       });
 
       await repository.findByUserIdAndMonthWithFilters(filters);
 
       expect(mockQueryBuilder.andWhere).toHaveBeenCalledWith(
-        "entry.categoryId = :categoryId",
-        { categoryId: "category-123" }
+        'entry.categoryId = :categoryId',
+        { categoryId: 'category-123' },
       );
     });
 
-    it("should apply sorting correctly", async () => {
+    it('should apply sorting correctly', async () => {
       const filters: FindEntriesByMonthFilters = {
-        userId: "user-123",
+        userId: 'user-123',
         year: 2024,
         month: 1,
-        sort: "amount",
-        order: "asc",
+        sort: 'amount',
+        order: 'asc',
       };
 
       mockQueryBuilder.getCount.mockResolvedValue(2);
       mockQueryBuilder.getMany.mockResolvedValue(mockEntries);
       mockQueryBuilder.getRawOne.mockResolvedValue({
-        totalIncome: "5000",
-        totalExpenses: "1500",
+        totalIncome: '5000',
+        totalExpenses: '1500',
       });
 
       await repository.findByUserIdAndMonthWithFilters(filters);
 
       expect(mockQueryBuilder.orderBy).toHaveBeenCalledWith(
-        "entry.amount",
-        "ASC"
+        'entry.amount',
+        'ASC',
       );
     });
 
-    it("should apply pagination correctly", async () => {
+    it('should apply pagination correctly', async () => {
       const filters: FindEntriesByMonthFilters = {
-        userId: "user-123",
+        userId: 'user-123',
         year: 2024,
         month: 1,
         page: 2,
@@ -204,8 +204,8 @@ describe("TypeormEntryRepository", () => {
       mockQueryBuilder.getCount.mockResolvedValue(25);
       mockQueryBuilder.getMany.mockResolvedValue(mockEntries);
       mockQueryBuilder.getRawOne.mockResolvedValue({
-        totalIncome: "5000",
-        totalExpenses: "1500",
+        totalIncome: '5000',
+        totalExpenses: '1500',
       });
 
       await repository.findByUserIdAndMonthWithFilters(filters);
@@ -214,9 +214,9 @@ describe("TypeormEntryRepository", () => {
       expect(mockQueryBuilder.take).toHaveBeenCalledWith(10);
     });
 
-    it("should return correct result structure", async () => {
+    it('should return correct result structure', async () => {
       const filters: FindEntriesByMonthFilters = {
-        userId: "user-123",
+        userId: 'user-123',
         year: 2024,
         month: 1,
       };
@@ -224,8 +224,8 @@ describe("TypeormEntryRepository", () => {
       mockQueryBuilder.getCount.mockResolvedValue(2);
       mockQueryBuilder.getMany.mockResolvedValue(mockEntries);
       mockQueryBuilder.getRawOne.mockResolvedValue({
-        totalIncome: "5000",
-        totalExpenses: "1500",
+        totalIncome: '5000',
+        totalExpenses: '1500',
       });
 
       const result = await repository.findByUserIdAndMonthWithFilters(filters);
@@ -239,9 +239,9 @@ describe("TypeormEntryRepository", () => {
       expect(result.data).toHaveLength(2);
     });
 
-    it("should handle default values correctly", async () => {
+    it('should handle default values correctly', async () => {
       const filters: FindEntriesByMonthFilters = {
-        userId: "user-123",
+        userId: 'user-123',
         year: 2024,
         month: 1,
         // No page, limit, sort, order provided - should use defaults
@@ -250,8 +250,8 @@ describe("TypeormEntryRepository", () => {
       mockQueryBuilder.getCount.mockResolvedValue(2);
       mockQueryBuilder.getMany.mockResolvedValue(mockEntries);
       mockQueryBuilder.getRawOne.mockResolvedValue({
-        totalIncome: "5000",
-        totalExpenses: "1500",
+        totalIncome: '5000',
+        totalExpenses: '1500',
       });
 
       await repository.findByUserIdAndMonthWithFilters(filters);
@@ -259,56 +259,56 @@ describe("TypeormEntryRepository", () => {
       expect(mockQueryBuilder.skip).toHaveBeenCalledWith(0); // (1 - 1) * 20
       expect(mockQueryBuilder.take).toHaveBeenCalledWith(20);
       expect(mockQueryBuilder.orderBy).toHaveBeenCalledWith(
-        "entry.date",
-        "DESC"
+        'entry.date',
+        'DESC',
       );
     });
 
     it("should not apply type filter when type is 'all'", async () => {
       const filters: FindEntriesByMonthFilters = {
-        userId: "user-123",
+        userId: 'user-123',
         year: 2024,
         month: 1,
-        type: "all",
+        type: 'all',
       };
 
       mockQueryBuilder.getCount.mockResolvedValue(2);
       mockQueryBuilder.getMany.mockResolvedValue(mockEntries);
       mockQueryBuilder.getRawOne.mockResolvedValue({
-        totalIncome: "5000",
-        totalExpenses: "1500",
+        totalIncome: '5000',
+        totalExpenses: '1500',
       });
 
       await repository.findByUserIdAndMonthWithFilters(filters);
 
       // Should not call andWhere with type filter
       expect(mockQueryBuilder.andWhere).not.toHaveBeenCalledWith(
-        "entry.type = :type",
-        expect.any(Object)
+        'entry.type = :type',
+        expect.any(Object),
       );
     });
 
     it("should not apply category filter when categoryId is 'all'", async () => {
       const filters: FindEntriesByMonthFilters = {
-        userId: "user-123",
+        userId: 'user-123',
         year: 2024,
         month: 1,
-        categoryId: "all",
+        categoryId: 'all',
       };
 
       mockQueryBuilder.getCount.mockResolvedValue(2);
       mockQueryBuilder.getMany.mockResolvedValue(mockEntries);
       mockQueryBuilder.getRawOne.mockResolvedValue({
-        totalIncome: "5000",
-        totalExpenses: "1500",
+        totalIncome: '5000',
+        totalExpenses: '1500',
       });
 
       await repository.findByUserIdAndMonthWithFilters(filters);
 
       // Should not call andWhere with categoryId filter
       expect(mockQueryBuilder.andWhere).not.toHaveBeenCalledWith(
-        "entry.categoryId = :categoryId",
-        expect.any(Object)
+        'entry.categoryId = :categoryId',
+        expect.any(Object),
       );
     });
   });
