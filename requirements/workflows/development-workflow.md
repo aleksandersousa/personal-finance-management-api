@@ -47,8 +47,8 @@ Este workflow foi atualizado com base em **problemas reais encontrados** durante
 
 - [ ] Development environment set up and running
 - [ ] Database connection established
-- [ ] Observability stack operational (`npm run obs:test`)
-- [ ] All tests passing (`npm run test`)
+- [ ] Observability stack operational (`yarn obs:test`)
+- [ ] All tests passing (`yarn test`)
 - [ ] Git repository clean (`git status`)
 
 ### Documentation Review
@@ -57,6 +57,55 @@ Este workflow foi atualizado com base em **problemas reais encontrados** durante
 - [ ] API requirements understood
 - [ ] Database schema requirements clear
 - [ ] Authentication requirements defined
+
+## 🛠️ Development Guidelines
+
+### Package Manager
+
+**⚠️ IMPORTANT: Always use `yarn` during development, never `npm`**
+
+```bash
+# ✅ Correct
+yarn install
+yarn build
+yarn test
+yarn start:dev
+
+# ❌ Incorrect
+npm install
+npm run build
+npm test
+npm start
+```
+
+### Commit Guidelines
+
+**Commit Message Format:**
+
+- **Maximum 100 characters per line**
+- **Be concise and descriptive**
+- Use conventional commit format: `type: description`
+
+```bash
+# ✅ Good commits (under 100 chars)
+git commit -m "feat: add UpdateEntry use case with validation"
+git commit -m "fix: resolve build errors in entry factory"
+git commit -m "test: add comprehensive tests for UC-06"
+
+# ❌ Bad commits (over 100 chars or unclear)
+git commit -m "feat: implement UC-06 Update Entry with complete validation, error handling, observability, and comprehensive testing suite"
+git commit -m "fix stuff"
+```
+
+### Code Quality Checks
+
+Before any commit, always verify:
+
+- [ ] No unused imports or variables
+- [ ] All methods are being used
+- [ ] Build passes: `yarn build`
+- [ ] Tests pass: `yarn test`
+- [ ] Linting passes: `yarn lint`
 
 ## 🎯 Development Process Overview
 
@@ -364,13 +413,13 @@ export class [Entity]Repository implements [Entity]Repository {
 
 ```bash
 # Generate migration
-npm run migration:generate src/infra/db/typeorm/migrations/[MigrationName]
+yarn migration:generate src/infra/db/typeorm/migrations/[MigrationName]
 
 # Review generated migration
 # Edit if necessary
 
 # Run migration
-npm run migration:run
+yarn migration:run
 ```
 
 **Migration Checklist:**
@@ -1569,13 +1618,13 @@ Update relevant documentation files:
 
 ```bash
 # Run all quality checks
-npm run lint
-npm run test
-npm run test:cov
-npm run test:e2e
+yarn lint
+yarn test
+yarn test:cov
+yarn test:e2e
 
 # Check observability
-npm run obs:test
+yarn obs:test
 
 # Manual API testing
 curl -X POST http://localhost:3000/api/v1/[entities] \
@@ -1605,11 +1654,11 @@ curl -X POST http://localhost:3000/api/v1/[entities] \
 
 ```bash
 # Verify migrations
-npm run migration:run --dry-run
+yarn migration:run --dry-run
 
 # Test rollback
-npm run migration:revert
-npm run migration:run
+yarn migration:revert
+yarn migration:run
 ```
 
 ### 11.2 Environment Configuration
