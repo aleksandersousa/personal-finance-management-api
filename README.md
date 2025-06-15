@@ -120,7 +120,7 @@ npm run test:cov
 
 A API utiliza JWT Bearer tokens. Para testar os endpoints protegidos:
 
-1. Faça login para obter um token JWT (endpoint será implementado em stories futuras)
+1. Faça login para obter um token JWT
 2. Inclua o token no header: `Authorization: Bearer <seu-token>`
 
 ## 📝 Exemplo de Uso - Story 1

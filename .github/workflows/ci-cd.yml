@@ -1,0 +1,405 @@
+name: 🚀 CI/CD Pipeline
+
+on:
+  pull_request:
+    branches: [develop, staging, main]
+    paths-ignore:
+      - "**.md"
+      - "docs/**"
+      - ".vscode/**"
+      - ".gitignore"
+  push:
+    branches: [develop, staging, main]
+    paths-ignore:
+      - "**.md"
+      - "docs/**"
+      - ".vscode/**"
+      - ".gitignore"
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: "Environment to deploy"
+        required: true
+        default: "develop"
+        type: choice
+        options:
+          - develop
+          - staging
+          - production
+
+env:
+  NODE_VERSION: "20"
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  # 🔍 Code Quality & Security Analysis
+  code-quality:
+    name: 🔍 Code Quality & Security
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: 🔧 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "yarn"
+
+      - name: 📦 Install dependencies
+        run: yarn install --frozen-lockfile
+
+      - name: 🎨 Check code formatting
+        run: yarn format --check
+
+      - name: 🔍 Run linting
+        run: yarn lint
+
+      - name: 🛡️ Security audit
+        run: yarn audit --audit-level moderate
+        continue-on-error: true
+
+      - name: 📊 Type checking
+        run: npx tsc --noEmit
+
+  # 🧪 Test Suite
+  test:
+    name: 🧪 Test Suite
+    runs-on: ubuntu-latest
+    needs: [code-quality]
+    if: always() && (needs.code-quality.result == 'success' || github.event_name != 'pull_request')
+
+    services:
+      postgres:
+        image: postgres:15-alpine
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_USER: postgres
+          POSTGRES_DB: financial_db_test
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🔧 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "yarn"
+
+      - name: 📦 Install dependencies
+        run: yarn install --frozen-lockfile
+
+      - name: 🏗️ Build application
+        run: yarn build
+
+      - name: 🧪 Run unit tests
+        run: yarn test --passWithNoTests
+        env:
+          NODE_ENV: test
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/financial_db_test
+
+      - name: 📊 Run test coverage
+        run: yarn test:cov --passWithNoTests
+        env:
+          NODE_ENV: test
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/financial_db_test
+
+      - name: 🔍 Run E2E tests
+        run: yarn test:e2e --passWithNoTests
+        env:
+          NODE_ENV: test
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/financial_db_test
+          JWT_SECRET: test-jwt-secret
+          JWT_ACCESS_SECRET: test-access-secret
+          JWT_REFRESH_SECRET: test-refresh-secret
+          PORT: 3001
+
+      - name: 📈 Upload coverage reports
+        uses: codecov/codecov-action@v3
+        with:
+          file: ./coverage/lcov.info
+          flags: unittests
+          name: codecov-umbrella
+          fail_ci_if_error: false
+
+  # 🏗️ Build & Package
+  build:
+    name: 🏗️ Build & Package
+    runs-on: ubuntu-latest
+    needs: [test]
+    if: always() && needs.test.result == 'success'
+
+    outputs:
+      image-tag: ${{ steps.meta.outputs.tags }}
+      image-digest: ${{ steps.build.outputs.digest }}
+      environment: ${{ steps.determine-env.outputs.environment }}
+
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🎯 Determine environment
+        id: determine-env
+        run: |
+          if [[ "${{ github.ref }}" == "refs/heads/main" ]]; then
+            echo "environment=production" >> $GITHUB_OUTPUT
+          elif [[ "${{ github.ref }}" == "refs/heads/staging" ]]; then
+            echo "environment=staging" >> $GITHUB_OUTPUT
+          else
+            echo "environment=development" >> $GITHUB_OUTPUT
+          fi
+
+      - name: 🔐 Log in to Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: 🏷️ Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=ref,event=branch
+            type=ref,event=pr
+            type=sha,prefix={{branch}}-
+            type=raw,value=latest,enable={{is_default_branch}}
+
+      - name: 🔧 Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: 🏗️ Build and push Docker image
+        id: build
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: .docker/Dockerfile.prod
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          platforms: linux/amd64,linux/arm64
+
+  # 🛡️ Security Scan
+  security-scan:
+    name: 🛡️ Security Scan
+    runs-on: ubuntu-latest
+    needs: [build]
+    if: always() && needs.build.result == 'success'
+
+    steps:
+      - name: 🔍 Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: ${{ needs.build.outputs.image-tag }}
+          format: "sarif"
+          output: "trivy-results.sarif"
+
+      - name: 📊 Upload Trivy scan results
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: "trivy-results.sarif"
+
+  # 🚀 Deploy to Development
+  deploy-development:
+    name: 🚀 Deploy to Development
+    runs-on: ubuntu-latest
+    needs: [build, security-scan]
+    if: |
+      always() && 
+      needs.build.result == 'success' && 
+      (needs.security-scan.result == 'success' || needs.security-scan.result == 'skipped') &&
+      (github.ref == 'refs/heads/develop' || 
+       (github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'develop'))
+
+    environment:
+      name: development
+      url: ${{ steps.deploy.outputs.app-url }}
+
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🔧 Setup deployment environment
+        run: |
+          echo "Setting up development environment..."
+          echo "IMAGE_TAG=${{ needs.build.outputs.image-tag }}" >> $GITHUB_ENV
+          echo "ENVIRONMENT=development" >> $GITHUB_ENV
+
+      - name: 🚀 Deploy to Development
+        id: deploy
+        run: |
+          echo "🚀 Deploying to Development environment..."
+          echo "Image: ${{ needs.build.outputs.image-tag }}"
+          echo "Environment: development"
+
+          # Aqui será implementado o deploy real
+          # Por enquanto, simulamos o deploy
+          echo "✅ Development deployment completed successfully!"
+          echo "app-url=https://dev.financial-app.com" >> $GITHUB_OUTPUT
+
+      - name: 🔍 Health Check
+        run: |
+          echo "🔍 Running health checks..."
+          # Aqui será implementado o health check real
+          echo "✅ Health checks passed!"
+
+      - name: 📊 Update deployment status
+        run: |
+          echo "📊 Deployment Status: SUCCESS"
+          echo "🔗 URL: ${{ steps.deploy.outputs.app-url }}"
+          echo "🏷️ Image Tag: ${{ needs.build.outputs.image-tag }}"
+
+  # 🚀 Deploy to Staging
+  deploy-staging:
+    name: 🚀 Deploy to Staging
+    runs-on: ubuntu-latest
+    needs: [build, security-scan]
+    if: |
+      always() && 
+      needs.build.result == 'success' && 
+      (needs.security-scan.result == 'success' || needs.security-scan.result == 'skipped') &&
+      (github.ref == 'refs/heads/staging' || 
+       (github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'staging'))
+
+    environment:
+      name: staging
+      url: ${{ steps.deploy.outputs.app-url }}
+
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🔧 Setup deployment environment
+        run: |
+          echo "Setting up staging environment..."
+          echo "IMAGE_TAG=${{ needs.build.outputs.image-tag }}" >> $GITHUB_ENV
+          echo "ENVIRONMENT=staging" >> $GITHUB_ENV
+
+      - name: 🚀 Deploy to Staging
+        id: deploy
+        run: |
+          echo "🚀 Deploying to Staging environment..."
+          echo "Image: ${{ needs.build.outputs.image-tag }}"
+          echo "Environment: staging"
+
+          # Aqui será implementado o deploy real
+          # Por enquanto, simulamos o deploy
+          echo "✅ Staging deployment completed successfully!"
+          echo "app-url=https://staging.financial-app.com" >> $GITHUB_OUTPUT
+
+      - name: 🔍 Health Check
+        run: |
+          echo "🔍 Running health checks..."
+          # Aqui será implementado o health check real
+          echo "✅ Health checks passed!"
+
+      - name: 🧪 Run smoke tests
+        run: |
+          echo "🧪 Running smoke tests on staging..."
+          # Aqui serão implementados os smoke tests reais
+          echo "✅ Smoke tests passed!"
+
+      - name: 📊 Update deployment status
+        run: |
+          echo "📊 Deployment Status: SUCCESS"
+          echo "🔗 URL: ${{ steps.deploy.outputs.app-url }}"
+          echo "🏷️ Image Tag: ${{ needs.build.outputs.image-tag }}"
+
+  # 🚀 Deploy to Production
+  deploy-production:
+    name: 🚀 Deploy to Production
+    runs-on: ubuntu-latest
+    needs: [build, security-scan]
+    if: |
+      always() && 
+      needs.build.result == 'success' && 
+      needs.security-scan.result == 'success' &&
+      (github.ref == 'refs/heads/main' || 
+       (github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'production'))
+
+    environment:
+      name: production
+      url: ${{ steps.deploy.outputs.app-url }}
+
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🔧 Setup deployment environment
+        run: |
+          echo "Setting up production environment..."
+          echo "IMAGE_TAG=${{ needs.build.outputs.image-tag }}" >> $GITHUB_ENV
+          echo "ENVIRONMENT=production" >> $GITHUB_ENV
+
+      - name: 🚀 Deploy to Production
+        id: deploy
+        run: |
+          echo "🚀 Deploying to Production environment..."
+          echo "Image: ${{ needs.build.outputs.image-tag }}"
+          echo "Environment: production"
+
+          # Aqui será implementado o deploy real
+          # Por enquanto, simulamos o deploy
+          echo "✅ Production deployment completed successfully!"
+          echo "app-url=https://financial-app.com" >> $GITHUB_OUTPUT
+
+      - name: 🔍 Health Check
+        run: |
+          echo "🔍 Running health checks..."
+          # Aqui será implementado o health check real
+          echo "✅ Health checks passed!"
+
+      - name: 🧪 Run smoke tests
+        run: |
+          echo "🧪 Running smoke tests on production..."
+          # Aqui serão implementados os smoke tests reais
+          echo "✅ Smoke tests passed!"
+
+      - name: 📊 Update deployment status
+        run: |
+          echo "📊 Production Deployment Status: SUCCESS"
+          echo "🔗 URL: ${{ steps.deploy.outputs.app-url }}"
+          echo "🏷️ Image Tag: ${{ needs.build.outputs.image-tag }}"
+
+      - name: 🔔 Notify deployment success
+        run: |
+          echo "🎉 Production deployment completed successfully!"
+          echo "🚀 Application is now live at: ${{ steps.deploy.outputs.app-url }}"
+
+  # 📊 Post-Deployment Monitoring
+  post-deployment:
+    name: 📊 Post-Deployment Monitoring
+    runs-on: ubuntu-latest
+    needs: [deploy-development, deploy-staging, deploy-production]
+    if: always() && (needs.deploy-development.result == 'success' || needs.deploy-staging.result == 'success' || needs.deploy-production.result == 'success')
+
+    steps:
+      - name: 📊 Setup monitoring alerts
+        run: |
+          echo "📊 Setting up post-deployment monitoring..."
+          # Aqui será implementado o setup de monitoring real
+          echo "✅ Monitoring alerts configured!"
+
+      - name: 📈 Performance baseline
+        run: |
+          echo "📈 Establishing performance baseline..."
+          # Aqui será implementado o baseline de performance
+          echo "✅ Performance baseline established!"

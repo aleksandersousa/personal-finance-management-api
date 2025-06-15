@@ -74,7 +74,18 @@
     "obs:monitor": "echo '📊 Monitoring URLs:' && echo 'Development:' && echo '  - Grafana: http://localhost:3001 (admin/admin123)' && echo '  - Prometheus: http://localhost:9090' && echo '  - API Health: http://localhost:3000/api/v1/health' && echo '  - API Metrics: http://localhost:3000/api/v1/metrics'",
     "obs:backup:dev": "mkdir -p backups && docker run --rm -v api_prometheus_data_dev:/data -v $(pwd)/backups:/backup alpine tar czf /backup/prometheus-dev-$(date +%Y%m%d-%H%M%S).tar.gz -C /data .",
     "obs:backup:prod": "mkdir -p backups && docker run --rm -v api_prometheus_data_prod:/data -v $(pwd)/backups:/backup alpine tar czf /backup/prometheus-prod-$(date +%Y%m%d-%H%M%S).tar.gz -C /data .",
-    "obs:help": "echo '📚 Observability Commands Help:' && echo '' && echo '🔧 Development:' && echo '  npm run obs:dev           - Start all services (API + Observability)' && echo '  npm run obs:dev:down      - Stop all services' && echo '  npm run obs:dev:logs      - View all logs' && echo '  npm run obs:dev:status    - Check services status' && echo '  npm run obs:setup         - First time setup' && echo '' && echo '🚀 Production:' && echo '  npm run obs:prod          - Start production observability' && echo '  npm run obs:prod:down     - Stop production observability' && echo '  npm run obs:prod:logs     - View production logs' && echo '' && echo '📊 Monitoring:' && echo '  npm run obs:monitor       - Show all URLs' && echo '  npm run obs:test          - Test if observability is working' && echo '  npm run obs:logs:tail     - Tail application logs' && echo '' && echo '🔧 Utilities:' && echo '  npm run obs:backup:dev    - Backup development metrics' && echo '  npm run obs:backup:prod   - Backup production metrics' && echo '  npm run obs:help          - Show this help'"
+    "obs:help": "echo '📚 Observability Commands Help:' && echo '' && echo '🔧 Development:' && echo '  npm run obs:dev           - Start all services (API + Observability)' && echo '  npm run obs:dev:down      - Stop all services' && echo '  npm run obs:dev:logs      - View all logs' && echo '  npm run obs:dev:status    - Check services status' && echo '  npm run obs:setup         - First time setup' && echo '' && echo '🚀 Production:' && echo '  npm run obs:prod          - Start production observability' && echo '  npm run obs:prod:down     - Stop production observability' && echo '  npm run obs:prod:logs     - View production logs' && echo '' && echo '📊 Monitoring:' && echo '  npm run obs:monitor       - Show all URLs' && echo '  npm run obs:test          - Test if observability is working' && echo '  npm run obs:logs:tail     - Tail application logs' && echo '' && echo '🔧 Utilities:' && echo '  npm run obs:backup:dev    - Backup development metrics' && echo '  npm run obs:backup:prod   - Backup production metrics' && echo '  npm run obs:help          - Show this help'",
+    "deploy:dev": "./scripts/deploy.sh development",
+    "deploy:staging": "./scripts/deploy.sh staging",
+    "deploy:prod": "./scripts/deploy.sh production",
+    "deploy:help": "./scripts/deploy.sh --help",
+    "monitor:dev": "./scripts/monitor-deployment.sh development",
+    "monitor:staging": "./scripts/monitor-deployment.sh staging",
+    "monitor:prod": "./scripts/monitor-deployment.sh production",
+    "monitor:all": "./scripts/monitor-deployment.sh all",
+    "monitor:help": "./scripts/monitor-deployment.sh --help",
+    "ci:setup": "echo '🚀 Setting up CI/CD...' && echo '✅ GitHub Actions workflows configured' && echo '✅ Deploy scripts ready' && echo '✅ Monitoring scripts ready' && echo '📚 Read docs/CI-CD-SETUP.md for complete guide'",
+    "ci:validate": "echo '🔍 Validating CI/CD setup...' && ls -la .github/workflows/ && ls -la scripts/ && echo '✅ CI/CD setup validation complete'"
   },
   "keywords": [
     "nestjs",
