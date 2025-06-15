@@ -34,6 +34,45 @@ test/                    # ⚠️ IMPORTANTE: Usar 'test' (não 'tests')
 
 Tests must mirror the project folder structure. For example, tests for `src/data/usecases/add-entry.ts` must be placed in `test/data/usecases/add-entry.spec.ts`.
 
+## 🎯 TDD (Test-Driven Development) Guidelines
+
+### Red-Green-Refactor Cycle
+
+1. **🔴 RED**: Write a failing test first
+
+   - Define the expected behavior
+   - Write the minimal test that fails
+   - Ensure the test fails for the right reason
+
+2. **🟢 GREEN**: Make the test pass
+
+   - Write the minimal code to make the test pass
+   - Don't worry about perfect code yet
+   - Focus on making it work
+
+3. **🔵 REFACTOR**: Improve the code
+   - Clean up the implementation
+   - Remove duplication
+   - Improve readability and maintainability
+   - Ensure all tests still pass
+
+### TDD Implementation Order
+
+Follow this order when implementing new features:
+
+1. **Domain Layer First**: Start with domain entities and use case interfaces
+2. **Data Layer**: Implement use cases with repository interfaces
+3. **Infrastructure Layer**: Implement concrete repositories and external services
+4. **Presentation Layer**: Implement controllers and DTOs
+
+### TDD Rules
+
+- **Never write production code without a failing test**
+- **Write only enough test code to make a test fail**
+- **Write only enough production code to make the failing test pass**
+- **Refactor only when all tests are green**
+- **Each test should test one specific behavior**
+
 ## Test Types & Mock Strategy
 
 - **Unit Tests:**  
@@ -129,6 +168,81 @@ expect(loggerSpy.getBusinessEvents('entry_created')).toHaveLength(1);
 expect(metricsSpy.hasRecordedMetric('http_request_duration')).toBe(true);
 ```
 
+### Problema 5: Logging e Métricas em Controllers
+
+**❌ Erro comum:** Não implementar logging e métricas nos controllers
+
+```typescript
+// NÃO FAZER - Controller sem observabilidade
+async create(@Body() dto: CreateEntryDto) {
+  return await this.useCase.execute(dto);
+}
+```
+
+**✅ Solução:** Implementar logging completo com métricas
+
+```typescript
+// FAZER - Controller com observabilidade completa
+async create(@Body() dto: CreateEntryDto, @User() user: UserPayload) {
+  const startTime = Date.now();
+
+  try {
+    const result = await this.useCase.execute({ ...dto, userId: user.id });
+    const duration = Date.now() - startTime;
+
+    // Log business event
+    this.logger.logBusinessEvent({
+      event: 'entry_api_create_success',
+      entityId: result.id,
+      userId: user.id,
+      duration,
+      metadata: { type: result.type, amount: result.amount },
+    });
+
+    // Record metrics
+    this.metrics.recordHttpRequest('POST', '/entries', 201, duration);
+
+    return result;
+  } catch (error) {
+    const duration = Date.now() - startTime;
+
+    this.logger.error(`Failed to create entry for user ${user.id}`, error.stack);
+    this.metrics.recordApiError('entry_create', error.message);
+
+    throw error;
+  }
+}
+```
+
+### Problema 6: Testes de Controller sem Mocks de Logging
+
+**❌ Erro comum:** Não mockar serviços de logging e métricas
+
+```typescript
+// NÃO FAZER - Faltam mocks de observabilidade
+const module: TestingModule = await Test.createTestingModule({
+  controllers: [EntryController],
+  providers: [
+    { provide: AddEntryUseCase, useValue: mockUseCase },
+    // Faltam logger e metrics
+  ],
+});
+```
+
+**✅ Solução:** Incluir todos os mocks necessários
+
+```typescript
+// FAZER - Mocks completos
+const module: TestingModule = await Test.createTestingModule({
+  controllers: [EntryController],
+  providers: [
+    { provide: AddEntryUseCase, useValue: mockUseCase },
+    { provide: ContextAwareLoggerService, useValue: loggerSpy },
+    { provide: FinancialMetricsService, useValue: metricsSpy },
+  ],
+});
+```
+
 ## 🎭 Mocks, Stubs, and Spies Strategy
 
 ### Terminology & Usage
@@ -175,11 +289,11 @@ describe('EntryController (e2e)', () => {
           useValue: mockAddEntryUseCase, // ✅ Mock em vez de banco real
         },
         {
-          provide: 'ContextAwareLoggerService',
+          provide: ContextAwareLoggerService,
           useValue: loggerSpy,
         },
         {
-          provide: 'MetricsService',
+          provide: FinancialMetricsService,
           useValue: metricsSpy,
         },
       ],
@@ -261,6 +375,67 @@ describe('EntryController (e2e)', () => {
 
       // Assert - ✅ Aceitar diferentes códigos de erro
       expect([400, 422]).toContain(response.status);
+    });
+  });
+});
+```
+
+## 🧪 Test Structure Patterns
+
+### AAA Pattern (Arrange-Act-Assert)
+
+```typescript
+describe('AddEntry Use Case', () => {
+  it('should create entry with valid data', async () => {
+    // Arrange - Setup test data and mocks
+    const entryData = {
+      description: 'Monthly Salary',
+      amount: 5000,
+      type: 'INCOME' as const,
+      userId: 'user-123',
+      categoryId: 'category-456',
+    };
+    const mockRepository = jest
+      .fn()
+      .mockResolvedValue({ id: 'entry-789', ...entryData });
+
+    // Act - Execute the behavior being tested
+    const result = await useCase.execute(entryData);
+
+    // Assert - Verify the expected outcome
+    expect(result).toHaveProperty('id', 'entry-789');
+    expect(mockRepository).toHaveBeenCalledWith(entryData);
+  });
+});
+```
+
+### Test Organization
+
+```typescript
+describe('EntryController', () => {
+  describe('POST /entries', () => {
+    describe('when data is valid', () => {
+      it('should create entry successfully', async () => {
+        // Test implementation
+      });
+
+      it('should log business event', async () => {
+        // Test implementation
+      });
+
+      it('should record metrics', async () => {
+        // Test implementation
+      });
+    });
+
+    describe('when data is invalid', () => {
+      it('should return validation error', async () => {
+        // Test implementation
+      });
+
+      it('should log error event', async () => {
+        // Test implementation
+      });
     });
   });
 });
@@ -387,7 +562,7 @@ describe('Entry Controller', () => {
       providers: [
         { provide: AddEntryUseCase, useValue: addEntryUseCase },
         { provide: ContextAwareLoggerService, useValue: loggerSpy },
-        { provide: MetricsService, useValue: metricsSpy },
+        { provide: FinancialMetricsService, useValue: metricsSpy },
       ],
     }).compile();
 
@@ -419,6 +594,9 @@ describe('Entry Controller', () => {
       'entry_api_create_success',
     );
     expect(businessEvents).toHaveLength(1);
+
+    // Verify metrics
+    expect(metricsSpy.hasRecordedMetric('http_request_duration')).toBe(true);
   });
 });
 ```
@@ -918,3 +1096,19 @@ Antes de liberar a API financeira para produção, verifique:
 - [ ] Test utilities facilitam setup e cleanup
 - [ ] Comportamentos de erro simulados corretamente
 - [ ] Estado dos mocks limpo entre testes
+
+### TDD Implementation Checklist
+
+- [ ] Red-Green-Refactor cycle seguido consistentemente
+- [ ] Testes escritos antes da implementação
+- [ ] Implementação mínima para fazer testes passarem
+- [ ] Refatoração realizada apenas com testes verdes
+- [ ] Cobertura de testes adequada (80%+ para código crítico)
+
+### Observabilidade em Controllers
+
+- [ ] Logging de business events implementado
+- [ ] Métricas de performance registradas
+- [ ] Tratamento de erros com logging adequado
+- [ ] Mocks de logging e métricas nos testes
+- [ ] Verificação de eventos de negócio nos testes

@@ -107,6 +107,67 @@ Before any commit, always verify:
 - [ ] Tests pass: `yarn test`
 - [ ] Linting passes: `yarn lint`
 
+### 🧪 Test-Driven Development (TDD) Guidelines
+
+This project follows **Test-Driven Development (TDD)** principles to ensure high code quality and maintainability:
+
+#### TDD Cycle (Red-Green-Refactor)
+
+1. **🔴 RED**: Write a failing test first
+
+   - Write the minimum test that describes the desired behavior
+   - Run the test to confirm it fails (red)
+   - This ensures the test is actually testing something
+
+2. **🟢 GREEN**: Write the minimum code to make the test pass
+
+   - Implement only enough code to make the test pass
+   - Don't worry about perfect code yet - focus on making it work
+   - Run the test to confirm it passes (green)
+
+3. **🔵 REFACTOR**: Improve the code while keeping tests green
+   - Clean up the code, improve structure, remove duplication
+   - Ensure all tests still pass after refactoring
+   - Apply design patterns and best practices
+
+#### TDD Best Practices
+
+**Test Structure (AAA Pattern):**
+
+```typescript
+describe('FeatureName', () => {
+  it('should describe expected behavior', () => {
+    // Arrange - Set up test data and mocks
+    const input = {
+      /* test data */
+    };
+    const expectedOutput = {
+      /* expected result */
+    };
+
+    // Act - Execute the code under test
+    const result = systemUnderTest.method(input);
+
+    // Assert - Verify the outcome
+    expect(result).toEqual(expectedOutput);
+  });
+});
+```
+
+**TDD Implementation Order:**
+
+1. **Domain Layer First** (Pure business logic)
+2. **Data Layer** (Use cases and repositories)
+3. **Infrastructure Layer** (Database, external services)
+4. **Presentation Layer** (Controllers, DTOs)
+
+**TDD Rules:**
+
+- No production code without a failing test
+- Write only enough test to fail
+- Write only enough production code to pass the test
+- Tests must be fast, independent, and repeatable
+
 ## 🎯 Development Process Overview
 
 ```

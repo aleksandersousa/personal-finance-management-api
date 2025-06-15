@@ -44,6 +44,7 @@ export class DbLoginUserUseCase implements LoginUserUseCase {
     });
 
     // Return response without password
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { password, ...userWithoutPassword } = user;
 
     return {

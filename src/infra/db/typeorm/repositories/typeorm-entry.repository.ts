@@ -220,8 +220,6 @@ export class TypeormEntryRepository implements EntryRepository {
 
       return this.mapToModel(updatedEntry);
     } catch (error) {
-      const duration = Date.now() - startTime;
-
       // Log error
       this.logger.error(`Failed to update entry ${id}`, error.stack);
 
