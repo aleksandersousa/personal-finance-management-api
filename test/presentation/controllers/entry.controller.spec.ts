@@ -824,15 +824,17 @@ describe('EntryController', () => {
         type: 'EXPENSE' as const,
         isFixed: false,
       };
-      const mockRequest = RequestMockFactory.createWithUser('user-123');
-      const error = new Error('You can only update your own entries');
+      const mockUser = { id: 'user-123', email: 'test@example.com' };
+      const error = new Error('User unauthorized to perform this action');
 
       updateEntryUseCase.execute.mockRejectedValue(error);
 
       // Act & Assert
       await expect(
-        controller.update(entryId, updateDto, mockRequest),
-      ).rejects.toThrow(BadRequestException);
+        controller.update(entryId, updateDto, mockUser),
+      ).rejects.toThrow(
+        new NotFoundException('Entry not found or access denied'),
+      );
     });
 
     it('should handle category not found errors', async () => {
