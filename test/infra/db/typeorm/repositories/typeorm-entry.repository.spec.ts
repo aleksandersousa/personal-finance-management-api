@@ -11,6 +11,19 @@ describe('TypeormEntryRepository', () => {
   let mockRepository: jest.Mocked<Repository<EntryEntity>>;
   let mockQueryBuilder: jest.Mocked<SelectQueryBuilder<EntryEntity>>;
 
+  const mockEntryEntity: EntryEntity = {
+    id: 'entry-1',
+    userId: 'user-123',
+    description: 'Test Entry',
+    amount: 1000,
+    date: new Date('2024-01-15'),
+    type: 'INCOME',
+    isFixed: false,
+    categoryId: null,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  } as EntryEntity;
+
   beforeEach(async () => {
     mockQueryBuilder = {
       where: jest.fn().mockReturnThis(),
@@ -53,6 +66,192 @@ describe('TypeormEntryRepository', () => {
 
   afterEach(() => {
     jest.clearAllMocks();
+  });
+
+  describe('create', () => {
+    it('should create and save an entry', async () => {
+      const createData = {
+        userId: 'user-123',
+        description: 'Test Entry',
+        amount: 1000,
+        date: new Date('2024-01-15'),
+        type: 'INCOME' as const,
+        isFixed: false,
+        categoryId: null,
+      };
+
+      mockRepository.create.mockReturnValue(mockEntryEntity);
+      mockRepository.save.mockResolvedValue(mockEntryEntity);
+
+      const result = await repository.create(createData);
+
+      expect(mockRepository.create).toHaveBeenCalledWith({
+        userId: createData.userId,
+        description: createData.description,
+        amount: createData.amount,
+        date: createData.date,
+        type: createData.type,
+        isFixed: createData.isFixed,
+        categoryId: createData.categoryId,
+      });
+      expect(mockRepository.save).toHaveBeenCalledWith(mockEntryEntity);
+      expect(result.id).toBe(mockEntryEntity.id);
+      expect(result.amount).toBe(Number(mockEntryEntity.amount));
+    });
+  });
+
+  describe('findById', () => {
+    it('should find an entry by id', async () => {
+      mockRepository.findOne.mockResolvedValue(mockEntryEntity);
+
+      const result = await repository.findById('entry-1');
+
+      expect(mockRepository.findOne).toHaveBeenCalledWith({
+        where: { id: 'entry-1' },
+        relations: ['user', 'category'],
+      });
+      expect(result).toEqual({
+        id: mockEntryEntity.id,
+        userId: mockEntryEntity.userId,
+        description: mockEntryEntity.description,
+        amount: Number(mockEntryEntity.amount),
+        date: mockEntryEntity.date,
+        type: mockEntryEntity.type,
+        isFixed: mockEntryEntity.isFixed,
+        categoryId: mockEntryEntity.categoryId,
+        createdAt: mockEntryEntity.createdAt,
+        updatedAt: mockEntryEntity.updatedAt,
+      });
+    });
+
+    it('should return null when entry not found', async () => {
+      mockRepository.findOne.mockResolvedValue(null);
+
+      const result = await repository.findById('non-existent');
+
+      expect(result).toBeNull();
+    });
+  });
+
+  describe('findByUserId', () => {
+    it('should find entries by user id', async () => {
+      const mockEntries = [mockEntryEntity];
+      mockRepository.find.mockResolvedValue(mockEntries);
+
+      const result = await repository.findByUserId('user-123');
+
+      expect(mockRepository.find).toHaveBeenCalledWith({
+        where: { userId: 'user-123' },
+        relations: ['user', 'category'],
+        order: { date: 'DESC' },
+      });
+      expect(result).toHaveLength(1);
+    });
+  });
+
+  describe('findByUserIdAndMonth', () => {
+    it('should find entries by user id and month', async () => {
+      const mockEntries = [mockEntryEntity];
+      mockQueryBuilder.getMany.mockResolvedValue(mockEntries);
+
+      const result = await repository.findByUserIdAndMonth('user-123', 2024, 1);
+
+      expect(mockRepository.createQueryBuilder).toHaveBeenCalledWith('entry');
+      expect(mockQueryBuilder.where).toHaveBeenCalledWith(
+        'entry.userId = :userId',
+        { userId: 'user-123' },
+      );
+      expect(mockQueryBuilder.getMany).toHaveBeenCalled();
+      expect(result).toHaveLength(1);
+    });
+  });
+
+  describe('update', () => {
+    it('should update an entry', async () => {
+      const updateData = {
+        description: 'Updated Entry',
+        amount: 2000,
+      };
+
+      mockRepository.update.mockResolvedValue({
+        affected: 1,
+        generatedMaps: [],
+        raw: {},
+      });
+      mockRepository.findOne.mockResolvedValue({
+        ...mockEntryEntity,
+        ...updateData,
+      });
+
+      const result = await repository.update('entry-1', updateData);
+
+      expect(mockRepository.update).toHaveBeenCalledWith('entry-1', updateData);
+      expect(mockRepository.findOne).toHaveBeenCalledWith({
+        where: { id: 'entry-1' },
+        relations: ['user', 'category'],
+      });
+      expect(result.description).toBe(updateData.description);
+      expect(result.amount).toBe(updateData.amount);
+    });
+
+    it('should throw error when entry not found after update', async () => {
+      mockRepository.update.mockResolvedValue({
+        affected: 1,
+        generatedMaps: [],
+        raw: {},
+      });
+      mockRepository.findOne.mockResolvedValue(null);
+
+      await expect(repository.update('non-existent', {})).rejects.toThrow(
+        'Entry not found',
+      );
+    });
+
+    it('should handle partial updates with all fields', async () => {
+      const updateData = {
+        userId: 'user-456',
+        description: 'New Description',
+        amount: 1500,
+        date: new Date('2024-02-01'),
+        type: 'EXPENSE' as const,
+        isFixed: true,
+        categoryId: 'category-123',
+      };
+
+      mockRepository.update.mockResolvedValue({
+        affected: 1,
+        generatedMaps: [],
+        raw: {},
+      });
+      mockRepository.findOne.mockResolvedValue({
+        ...mockEntryEntity,
+        ...updateData,
+      });
+
+      const result = await repository.update('entry-1', updateData);
+
+      expect(mockRepository.update).toHaveBeenCalledWith('entry-1', updateData);
+      expect(result.userId).toBe(updateData.userId);
+      expect(result.type).toBe(updateData.type);
+    });
+  });
+
+  describe('delete', () => {
+    it('should delete an entry', async () => {
+      mockRepository.delete.mockResolvedValue({ affected: 1, raw: {} });
+
+      await expect(repository.delete('entry-1')).resolves.not.toThrow();
+
+      expect(mockRepository.delete).toHaveBeenCalledWith('entry-1');
+    });
+
+    it('should throw error when entry not found', async () => {
+      mockRepository.delete.mockResolvedValue({ affected: 0, raw: {} });
+
+      await expect(repository.delete('non-existent')).rejects.toThrow(
+        'Entry not found',
+      );
+    });
   });
 
   describe('findByUserIdAndMonthWithFilters', () => {
@@ -310,6 +509,74 @@ describe('TypeormEntryRepository', () => {
         'entry.categoryId = :categoryId',
         expect.any(Object),
       );
+    });
+
+    it('should use default sort field for invalid sort parameter', async () => {
+      const filters: FindEntriesByMonthFilters = {
+        userId: 'user-123',
+        year: 2024,
+        month: 1,
+        sort: 'invalid-sort-field', // Invalid sort field, should fallback to 'date'
+      };
+
+      mockQueryBuilder.getCount.mockResolvedValue(2);
+      mockQueryBuilder.getMany.mockResolvedValue(mockEntries);
+      mockQueryBuilder.getRawOne.mockResolvedValue({
+        totalIncome: '5000',
+        totalExpenses: '1500',
+      });
+
+      await repository.findByUserIdAndMonthWithFilters(filters);
+
+      expect(mockQueryBuilder.orderBy).toHaveBeenCalledWith(
+        'entry.date', // Should fallback to 'date'
+        'DESC',
+      );
+    });
+
+    it('should handle null summary result', async () => {
+      const filters: FindEntriesByMonthFilters = {
+        userId: 'user-123',
+        year: 2024,
+        month: 1,
+      };
+
+      mockQueryBuilder.getCount.mockResolvedValue(0);
+      mockQueryBuilder.getMany.mockResolvedValue([]);
+      mockQueryBuilder.getRawOne.mockResolvedValue(null); // null summary result
+
+      const result = await repository.findByUserIdAndMonthWithFilters(filters);
+
+      expect(result).toEqual({
+        data: [],
+        total: 0,
+        totalIncome: 0, // Should fallback to 0
+        totalExpenses: 0, // Should fallback to 0
+      });
+    });
+
+    it('should handle summary result with null values', async () => {
+      const filters: FindEntriesByMonthFilters = {
+        userId: 'user-123',
+        year: 2024,
+        month: 1,
+      };
+
+      mockQueryBuilder.getCount.mockResolvedValue(1);
+      mockQueryBuilder.getMany.mockResolvedValue([mockEntries[0]]);
+      mockQueryBuilder.getRawOne.mockResolvedValue({
+        totalIncome: null, // null income
+        totalExpenses: null, // null expenses
+      });
+
+      const result = await repository.findByUserIdAndMonthWithFilters(filters);
+
+      expect(result).toEqual({
+        data: expect.any(Array),
+        total: 1,
+        totalIncome: 0, // Should convert null to 0
+        totalExpenses: 0, // Should convert null to 0
+      });
     });
   });
 });

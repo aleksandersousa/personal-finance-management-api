@@ -176,6 +176,34 @@ describe('DbAddEntryUseCase', () => {
       expect(entryRepositoryStub.getCount()).toBe(0);
     });
 
+    it('should throw error if userId is empty', async () => {
+      // Arrange
+      const invalidRequest = MockEntryFactory.createAddRequest({
+        ...mockRequest,
+        userId: '',
+      });
+
+      // Act & Assert
+      await expect(sut.execute(invalidRequest)).rejects.toThrow(
+        'User ID is required',
+      );
+      expect(entryRepositoryStub.getCount()).toBe(0);
+    });
+
+    it('should throw error if userId is null', async () => {
+      // Arrange
+      const invalidRequest = MockEntryFactory.createAddRequest({
+        ...mockRequest,
+        userId: null as any,
+      });
+
+      // Act & Assert
+      await expect(sut.execute(invalidRequest)).rejects.toThrow(
+        'User ID is required',
+      );
+      expect(entryRepositoryStub.getCount()).toBe(0);
+    });
+
     it('should handle repository errors', async () => {
       // Arrange
       userRepositoryStub.seed([mockUser]);
