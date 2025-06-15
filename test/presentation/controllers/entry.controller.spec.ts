@@ -1,5 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { BadRequestException } from '@nestjs/common';
+import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { EntryController } from '../../../src/presentation/controllers/entry.controller';
 import { DbAddEntryUseCase } from '../../../src/data/usecases/db-add-entry.usecase';
 import { AddEntryUseCaseMockFactory } from '../../domain/mocks/usecases/add-entry.mock';
@@ -7,6 +7,8 @@ import { MockEntryFactory } from '../../domain/mocks/models/entry.mock';
 import { LoggerSpy } from '../../infra/mocks/logging/logger.spy';
 import { MetricsSpy } from '../../infra/mocks/metrics/metrics.spy';
 import { CreateEntryDto } from '../../../src/presentation/dtos/create-entry.dto';
+import { RequestMockFactory } from '../mocks/controllers/request.mock';
+import { DbUpdateEntryUseCase } from '../../../src/data/usecases/db-update-entry.usecase';
 
 describe('EntryController', () => {
   let controller: EntryController;
@@ -14,6 +16,7 @@ describe('EntryController', () => {
   let listEntriesByMonthUseCase: jest.Mocked<any>;
   let loggerSpy: LoggerSpy;
   let metricsSpy: MetricsSpy;
+  let updateEntryUseCase: jest.Mocked<any>;
 
   beforeEach(async () => {
     addEntryUseCase = AddEntryUseCaseMockFactory.createSuccess();
@@ -22,6 +25,9 @@ describe('EntryController', () => {
     };
     loggerSpy = new LoggerSpy();
     metricsSpy = new MetricsSpy();
+    updateEntryUseCase = {
+      execute: jest.fn(),
+    };
 
     const module: TestingModule = await Test.createTestingModule({
       controllers: [EntryController],
@@ -41,6 +47,10 @@ describe('EntryController', () => {
         {
           provide: 'MetricsService',
           useValue: metricsSpy,
+        },
+        {
+          provide: DbUpdateEntryUseCase,
+          useValue: updateEntryUseCase,
         },
       ],
     }).compile();
@@ -710,6 +720,169 @@ describe('EntryController', () => {
           mockUser,
         ),
       ).rejects.toThrow('Invalid parameters provided');
+    });
+  });
+
+  describe('update', () => {
+    it('should update entry and log business event', async () => {
+      // Arrange
+      const entryId = 'a1b2c3d4-e5f6-7890-abcd-ef1234567890';
+      const updateDto = {
+        description: 'Updated Monthly Salary',
+        amount: 5200.0,
+        date: '2025-01-15T10:00:00Z',
+        type: 'INCOME' as const,
+        isFixed: true,
+        categoryId: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890',
+      };
+      const mockRequest = RequestMockFactory.createWithUser('user-123');
+      const expectedEntry = MockEntryFactory.createUpdated();
+
+      updateEntryUseCase.execute.mockResolvedValue(expectedEntry);
+
+      // Act
+      const result = await controller.update(entryId, updateDto, mockRequest);
+
+      // Assert
+      expect(result).toEqual(expectedEntry);
+      expect(updateEntryUseCase.execute).toHaveBeenCalledWith({
+        id: entryId,
+        userId: 'user-123',
+        description: updateDto.description,
+        amount: updateDto.amount,
+        date: new Date(updateDto.date),
+        type: updateDto.type,
+        isFixed: updateDto.isFixed,
+        categoryId: updateDto.categoryId,
+      });
+
+      // Verify business event logging
+      const businessEvents = loggerSpy.getBusinessEvents(
+        'entry_api_update_success',
+      );
+      expect(businessEvents).toHaveLength(1);
+      expect(businessEvents[0]).toMatchObject({
+        userId: 'user-123',
+        traceId: 'trace-123',
+      });
+
+      // Verify metrics
+      expect(metricsSpy.hasRecordedMetric('http_request_duration')).toBe(true);
+    });
+
+    it('should handle validation errors and throw BadRequestException', async () => {
+      // Arrange
+      const entryId = 'a1b2c3d4-e5f6-7890-abcd-ef1234567890';
+      const updateDto = {
+        description: '',
+        amount: -100,
+        date: '2025-01-15T10:00:00Z',
+        type: 'INCOME' as const,
+        isFixed: true,
+      };
+      const mockRequest = RequestMockFactory.createWithUser('user-123');
+      const error = new Error('Amount must be greater than zero');
+
+      updateEntryUseCase.execute.mockRejectedValue(error);
+
+      // Act & Assert
+      await expect(
+        controller.update(entryId, updateDto, mockRequest),
+      ).rejects.toThrow(BadRequestException);
+
+      // Verify security event logging
+      const securityEvents = loggerSpy.getSecurityEvents('medium');
+      expect(securityEvents).toHaveLength(1);
+      expect(securityEvents[0]).toMatchObject({
+        event: 'entry_api_update_failed',
+        userId: 'user-123',
+        error: 'Amount must be greater than zero',
+      });
+    });
+
+    it('should handle not found errors and throw NotFoundException', async () => {
+      // Arrange
+      const entryId = 'a1b2c3d4-e5f6-7890-abcd-ef1234567890';
+      const updateDto = {
+        description: 'Updated Entry',
+        amount: 100.0,
+        date: '2025-01-15T10:00:00Z',
+        type: 'EXPENSE' as const,
+        isFixed: false,
+      };
+      const mockRequest = RequestMockFactory.createWithUser('user-123');
+      const error = new Error('Entry not found');
+
+      updateEntryUseCase.execute.mockRejectedValue(error);
+
+      // Act & Assert
+      await expect(
+        controller.update(entryId, updateDto, mockRequest),
+      ).rejects.toThrow(NotFoundException);
+    });
+
+    it('should handle unauthorized errors and throw NotFoundException with access denied message', async () => {
+      // Arrange
+      const entryId = 'a1b2c3d4-e5f6-7890-abcd-ef1234567890';
+      const updateDto = {
+        description: 'Updated Entry',
+        amount: 100.0,
+        date: '2025-01-15T10:00:00Z',
+        type: 'EXPENSE' as const,
+        isFixed: false,
+      };
+      const mockRequest = RequestMockFactory.createWithUser('user-123');
+      const error = new Error('You can only update your own entries');
+
+      updateEntryUseCase.execute.mockRejectedValue(error);
+
+      // Act & Assert
+      await expect(
+        controller.update(entryId, updateDto, mockRequest),
+      ).rejects.toThrow(NotFoundException);
+    });
+
+    it('should handle category not found errors', async () => {
+      // Arrange
+      const entryId = 'a1b2c3d4-e5f6-7890-abcd-ef1234567890';
+      const updateDto = {
+        description: 'Updated Entry',
+        amount: 100.0,
+        date: '2025-01-15T10:00:00Z',
+        type: 'EXPENSE' as const,
+        isFixed: false,
+        categoryId: 'non-existent-category',
+      };
+      const mockRequest = RequestMockFactory.createWithUser('user-123');
+      const error = new Error('Category not found');
+
+      updateEntryUseCase.execute.mockRejectedValue(error);
+
+      // Act & Assert
+      await expect(
+        controller.update(entryId, updateDto, mockRequest),
+      ).rejects.toThrow(NotFoundException);
+    });
+
+    it('should handle generic errors and throw BadRequestException', async () => {
+      // Arrange
+      const entryId = 'a1b2c3d4-e5f6-7890-abcd-ef1234567890';
+      const updateDto = {
+        description: 'Updated Entry',
+        amount: 100.0,
+        date: '2025-01-15T10:00:00Z',
+        type: 'EXPENSE' as const,
+        isFixed: false,
+      };
+      const mockRequest = RequestMockFactory.createWithUser('user-123');
+      const error = new Error('Database connection failed');
+
+      updateEntryUseCase.execute.mockRejectedValue(error);
+
+      // Act & Assert
+      await expect(
+        controller.update(entryId, updateDto, mockRequest),
+      ).rejects.toThrow(BadRequestException);
     });
   });
 });
