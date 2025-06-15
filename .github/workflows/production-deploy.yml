@@ -353,10 +353,18 @@ jobs:
       - name: 📥 Checkout deployment scripts
         uses: actions/checkout@v4
 
+      - name: 🔍 Extract primary image tag
+        id: extract-tag
+        run: |
+          # Extract the first tag from the multi-line output
+          PRIMARY_TAG=$(echo "${{ needs.build-production.outputs.image-tag }}" | head -n1)
+          echo "primary-tag=$PRIMARY_TAG" >> $GITHUB_OUTPUT
+          echo "🏷️ Primary tag for deployment: $PRIMARY_TAG"
+
       - name: 🔧 Setup production environment
         run: |
           echo "🔧 Configuring production environment..."
-          echo "IMAGE_TAG=${{ needs.build-production.outputs.image-tag }}" >> $GITHUB_ENV
+          echo "IMAGE_TAG=${{ steps.extract-tag.outputs.primary-tag }}" >> $GITHUB_ENV
           echo "VERSION=${{ needs.pre-production-validation.outputs.version }}" >> $GITHUB_ENV
           echo "ENVIRONMENT=production" >> $GITHUB_ENV
           echo "IS_ROLLBACK=${{ needs.pre-production-validation.outputs.is-rollback }}" >> $GITHUB_ENV
@@ -388,7 +396,7 @@ jobs:
         id: deploy
         run: |
           echo "🚀 Deploying to Production infrastructure..."
-          echo "📦 Image: ${{ needs.build-production.outputs.image-tag }}"
+          echo "📦 Image: ${{ steps.extract-tag.outputs.primary-tag }}"
           echo "🔖 Version: ${{ needs.pre-production-validation.outputs.version }}"
           echo "🌍 Environment: production"
 
@@ -430,7 +438,7 @@ jobs:
           echo "📊 Production Deployment Summary:"
           echo "🎯 Environment: Production"
           echo "🔖 Version: ${{ needs.pre-production-validation.outputs.version }}"
-          echo "📦 Image: ${{ needs.build-production.outputs.image-tag }}"
+          echo "📦 Image: ${{ steps.extract-tag.outputs.primary-tag }}"
           echo "🔗 URL: https://financial-app.com"
           echo "📅 Deployed at: $(date -u)"
           echo "🔄 Rollback: ${{ needs.pre-production-validation.outputs.is-rollback }}"

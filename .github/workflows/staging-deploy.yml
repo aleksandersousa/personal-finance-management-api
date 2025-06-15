@@ -6,13 +6,13 @@ on:
   workflow_dispatch:
     inputs:
       force_deploy:
-        description: "Force deployment even if tests fail"
+        description: 'Force deployment even if tests fail'
         required: false
         default: false
         type: boolean
 
 env:
-  NODE_VERSION: "20"
+  NODE_VERSION: '20'
   REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository }}
 
@@ -83,7 +83,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: "yarn"
+          cache: 'yarn'
 
       - name: 📦 Install dependencies
         run: yarn install --frozen-lockfile
@@ -179,10 +179,18 @@ jobs:
       - name: 📥 Checkout deployment scripts
         uses: actions/checkout@v4
 
+      - name: 🔍 Extract primary image tag
+        id: extract-tag
+        run: |
+          # Extract the first tag from the multi-line output
+          PRIMARY_TAG=$(echo "${{ needs.build-staging.outputs.image-tag }}" | head -n1)
+          echo "primary-tag=$PRIMARY_TAG" >> $GITHUB_OUTPUT
+          echo "🏷️ Primary tag for deployment: $PRIMARY_TAG"
+
       - name: 🔧 Setup staging environment
         run: |
           echo "🔧 Configuring staging environment..."
-          echo "IMAGE_TAG=${{ needs.build-staging.outputs.image-tag }}" >> $GITHUB_ENV
+          echo "IMAGE_TAG=${{ steps.extract-tag.outputs.primary-tag }}" >> $GITHUB_ENV
           echo "VERSION=${{ needs.pre-deployment.outputs.version }}" >> $GITHUB_ENV
           echo "ENVIRONMENT=staging" >> $GITHUB_ENV
 
@@ -196,7 +204,7 @@ jobs:
         id: deploy
         run: |
           echo "🚀 Deploying to Staging infrastructure..."
-          echo "📦 Image: ${{ needs.build-staging.outputs.image-tag }}"
+          echo "📦 Image: ${{ steps.extract-tag.outputs.primary-tag }}"
           echo "🔖 Version: ${{ needs.pre-deployment.outputs.version }}"
           echo "🌍 Environment: staging"
 
@@ -235,7 +243,7 @@ jobs:
           echo "📊 Staging Deployment Summary:"
           echo "🎯 Environment: Staging"
           echo "🔖 Version: ${{ needs.pre-deployment.outputs.version }}"
-          echo "📦 Image: ${{ needs.build-staging.outputs.image-tag }}"
+          echo "📦 Image: ${{ steps.extract-tag.outputs.primary-tag }}"
           echo "🔗 URL: https://staging.financial-app.com"
           echo "📅 Deployed at: $(date -u)"
           echo "✅ Status: SUCCESS"
