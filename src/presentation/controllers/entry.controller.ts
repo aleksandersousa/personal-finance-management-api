@@ -7,7 +7,9 @@ import {
   HttpStatus,
   Inject,
   NotFoundException,
+  Param,
   Post,
+  Put,
   Query,
   UseGuards,
   ValidationPipe,
@@ -18,6 +20,7 @@ import {
   ApiBody,
   ApiNotFoundResponse,
   ApiOperation,
+  ApiParam,
   ApiQuery,
   ApiResponse,
   ApiTags,
@@ -25,7 +28,9 @@ import {
 } from '@nestjs/swagger';
 import { DbAddEntryUseCase } from '@data/usecases/db-add-entry.usecase';
 import { DbListEntriesByMonthUseCase } from '@data/usecases/db-list-entries-by-month.usecase';
+import { DbUpdateEntryUseCase } from '@data/usecases/db-update-entry.usecase';
 import { CreateEntryDto } from '../dtos/create-entry.dto';
+import { UpdateEntryDto } from '../dtos/update-entry.dto';
 import { EntryResponseDto } from '../dtos/entry-response.dto';
 import { EntryListResponseDto } from '../dtos/entry-list-response.dto';
 import { JwtAuthGuard } from '../guards/jwt-auth.guard';
@@ -45,6 +50,7 @@ export class EntryController {
     private readonly addEntryUseCase: DbAddEntryUseCase,
     @Inject('ListEntriesByMonthUseCase')
     private readonly listEntriesByMonthUseCase: DbListEntriesByMonthUseCase,
+    private readonly updateEntryUseCase: DbUpdateEntryUseCase,
   ) {}
 
   @Post()
@@ -99,6 +105,71 @@ export class EntryController {
         throw new BadRequestException(error.message);
       }
       throw new BadRequestException('Failed to create entry');
+    }
+  }
+
+  @Put(':id')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Update an existing financial entry',
+    description:
+      'Updates an existing financial entry for the authenticated user. Implements UC-06 (Update Entry). Users can only update their own entries.',
+  })
+  @ApiParam({
+    name: 'id',
+    description: 'Entry ID to update',
+    example: '123e4567-e89b-12d3-a456-426614174000',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Entry updated successfully',
+    type: EntryResponseDto,
+  })
+  @ApiBadRequestResponse({ description: 'Validation failed or invalid data' })
+  @ApiUnauthorizedResponse({ description: 'Invalid or missing JWT token' })
+  @ApiNotFoundResponse({ description: 'Entry or category not found' })
+  @ApiBody({ type: UpdateEntryDto })
+  async update(
+    @Param('id') id: string,
+    @Body(ValidationPipe) updateEntryDto: UpdateEntryDto,
+    @User() user: UserPayload,
+  ): Promise<EntryResponseDto> {
+    try {
+      const entry = await this.updateEntryUseCase.execute({
+        id,
+        userId: user.id,
+        description: updateEntryDto.description,
+        amount: updateEntryDto.amount,
+        date: new Date(updateEntryDto.date),
+        type: updateEntryDto.type,
+        isFixed: updateEntryDto.isFixed,
+        categoryId: updateEntryDto.categoryId,
+      });
+
+      return {
+        id: entry.id,
+        amount: entry.amount,
+        description: entry.description,
+        type: entry.type,
+        isFixed: entry.isFixed,
+        categoryId: entry.categoryId,
+        categoryName: 'Category Name', // Would come from category service
+        userId: entry.userId,
+        date: entry.date,
+        createdAt: entry.createdAt,
+        updatedAt: entry.updatedAt,
+      };
+    } catch (error) {
+      if (this.isUnauthorizedError(error.message)) {
+        throw new NotFoundException('Entry not found or access denied');
+      }
+      if (this.isNotFoundError(error.message)) {
+        throw new NotFoundException(error.message);
+      }
+      if (this.isClientError(error.message)) {
+        throw new BadRequestException(error.message);
+      }
+      throw new BadRequestException('Failed to update entry');
     }
   }
 
@@ -268,5 +339,9 @@ export class EntryController {
 
   private isNotFoundError(message: string): boolean {
     return message.toLowerCase().includes('not found');
+  }
+
+  private isUnauthorizedError(message: string): boolean {
+    return message.toLowerCase().includes('unauthorized');
   }
 }
