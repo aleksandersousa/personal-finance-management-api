@@ -9,6 +9,8 @@ import { MetricsSpy } from '../../infra/mocks/metrics/metrics.spy';
 import { CreateEntryDto } from '../../../src/presentation/dtos/create-entry.dto';
 import { RequestMockFactory } from '../mocks/controllers/request.mock';
 import { DbUpdateEntryUseCase } from '../../../src/data/usecases/db-update-entry.usecase';
+import { ContextAwareLoggerService } from '../../../src/infra/logging/context-aware-logger.service';
+import { FinancialMetricsService } from '../../../src/infra/metrics/financial-metrics.service';
 
 describe('EntryController', () => {
   let controller: EntryController;
@@ -41,16 +43,16 @@ describe('EntryController', () => {
           useValue: listEntriesByMonthUseCase,
         },
         {
-          provide: 'ContextAwareLoggerService',
+          provide: DbUpdateEntryUseCase,
+          useValue: updateEntryUseCase,
+        },
+        {
+          provide: ContextAwareLoggerService,
           useValue: loggerSpy,
         },
         {
-          provide: 'MetricsService',
+          provide: FinancialMetricsService,
           useValue: metricsSpy,
-        },
-        {
-          provide: DbUpdateEntryUseCase,
-          useValue: updateEntryUseCase,
         },
       ],
     }).compile();
