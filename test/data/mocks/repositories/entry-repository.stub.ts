@@ -195,6 +195,22 @@ export class EntryRepositoryStub implements EntryRepository {
     this.entries.delete(id);
   }
 
+  async softDelete(id: string): Promise<Date> {
+    if (this.shouldFail && this.errorToThrow) {
+      throw this.errorToThrow;
+    }
+
+    const entry = this.entries.get(id);
+    if (!entry) {
+      throw new Error('Entry not found');
+    }
+
+    const deletedAt = new Date();
+    const updatedEntry = { ...entry, deletedAt };
+    this.entries.set(id, updatedEntry);
+    return deletedAt;
+  }
+
   // =================== Test Utility Methods ===================
 
   /**

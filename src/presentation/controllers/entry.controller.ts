@@ -2,11 +2,13 @@ import {
   BadRequestException,
   Body,
   Controller,
+  Delete,
   Get,
   HttpCode,
   HttpStatus,
   Inject,
   NotFoundException,
+  Param,
   Post,
   Query,
   UseGuards,
@@ -18,6 +20,7 @@ import {
   ApiBody,
   ApiNotFoundResponse,
   ApiOperation,
+  ApiParam,
   ApiQuery,
   ApiResponse,
   ApiTags,
@@ -25,11 +28,15 @@ import {
 } from '@nestjs/swagger';
 import { DbAddEntryUseCase } from '@data/usecases/db-add-entry.usecase';
 import { DbListEntriesByMonthUseCase } from '@data/usecases/db-list-entries-by-month.usecase';
+import { DbDeleteEntryUseCase } from '@data/usecases/db-delete-entry.usecase';
 import { CreateEntryDto } from '../dtos/create-entry.dto';
 import { EntryResponseDto } from '../dtos/entry-response.dto';
 import { EntryListResponseDto } from '../dtos/entry-list-response.dto';
+import { DeleteEntryResponseDto } from '../dtos/delete-entry-response.dto';
 import { JwtAuthGuard } from '../guards/jwt-auth.guard';
 import { User } from '../decorators/user.decorator';
+import { ContextAwareLoggerService } from '@infra/logging/context-aware-logger.service';
+import { FinancialMetricsService } from '@infra/metrics/financial-metrics.service';
 
 interface UserPayload {
   id: string;
@@ -45,6 +52,9 @@ export class EntryController {
     private readonly addEntryUseCase: DbAddEntryUseCase,
     @Inject('ListEntriesByMonthUseCase')
     private readonly listEntriesByMonthUseCase: DbListEntriesByMonthUseCase,
+    private readonly deleteEntryUseCase: DbDeleteEntryUseCase,
+    private readonly logger: ContextAwareLoggerService,
+    private readonly metrics: FinancialMetricsService,
   ) {}
 
   @Post()
@@ -210,7 +220,6 @@ export class EntryController {
         );
       }
 
-      // Execute use case with all parameters - filtering and pagination now done at database level
       const result = await this.listEntriesByMonthUseCase.execute({
         userId: user.id,
         year,
@@ -246,6 +255,76 @@ export class EntryController {
         throw new BadRequestException(error.message);
       }
       throw new BadRequestException('Failed to retrieve entries');
+    }
+  }
+
+  @Delete(':id')
+  @ApiOperation({
+    summary: 'Delete a financial entry',
+    description:
+      'Deletes a financial entry for the authenticated user. Implements UC-07 (Delete Entry).',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Entry deleted successfully',
+    type: DeleteEntryResponseDto,
+  })
+  @ApiBadRequestResponse({ description: 'Invalid entry ID' })
+  @ApiUnauthorizedResponse({ description: 'Invalid or missing JWT token' })
+  @ApiNotFoundResponse({ description: 'Entry not found' })
+  @ApiParam({
+    name: 'id',
+    required: true,
+    description: 'Entry ID',
+  })
+  async delete(
+    @Param('id') id: string,
+    @User() user: UserPayload,
+  ): Promise<DeleteEntryResponseDto> {
+    const startTime = Date.now();
+
+    try {
+      const result = await this.deleteEntryUseCase.execute({
+        userId: user.id,
+        entryId: id,
+      });
+
+      const duration = Date.now() - startTime;
+
+      this.logger.logBusinessEvent({
+        event: 'entry_api_delete_success',
+        entityId: id,
+        userId: user.id,
+        duration,
+        deletedAt: result.deletedAt.toISOString(),
+      });
+
+      this.metrics.recordTransaction('delete', 'success');
+
+      return {
+        deletedAt: result.deletedAt,
+      };
+    } catch (error) {
+      const duration = Date.now() - startTime;
+
+      this.logger.logSecurityEvent({
+        event: 'entry_api_delete_failed',
+        severity: 'medium',
+        userId: user.id,
+        entityId: id,
+        error: error.message,
+        duration,
+      });
+
+      this.metrics.recordTransaction('delete', 'error');
+
+      if (this.isNotFoundError(error.message)) {
+        throw new NotFoundException(error.message);
+      }
+      if (this.isClientError(error.message)) {
+        throw new BadRequestException(error.message);
+      }
+      throw new BadRequestException('Failed to delete entry');
     }
   }
 

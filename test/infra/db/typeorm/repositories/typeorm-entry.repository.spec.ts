@@ -4,12 +4,16 @@ import { Repository, SelectQueryBuilder } from 'typeorm';
 import { TypeormEntryRepository } from '@infra/db/typeorm/repositories/typeorm-entry.repository';
 import { EntryEntity } from '@infra/db/typeorm/entities/entry.entity';
 import { FindEntriesByMonthFilters } from '@data/protocols/entry-repository';
+import { ContextAwareLoggerService } from '@infra/logging/context-aware-logger.service';
+import { FinancialMetricsService } from '@infra/metrics/financial-metrics.service';
 
 describe('TypeormEntryRepository', () => {
   let repository: TypeormEntryRepository;
   let testingModule: TestingModule;
   let mockRepository: jest.Mocked<Repository<EntryEntity>>;
   let mockQueryBuilder: jest.Mocked<SelectQueryBuilder<EntryEntity>>;
+  let mockLogger: jest.Mocked<ContextAwareLoggerService>;
+  let mockMetrics: jest.Mocked<FinancialMetricsService>;
 
   const mockEntryEntity: EntryEntity = {
     id: 'entry-1',
@@ -20,6 +24,7 @@ describe('TypeormEntryRepository', () => {
     type: 'INCOME',
     isFixed: false,
     categoryId: null,
+    deletedAt: null,
     createdAt: new Date(),
     updatedAt: new Date(),
   } as EntryEntity;
@@ -49,12 +54,37 @@ describe('TypeormEntryRepository', () => {
       createQueryBuilder: jest.fn().mockReturnValue(mockQueryBuilder),
     } as any;
 
+    mockLogger = {
+      log: jest.fn(),
+      error: jest.fn(),
+      warn: jest.fn(),
+      debug: jest.fn(),
+      verbose: jest.fn(),
+    } as any;
+
+    mockMetrics = {
+      recordHttpRequest: jest.fn(),
+      recordAuthEvent: jest.fn(),
+      recordTransaction: jest.fn(),
+      recordApiError: jest.fn(),
+      updateActiveUsers: jest.fn(),
+      getMetrics: jest.fn(),
+    } as any;
+
     testingModule = await Test.createTestingModule({
       providers: [
         TypeormEntryRepository,
         {
           provide: getRepositoryToken(EntryEntity),
           useValue: mockRepository,
+        },
+        {
+          provide: ContextAwareLoggerService,
+          useValue: mockLogger,
+        },
+        {
+          provide: FinancialMetricsService,
+          useValue: mockMetrics,
         },
       ],
     }).compile();
@@ -119,6 +149,7 @@ describe('TypeormEntryRepository', () => {
         type: mockEntryEntity.type,
         isFixed: mockEntryEntity.isFixed,
         categoryId: mockEntryEntity.categoryId,
+        deletedAt: mockEntryEntity.deletedAt,
         createdAt: mockEntryEntity.createdAt,
         updatedAt: mockEntryEntity.updatedAt,
       });
@@ -577,6 +608,48 @@ describe('TypeormEntryRepository', () => {
         totalIncome: 0, // Should convert null to 0
         totalExpenses: 0, // Should convert null to 0
       });
+    });
+  });
+
+  describe('softDelete', () => {
+    it('should soft delete an entry and return deletedAt timestamp', async () => {
+      mockRepository.update.mockResolvedValue({
+        affected: 1,
+        generatedMaps: [],
+        raw: {},
+      });
+
+      const result = await repository.softDelete('entry-1');
+
+      expect(mockRepository.update).toHaveBeenCalledWith('entry-1', {
+        deletedAt: expect.any(Date),
+      });
+      expect(result).toBeInstanceOf(Date);
+      expect(mockLogger.log).toHaveBeenCalledWith(
+        'Entry soft deleted',
+        'TypeormEntryRepository',
+      );
+      expect(mockMetrics.recordTransaction).toHaveBeenCalledWith(
+        'delete',
+        'success',
+      );
+    });
+
+    it('should throw error when entry not found', async () => {
+      mockRepository.update.mockResolvedValue({
+        affected: 0,
+        generatedMaps: [],
+        raw: {},
+      });
+
+      await expect(repository.softDelete('non-existent')).rejects.toThrow(
+        'Entry not found',
+      );
+      expect(mockLogger.error).toHaveBeenCalledWith(
+        'Failed to soft delete entry - entry not found',
+        '',
+        'TypeormEntryRepository',
+      );
     });
   });
 });

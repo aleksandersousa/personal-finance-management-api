@@ -18,6 +18,7 @@ describe('DbListEntriesByMonthUseCase', () => {
       findByUserIdAndMonthWithFilters: jest.fn(),
       update: jest.fn(),
       delete: jest.fn(),
+      softDelete: jest.fn(),
     };
 
     mockUserRepository = {

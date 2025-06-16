@@ -11,4 +11,5 @@ export interface EntryModel {
   categoryId?: string | null;
   createdAt: Date;
   updatedAt: Date;
+  deletedAt?: Date | null;
 }

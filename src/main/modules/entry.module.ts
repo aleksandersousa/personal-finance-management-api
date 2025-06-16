@@ -8,19 +8,27 @@ import { TypeormCategoryRepository } from '@infra/db/typeorm/repositories/typeor
 import { UuidGenerator } from '@infra/implementations/uuid-generator';
 import { DbAddEntryUseCase } from '@data/usecases/db-add-entry.usecase';
 import { DbListEntriesByMonthUseCase } from '@data/usecases/db-list-entries-by-month.usecase';
+import { DbDeleteEntryUseCase } from '@data/usecases/db-delete-entry.usecase';
 import { AuthModule } from './auth.module';
+import { ObservabilityModule } from './observability.module';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([EntryEntity, CategoryEntity]),
     AuthModule,
+    ObservabilityModule,
   ],
   controllers: [EntryController],
   providers: [
     {
       provide: 'EntryRepository',
-      useFactory: repository => makeEntryRepository(repository),
-      inject: [getRepositoryToken(EntryEntity)],
+      useFactory: (repository, logger, metrics) =>
+        makeEntryRepository(repository, logger, metrics),
+      inject: [
+        getRepositoryToken(EntryEntity),
+        'LoggerService',
+        'FinancialMetricsService',
+      ],
     },
     {
       provide: 'CategoryRepository',
@@ -58,7 +66,16 @@ import { AuthModule } from './auth.module';
         new DbListEntriesByMonthUseCase(entryRepository, userRepository),
       inject: ['EntryRepository', 'UserRepository'],
     },
+    {
+      provide: DbDeleteEntryUseCase,
+      useFactory: entryRepository => new DbDeleteEntryUseCase(entryRepository),
+      inject: ['EntryRepository'],
+    },
   ],
-  exports: [DbAddEntryUseCase, 'ListEntriesByMonthUseCase'],
+  exports: [
+    DbAddEntryUseCase,
+    'ListEntriesByMonthUseCase',
+    DbDeleteEntryUseCase,
+  ],
 })
 export class EntryModule {}
