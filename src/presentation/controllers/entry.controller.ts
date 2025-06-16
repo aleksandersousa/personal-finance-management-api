@@ -150,100 +150,6 @@ export class EntryController {
     }
   }
 
-  @Put(':id')
-  @HttpCode(HttpStatus.OK)
-  @ApiOperation({
-    summary: 'Update an existing financial entry',
-    description:
-      'Updates an existing financial entry for the authenticated user. Implements UC-06 (Update Entry). Users can only update their own entries.',
-  })
-  @ApiParam({
-    name: 'id',
-    description: 'Entry ID to update',
-    example: '123e4567-e89b-12d3-a456-426614174000',
-  })
-  @ApiResponse({
-    status: 200,
-    description: 'Entry updated successfully',
-    type: EntryResponseDto,
-  })
-  @ApiBadRequestResponse({ description: 'Validation failed or invalid data' })
-  @ApiUnauthorizedResponse({ description: 'Invalid or missing JWT token' })
-  @ApiNotFoundResponse({ description: 'Entry or category not found' })
-  @ApiBody({ type: UpdateEntryDto })
-  async update(
-    @Param('id') id: string,
-    @Body(ValidationPipe) updateEntryDto: UpdateEntryDto,
-    @User() user: UserPayload,
-  ): Promise<EntryResponseDto> {
-    const startTime = Date.now();
-
-    try {
-      const entry = await this.updateEntryUseCase.execute({
-        id,
-        userId: user.id,
-        description: updateEntryDto.description,
-        amount: updateEntryDto.amount,
-        date: new Date(updateEntryDto.date),
-        type: updateEntryDto.type,
-        isFixed: updateEntryDto.isFixed,
-        categoryId: updateEntryDto.categoryId,
-      });
-
-      const duration = Date.now() - startTime;
-
-      // Log business event
-      this.logger.logBusinessEvent({
-        event: 'entry_api_update_success',
-        entityId: entry.id,
-        userId: user.id,
-        duration,
-        metadata: {
-          type: entry.type,
-          amount: entry.amount,
-          isFixed: entry.isFixed,
-        },
-      });
-
-      // Record metrics
-      this.metrics.recordHttpRequest('PUT', '/entries/:id', 200, duration);
-
-      return {
-        id: entry.id,
-        amount: entry.amount,
-        description: entry.description,
-        type: entry.type,
-        isFixed: entry.isFixed,
-        categoryId: entry.categoryId,
-        categoryName: 'Category Name', // Would come from category service
-        userId: entry.userId,
-        date: entry.date,
-        createdAt: entry.createdAt,
-        updatedAt: entry.updatedAt,
-      };
-    } catch (error) {
-      // Log error
-      this.logger.error(
-        `Failed to update entry ${id} for user ${user.id}`,
-        error.stack,
-      );
-
-      // Record error metrics
-      this.metrics.recordApiError('entry_update', error.message);
-
-      if (this.isUnauthorizedError(error.message)) {
-        throw new NotFoundException('Entry not found or access denied');
-      }
-      if (this.isNotFoundError(error.message)) {
-        throw new NotFoundException(error.message);
-      }
-      if (this.isClientError(error.message)) {
-        throw new BadRequestException(error.message);
-      }
-      throw new BadRequestException('Failed to update entry');
-    }
-  }
-
   @Get()
   @ApiOperation({
     summary: 'List entries by month with pagination and filters',
@@ -416,6 +322,100 @@ export class EntryController {
         throw new BadRequestException(error.message);
       }
       throw new BadRequestException('Failed to retrieve entries');
+    }
+  }
+
+  @Put(':id')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Update an existing financial entry',
+    description:
+      'Updates an existing financial entry for the authenticated user. Implements UC-06 (Update Entry). Users can only update their own entries.',
+  })
+  @ApiParam({
+    name: 'id',
+    description: 'Entry ID to update',
+    example: '123e4567-e89b-12d3-a456-426614174000',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Entry updated successfully',
+    type: EntryResponseDto,
+  })
+  @ApiBadRequestResponse({ description: 'Validation failed or invalid data' })
+  @ApiUnauthorizedResponse({ description: 'Invalid or missing JWT token' })
+  @ApiNotFoundResponse({ description: 'Entry or category not found' })
+  @ApiBody({ type: UpdateEntryDto })
+  async update(
+    @Param('id') id: string,
+    @Body(ValidationPipe) updateEntryDto: UpdateEntryDto,
+    @User() user: UserPayload,
+  ): Promise<EntryResponseDto> {
+    const startTime = Date.now();
+
+    try {
+      const entry = await this.updateEntryUseCase.execute({
+        id,
+        userId: user.id,
+        description: updateEntryDto.description,
+        amount: updateEntryDto.amount,
+        date: new Date(updateEntryDto.date),
+        type: updateEntryDto.type,
+        isFixed: updateEntryDto.isFixed,
+        categoryId: updateEntryDto.categoryId,
+      });
+
+      const duration = Date.now() - startTime;
+
+      // Log business event
+      this.logger.logBusinessEvent({
+        event: 'entry_api_update_success',
+        entityId: entry.id,
+        userId: user.id,
+        duration,
+        metadata: {
+          type: entry.type,
+          amount: entry.amount,
+          isFixed: entry.isFixed,
+        },
+      });
+
+      // Record metrics
+      this.metrics.recordHttpRequest('PUT', '/entries/:id', 200, duration);
+
+      return {
+        id: entry.id,
+        amount: entry.amount,
+        description: entry.description,
+        type: entry.type,
+        isFixed: entry.isFixed,
+        categoryId: entry.categoryId,
+        categoryName: 'Category Name', // Would come from category service
+        userId: entry.userId,
+        date: entry.date,
+        createdAt: entry.createdAt,
+        updatedAt: entry.updatedAt,
+      };
+    } catch (error) {
+      // Log error
+      this.logger.error(
+        `Failed to update entry ${id} for user ${user.id}`,
+        error.stack,
+      );
+
+      // Record error metrics
+      this.metrics.recordApiError('entry_update', error.message);
+
+      if (this.isUnauthorizedError(error.message)) {
+        throw new NotFoundException('Entry not found or access denied');
+      }
+      if (this.isNotFoundError(error.message)) {
+        throw new NotFoundException(error.message);
+      }
+      if (this.isClientError(error.message)) {
+        throw new BadRequestException(error.message);
+      }
+      throw new BadRequestException('Failed to update entry');
     }
   }
 

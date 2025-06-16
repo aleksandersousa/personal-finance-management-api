@@ -28,12 +28,7 @@ import {
     {
       provide: 'EntryRepository',
       useFactory: makeEntryRepository,
-      inject: [
-        getRepositoryToken(EntryEntity),
-        'LoggerService',
-        'ContextAwareLoggerService',
-        'FinancialMetricsService',
-      ],
+      inject: [getRepositoryToken(EntryEntity), 'Logger', 'Metrics'],
     },
     {
       provide: 'CategoryRepository',
