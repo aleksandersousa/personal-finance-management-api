@@ -43,4 +43,5 @@ export interface EntryRepository {
   ): Promise<FindEntriesByMonthResult>;
   update(id: string, data: Partial<CreateEntryData>): Promise<EntryModel>;
   delete(id: string): Promise<void>;
+  softDelete(id: string): Promise<Date>;
 }

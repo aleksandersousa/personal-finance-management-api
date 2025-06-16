@@ -1,5 +1,5 @@
 import { Repository } from 'typeorm';
-import { Injectable } from '@nestjs/common';
+import { Injectable, Inject } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import {
   CreateEntryData,
@@ -9,16 +9,17 @@ import {
 } from '@data/protocols/entry-repository';
 import { EntryModel } from '@domain/models/entry.model';
 import { EntryEntity } from '../entities/entry.entity';
-import { ContextAwareLoggerService } from '@infra/logging/context-aware-logger.service';
-import { FinancialMetricsService } from '@infra/metrics/financial-metrics.service';
+import type { Logger, Metrics } from '@/data/protocols';
 
 @Injectable()
 export class TypeormEntryRepository implements EntryRepository {
   constructor(
     @InjectRepository(EntryEntity)
     private readonly entryRepository: Repository<EntryEntity>,
-    private readonly logger: ContextAwareLoggerService,
-    private readonly metrics: FinancialMetricsService,
+    @Inject('Logger')
+    private readonly logger: Logger,
+    @Inject('Metrics')
+    private readonly metrics: Metrics,
   ) {}
 
   async create(data: CreateEntryData): Promise<EntryModel> {
@@ -237,6 +238,32 @@ export class TypeormEntryRepository implements EntryRepository {
     }
   }
 
+  async softDelete(id: string): Promise<Date> {
+    try {
+      const deletedAt = new Date();
+      const result = await this.entryRepository.update(id, { deletedAt });
+
+      if (result.affected === 0) {
+        this.logger.error(
+          'Failed to soft delete entry - entry not found',
+          '',
+          'TypeormEntryRepository',
+        );
+        this.metrics.recordTransaction('delete', 'not_found');
+        throw new Error('Entry not found');
+      }
+
+      this.logger.log('Entry soft deleted', 'TypeormEntryRepository');
+
+      this.metrics.recordTransaction('delete', 'success');
+      return deletedAt;
+    } catch (error) {
+      this.metrics.recordTransaction('delete', 'error');
+      this.logger.error(`Failed to soft delete entry ${id}`, error.stack);
+      throw error;
+    }
+  }
+
   private mapToModel(entity: EntryEntity): EntryModel {
     return {
       id: entity.id,
@@ -249,6 +276,7 @@ export class TypeormEntryRepository implements EntryRepository {
       categoryId: entity.categoryId,
       createdAt: entity.createdAt,
       updatedAt: entity.updatedAt,
+      deletedAt: entity.deletedAt,
     };
   }
 }

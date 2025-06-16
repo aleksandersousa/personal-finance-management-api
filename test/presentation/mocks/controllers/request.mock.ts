@@ -5,9 +5,8 @@
 
 export const mockRequest = {
   user: {
-    id: 'test-user-123',
+    id: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890',
     email: 'test@example.com',
-    role: 'user',
   },
   traceId: 'trace-123',
   headers: {
@@ -15,8 +14,11 @@ export const mockRequest = {
     'content-type': 'application/json',
   },
   ip: '127.0.0.1',
-  method: 'POST',
-  url: '/api/v1/test',
+  method: 'DELETE',
+  url: '/api/v1/entries/entry-123',
+  params: {
+    id: 'entry-123',
+  },
 };
 
 export class RequestMockFactory {
@@ -29,13 +31,13 @@ export class RequestMockFactory {
     email: string = 'test@example.com',
   ): any {
     return this.create({
-      user: { id: userId, email, role: 'user' },
+      user: { id: userId, email },
     });
   }
 
   static createWithAdmin(userId: string = 'admin-123'): any {
     return this.create({
-      user: { id: userId, email: 'admin@example.com', role: 'admin' },
+      user: { id: userId, email: 'admin@example.com' },
     });
   }
 
@@ -46,35 +48,7 @@ export class RequestMockFactory {
     });
   }
 
-  static createWithTraceId(traceId: string): any {
-    return this.create({ traceId });
-  }
-
-  static createWithMethod(method: string): any {
-    return this.create({ method });
-  }
-
-  static createWithHeaders(headers: any): any {
-    return this.create({
-      headers: { ...mockRequest.headers, ...headers },
-    });
-  }
-
-  static createForEntry(): any {
-    return this.create({
-      url: '/api/v1/entries',
-      method: 'POST',
-    });
-  }
-
-  static createForAuth(): any {
-    return this.create({
-      url: '/api/v1/auth/login',
-      method: 'POST',
-      user: null,
-      headers: {
-        'content-type': 'application/json',
-      },
-    });
+  static createWithParams(params: any): any {
+    return this.create({ params });
   }
 }

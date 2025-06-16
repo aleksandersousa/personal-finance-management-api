@@ -354,6 +354,26 @@ yarn docker:prod:clean   # Limpa completamente ambiente de produção
 
 docker-compose -f docker-compose.prod.yml up -d
 
+## 🧪 Testes
+
+Este projeto mantém 100% de cobertura de testes. Para mais informações sobre as práticas de teste, configurações e arquivos excluídos da cobertura, consulte:
+
+📋 **[Testing Guidelines](requirements/guidelines/testing-requirements.md)** - Diretrizes completas de teste
+
+### Comandos de Teste
+
+```bash
+# Executar todos os testes
+yarn test
+
+# Executar testes com cobertura
+yarn test:cov
+
+# Executar testes E2E
+yarn test:e2e
+
+# Executar testes em modo watch
+yarn test:watch
 ```
 
 ## 🤝 Contribuição
@@ -363,6 +383,13 @@ docker-compose -f docker-compose.prod.yml up -d
 3. Commit suas mudanças (`git commit -m 'Adiciona nova feature'`)
 4. Push para a branch (`git push origin feature/nova-feature`)
 5. Abra um Pull Request
+
+### Diretrizes para Contributors
+
+- Mantenha 100% de cobertura de testes
+- Siga as [Testing Guidelines](requirements/guidelines/testing-requirements.md)
+- Execute `yarn lint` antes de commitar
+- Adicione documentação adequada para novas features
 
 ## 📄 Licença
 
@@ -382,9 +409,10 @@ Este projeto está licenciado sob a Licença MIT - veja o arquivo [LICENSE](LICE
 - [ ] Story 11: Refresh session
 - [ ] Story 12: Manage recurring entries
 
----
-
 ## 📞 Suporte
 
 Para dúvidas, problemas ou sugestões, abra uma issue no repositório.
+
+```
+
 ```

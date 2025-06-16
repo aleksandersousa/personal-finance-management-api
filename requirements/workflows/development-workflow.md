@@ -151,6 +151,79 @@ This project follows **Test-Driven Development (TDD)** principles to ensure high
    - Ensure all tests still pass after refactoring
    - Apply design patterns and best practices
 
+### 🏗️ Dependency Injection & Factory Pattern Guidelines
+
+#### When Refactoring Controllers
+
+**Problem**: Controllers depending on concrete implementations
+**Solution**: Use interface injection with string tokens
+
+**Step-by-step refactoring process:**
+
+1. **Update Controller Imports**: Replace concrete classes with domain interfaces
+
+```typescript
+// Before
+import { DbAddEntryUseCase } from '@data/usecases/db-add-entry.usecase';
+
+// After
+import { AddEntryUseCase } from '@domain/usecases/add-entry.usecase';
+```
+
+2. **Update Constructor**: Add @Inject decorators with string tokens
+
+```typescript
+// Before
+constructor(
+  private readonly addEntryUseCase: DbAddEntryUseCase,
+) {}
+
+// After
+constructor(
+  @Inject('AddEntryUseCase')
+  private readonly addEntryUseCase: AddEntryUseCase,
+) {}
+```
+
+3. **Update Module Configuration**: Change providers to use string tokens
+
+```typescript
+// Before
+providers: [
+  {
+    provide: DbAddEntryUseCase,
+    useFactory: makeAddEntryFactory,
+    inject: [...dependencies],
+  },
+];
+
+// After
+providers: [
+  {
+    provide: 'AddEntryUseCase',
+    useFactory: makeAddEntryFactory,
+    inject: [...dependencies],
+  },
+];
+```
+
+4. **Update Exports**: Export string tokens instead of concrete classes
+
+```typescript
+// Before
+exports: [DbAddEntryUseCase];
+
+// After
+exports: ['AddEntryUseCase'];
+```
+
+#### Benefits of Interface-Based Injection
+
+1. **Testability**: Easy to mock interfaces in unit tests
+2. **Flexibility**: Swap implementations without touching controllers
+3. **Clean Architecture**: Controllers depend on abstractions
+4. **SOLID Compliance**: Dependency Inversion Principle adherence
+
 #### TDD Best Practices
 
 **Test Structure (AAA Pattern):**

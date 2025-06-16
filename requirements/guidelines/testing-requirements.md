@@ -120,6 +120,76 @@ yarn build
 - **Branches Coverage**: 100%
 - **Statements Coverage**: 100%
 
+### Arquivos Excluídos da Cobertura
+
+Os seguintes tipos de arquivos são excluídos da cobertura de testes:
+
+#### **Arquivos de Sistema e Configuração**
+
+- `src/main.ts` - Arquivo principal de bootstrap da aplicação
+- `src/**/*.spec.ts` - Arquivos de teste
+- `src/**/*.interface.ts` - Definições de interfaces TypeScript
+- `src/**/*.module.ts` - Módulos NestJS (configuração de DI)
+
+#### **Arquivos de Infraestrutura**
+
+- `src/main/factories/**` - Factories são containers de DI, não contêm lógica de negócio
+- `src/infra/db/typeorm/config/**` - Configuração de banco de dados
+- `src/infra/db/typeorm/entities/**` - Entidades são estruturas de dados
+- `src/infra/implementations/uuid-generator.ts` - Wrapper simples de biblioteca externa
+
+#### **Arquivos de Apresentação**
+
+- `src/presentation/dtos/**` - DTOs são estruturas de dados
+- `src/presentation/decorators/**` - Decorators simples
+
+#### **Arquivos Index e Migrations**
+
+- `src/**/index.ts` - Arquivos index são apenas re-exports de módulos
+- `src/infra/db/typeorm/migrations/**` - Migrations são mudanças de schema de banco de dados
+
+#### **User Stories Não Implementadas**
+
+- `src/infra/db/typeorm/repositories/typeorm-category.repository.ts`
+- `src/infra/middleware/trace-context.middleware.ts`
+- `src/presentation/filters/global-exception.filter.ts`
+- `src/presentation/interceptors/metrics.interceptor.ts`
+- `src/presentation/strategies/jwt.strategy.ts`
+
+### Justificativas das Exclusões
+
+#### **Por que Index.ts são excluídos?**
+
+- Arquivos `index.ts` servem apenas como pontos de re-export
+- Não contêm lógica de negócio própria
+- Testar re-exports não agrega valor significativo à qualidade do código
+- Focamos em testar a lógica real dos módulos exportados
+
+#### **Por que Migrations são excluídas?**
+
+- Migrations são scripts de mudança de schema de banco de dados
+- São executadas uma única vez no ciclo de vida da aplicação
+- Sua correção é verificada através de testes de integração
+- Não contêm lógica de negócio complexa que justifique testes unitários
+
+### Atualizando Exclusões de Cobertura
+
+Para adicionar novos arquivos às exclusões de cobertura:
+
+1. Edite o array `collectCoverageFrom` em `jest.config.js`
+2. Adicione comentário explicativo sobre o motivo da exclusão
+3. Atualize este documento com a justificativa
+4. Execute os testes para validar as mudanças
+
+### Exemplo de Exclusão
+
+```javascript
+collectCoverageFrom: [
+  'src/**/*.(t|j)s',
+  '!src/novo-arquivo-exclusao/**', // Motivo da exclusão
+],
+```
+
 **Comando para verificar coverage:**
 
 ```bash

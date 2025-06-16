@@ -24,6 +24,9 @@ module.exports = {
     '!src/presentation/filters/global-exception.filter.ts', // Global exception handling not implemented yet
     '!src/presentation/interceptors/metrics.interceptor.ts', // Metrics interceptor not implemented yet
     '!src/presentation/strategies/jwt.strategy.ts', // JWT strategy not actively used yet
+    // Exclude index.ts files and migrations from coverage
+    '!src/**/index.ts', // Index files are just re-exports
+    '!src/infra/db/typeorm/migrations/**', // Migrations are database schema changes
   ],
   coverageDirectory: './coverage',
   testEnvironment: 'node',
