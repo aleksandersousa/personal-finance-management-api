@@ -1,5 +1,5 @@
 import { Repository } from 'typeorm';
-import { Injectable } from '@nestjs/common';
+import { Injectable, Inject } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import {
   CreateEntryData,
@@ -16,7 +16,9 @@ export class TypeormEntryRepository implements EntryRepository {
   constructor(
     @InjectRepository(EntryEntity)
     private readonly entryRepository: Repository<EntryEntity>,
+    @Inject('Logger')
     private readonly logger: Logger,
+    @Inject('Metrics')
     private readonly metrics: Metrics,
   ) {}
 

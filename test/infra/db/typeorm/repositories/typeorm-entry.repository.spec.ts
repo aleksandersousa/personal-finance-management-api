@@ -80,11 +80,11 @@ describe('TypeormEntryRepository', () => {
           useValue: mockRepository,
         },
         {
-          provide: ContextAwareLoggerService,
+          provide: 'Logger',
           useValue: mockLogger,
         },
         {
-          provide: FinancialMetricsService,
+          provide: 'Metrics',
           useValue: mockMetrics,
         },
       ],
