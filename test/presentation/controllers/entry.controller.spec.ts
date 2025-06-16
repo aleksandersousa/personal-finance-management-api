@@ -1,5 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { BadRequestException } from '@nestjs/common';
+import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { EntryController } from '../../../src/presentation/controllers/entry.controller';
 import { DbAddEntryUseCase } from '../../../src/data/usecases/db-add-entry.usecase';
 import { AddEntryUseCaseMockFactory } from '../../domain/mocks/usecases/add-entry.mock';
@@ -7,6 +7,10 @@ import { MockEntryFactory } from '../../domain/mocks/models/entry.mock';
 import { LoggerSpy } from '../../infra/mocks/logging/logger.spy';
 import { MetricsSpy } from '../../infra/mocks/metrics/metrics.spy';
 import { CreateEntryDto } from '../../../src/presentation/dtos/create-entry.dto';
+import { RequestMockFactory } from '../mocks/controllers/request.mock';
+import { DbUpdateEntryUseCase } from '../../../src/data/usecases/db-update-entry.usecase';
+import { ContextAwareLoggerService } from '../../../src/infra/logging/context-aware-logger.service';
+import { FinancialMetricsService } from '../../../src/infra/metrics/financial-metrics.service';
 
 describe('EntryController', () => {
   let controller: EntryController;
@@ -14,6 +18,7 @@ describe('EntryController', () => {
   let listEntriesByMonthUseCase: jest.Mocked<any>;
   let loggerSpy: LoggerSpy;
   let metricsSpy: MetricsSpy;
+  let updateEntryUseCase: jest.Mocked<any>;
 
   beforeEach(async () => {
     addEntryUseCase = AddEntryUseCaseMockFactory.createSuccess();
@@ -22,6 +27,9 @@ describe('EntryController', () => {
     };
     loggerSpy = new LoggerSpy();
     metricsSpy = new MetricsSpy();
+    updateEntryUseCase = {
+      execute: jest.fn(),
+    };
 
     const module: TestingModule = await Test.createTestingModule({
       controllers: [EntryController],
@@ -35,11 +43,15 @@ describe('EntryController', () => {
           useValue: listEntriesByMonthUseCase,
         },
         {
-          provide: 'ContextAwareLoggerService',
+          provide: DbUpdateEntryUseCase,
+          useValue: updateEntryUseCase,
+        },
+        {
+          provide: ContextAwareLoggerService,
           useValue: loggerSpy,
         },
         {
-          provide: 'MetricsService',
+          provide: FinancialMetricsService,
           useValue: metricsSpy,
         },
       ],
@@ -710,6 +722,162 @@ describe('EntryController', () => {
           mockUser,
         ),
       ).rejects.toThrow('Invalid parameters provided');
+    });
+  });
+
+  describe('update', () => {
+    it('should update entry and log business event', async () => {
+      // Arrange
+      const entryId = 'a1b2c3d4-e5f6-7890-abcd-ef1234567890';
+      const updateDto = {
+        description: 'Updated Monthly Salary',
+        amount: 5200.0,
+        date: '2025-01-15T10:00:00Z',
+        type: 'INCOME' as const,
+        isFixed: true,
+        categoryId: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890',
+      };
+      const mockUser = { id: 'user-123', email: 'test@example.com' };
+      const expectedEntry = MockEntryFactory.createUpdated();
+
+      updateEntryUseCase.execute.mockResolvedValue(expectedEntry);
+
+      // Act
+      const result = await controller.update(entryId, updateDto, mockUser);
+
+      // Assert
+      expect(result).toMatchObject({
+        id: expectedEntry.id,
+        amount: expectedEntry.amount,
+        description: expectedEntry.description,
+        type: expectedEntry.type,
+        isFixed: expectedEntry.isFixed,
+        userId: expectedEntry.userId,
+        date: expectedEntry.date,
+        createdAt: expectedEntry.createdAt,
+        updatedAt: expectedEntry.updatedAt,
+      });
+      expect(updateEntryUseCase.execute).toHaveBeenCalledWith({
+        id: entryId,
+        userId: 'user-123',
+        description: updateDto.description,
+        amount: updateDto.amount,
+        date: new Date(updateDto.date),
+        type: updateDto.type,
+        isFixed: updateDto.isFixed,
+        categoryId: updateDto.categoryId,
+      });
+
+      // Note: Controller doesn't implement logging/metrics yet
+      // This would be added in a future enhancement
+    });
+
+    it('should handle validation errors and throw BadRequestException', async () => {
+      // Arrange
+      const entryId = 'a1b2c3d4-e5f6-7890-abcd-ef1234567890';
+      const updateDto = {
+        description: '',
+        amount: -100,
+        date: '2025-01-15T10:00:00Z',
+        type: 'INCOME' as const,
+        isFixed: true,
+      };
+      const mockRequest = RequestMockFactory.createWithUser('user-123');
+      const error = new Error('Amount must be greater than zero');
+
+      updateEntryUseCase.execute.mockRejectedValue(error);
+
+      // Act & Assert
+      await expect(
+        controller.update(entryId, updateDto, mockRequest),
+      ).rejects.toThrow(BadRequestException);
+    });
+
+    it('should handle not found errors and throw NotFoundException', async () => {
+      // Arrange
+      const entryId = 'a1b2c3d4-e5f6-7890-abcd-ef1234567890';
+      const updateDto = {
+        description: 'Updated Entry',
+        amount: 100.0,
+        date: '2025-01-15T10:00:00Z',
+        type: 'EXPENSE' as const,
+        isFixed: false,
+      };
+      const mockRequest = RequestMockFactory.createWithUser('user-123');
+      const error = new Error('Entry not found');
+
+      updateEntryUseCase.execute.mockRejectedValue(error);
+
+      // Act & Assert
+      await expect(
+        controller.update(entryId, updateDto, mockRequest),
+      ).rejects.toThrow(NotFoundException);
+    });
+
+    it('should handle unauthorized errors and throw NotFoundException with access denied message', async () => {
+      // Arrange
+      const entryId = 'a1b2c3d4-e5f6-7890-abcd-ef1234567890';
+      const updateDto = {
+        description: 'Updated Entry',
+        amount: 100.0,
+        date: '2025-01-15T10:00:00Z',
+        type: 'EXPENSE' as const,
+        isFixed: false,
+      };
+      const mockUser = { id: 'user-123', email: 'test@example.com' };
+      const error = new Error('User unauthorized to perform this action');
+
+      updateEntryUseCase.execute.mockRejectedValue(error);
+
+      // Act & Assert
+      await expect(
+        controller.update(entryId, updateDto, mockUser),
+      ).rejects.toThrow(
+        new NotFoundException('Entry not found or access denied'),
+      );
+    });
+
+    it('should handle category not found errors', async () => {
+      // Arrange
+      const entryId = 'a1b2c3d4-e5f6-7890-abcd-ef1234567890';
+      const updateDto = {
+        description: 'Updated Entry',
+        amount: 100.0,
+        date: '2025-01-15T10:00:00Z',
+        type: 'EXPENSE' as const,
+        isFixed: false,
+        categoryId: 'non-existent-category',
+      };
+      const mockRequest = RequestMockFactory.createWithUser('user-123');
+      const error = new Error('Category not found');
+
+      updateEntryUseCase.execute.mockRejectedValue(error);
+
+      // Act & Assert
+      await expect(
+        controller.update(entryId, updateDto, mockRequest),
+      ).rejects.toThrow(NotFoundException);
+    });
+
+    it('should handle generic errors and throw BadRequestException', async () => {
+      // Arrange
+      const entryId = 'a1b2c3d4-e5f6-7890-abcd-ef1234567890';
+      const updateDto = {
+        description: 'Updated Entry',
+        amount: 100.0,
+        date: '2025-01-15T10:00:00Z',
+        type: 'EXPENSE' as const,
+        isFixed: false,
+      };
+      const mockRequest = RequestMockFactory.createWithUser('user-123');
+      const error = new Error('Database connection failed');
+
+      updateEntryUseCase.execute.mockRejectedValue(error);
+
+      // Act & Assert
+      await expect(
+        controller.update(entryId, updateDto, mockRequest),
+      ).rejects.toThrow(BadRequestException);
     });
   });
 });

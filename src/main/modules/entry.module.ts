@@ -9,6 +9,7 @@ import { UuidGenerator } from '@infra/implementations/uuid-generator';
 import { DbAddEntryUseCase } from '@data/usecases/db-add-entry.usecase';
 import { DbListEntriesByMonthUseCase } from '@data/usecases/db-list-entries-by-month.usecase';
 import { DbDeleteEntryUseCase } from '@data/usecases/db-delete-entry.usecase';
+import { DbUpdateEntryUseCase } from '@data/usecases/db-update-entry.usecase';
 import { AuthModule } from './auth.module';
 import { ObservabilityModule } from './observability.module';
 
@@ -27,6 +28,7 @@ import { ObservabilityModule } from './observability.module';
       inject: [
         getRepositoryToken(EntryEntity),
         'LoggerService',
+        'ContextAwareLoggerService',
         'FinancialMetricsService',
       ],
     },
@@ -67,6 +69,16 @@ import { ObservabilityModule } from './observability.module';
       inject: ['EntryRepository', 'UserRepository'],
     },
     {
+      provide: DbUpdateEntryUseCase,
+      useFactory: (entryRepository, userRepository, categoryRepository) =>
+        new DbUpdateEntryUseCase(
+          entryRepository,
+          userRepository,
+          categoryRepository,
+        ),
+      inject: ['EntryRepository', 'UserRepository', 'CategoryRepository'],
+    },
+    {
       provide: DbDeleteEntryUseCase,
       useFactory: entryRepository => new DbDeleteEntryUseCase(entryRepository),
       inject: ['EntryRepository'],
@@ -76,6 +88,7 @@ import { ObservabilityModule } from './observability.module';
     DbAddEntryUseCase,
     'ListEntriesByMonthUseCase',
     DbDeleteEntryUseCase,
+    DbUpdateEntryUseCase,
   ],
 })
 export class EntryModule {}

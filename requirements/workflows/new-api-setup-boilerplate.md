@@ -94,6 +94,10 @@ yarn add -D @typescript-eslint/eslint-plugin @typescript-eslint/parser
 yarn add -D eslint eslint-config-prettier eslint-plugin-prettier
 yarn add -D prettier source-map-support
 
+# 🔒 Pre-commit hooks and quality gates
+yarn add -D husky lint-staged
+yarn add -D @commitlint/cli @commitlint/config-conventional
+
 # ⚠️ OPCIONAL: Apenas se usar SQLite para testes (NÃO recomendado)
 # yarn add -D sqlite3
 
@@ -213,9 +217,226 @@ git config --global credential.helper store
 - `Permission denied (publickey)` → Configurar SSH keys ou usar HTTPS
 - `Authentication failed` → Configurar token GitHub para HTTPS
 
-## 🔧 Phase 3: Core Configuration
+## 🔒 Phase 3: Quality Gates Setup (Husky)
 
-### 3.1 TypeScript Configuration
+### 3.1 Install Husky and Pre-commit Tools
+
+```bash
+# Install Husky and related tools
+yarn add -D husky lint-staged @commitlint/cli @commitlint/config-conventional
+
+# Initialize Husky
+npx husky install
+
+# Add Husky scripts to package.json
+yarn set-script prepare "husky install"
+```
+
+### 3.2 Configure Pre-commit Hooks
+
+Create `.husky/pre-commit`:
+
+```bash
+#!/usr/bin/env sh
+. "$(dirname -- "$0")/_/husky.sh"
+
+echo "🔍 Running pre-commit quality checks..."
+
+# Run linting
+echo "📝 Checking code style..."
+yarn lint
+
+# Run all tests (unit + e2e)
+echo "🧪 Running all tests..."
+yarn test
+
+echo "🚀 Running E2E tests..."
+yarn test:e2e
+
+# Check test coverage (must be 100%)
+echo "📊 Checking test coverage..."
+yarn test:coverage --passWithNoTests
+
+# Build verification
+echo "🏗️ Verifying build..."
+yarn build
+
+echo "✅ All quality checks passed!"
+```
+
+Create `.husky/pre-push`:
+
+```bash
+#!/usr/bin/env sh
+. "$(dirname -- "$0")/_/husky.sh"
+
+echo "🚀 Running pre-push quality gates..."
+
+# Final verification - all tests must pass
+echo "🔬 Final test verification..."
+yarn test:all
+
+# Coverage must be 100%
+echo "📈 Final coverage check..."
+yarn test:coverage --passWithNoTests --coverageThreshold='{"global":{"branches":100,"functions":100,"lines":100,"statements":100}}'
+
+echo "✅ Ready to push!"
+```
+
+Create `.husky/commit-msg`:
+
+```bash
+#!/usr/bin/env sh
+. "$(dirname -- "$0")/_/husky.sh"
+
+npx --no -- commitlint --edit ${1}
+```
+
+### 3.3 Configure lint-staged
+
+Add to `package.json`:
+
+```json
+{
+  "lint-staged": {
+    "src/**/*.{ts,js}": [
+      "eslint --fix",
+      "prettier --write",
+      "yarn test --findRelatedTests --passWithNoTests",
+      "git add"
+    ],
+    "test/**/*.{ts,js}": ["eslint --fix", "prettier --write", "git add"]
+  }
+}
+```
+
+### 3.4 Configure Commitlint
+
+Create `commitlint.config.js`:
+
+```javascript
+module.exports = {
+  extends: ['@commitlint/config-conventional'],
+  rules: {
+    'subject-max-length': [2, 'always', 100],
+    'type-enum': [
+      2,
+      'always',
+      [
+        'feat', // New feature
+        'fix', // Bug fix
+        'docs', // Documentation
+        'style', // Formatting
+        'refactor', // Code refactoring
+        'test', // Adding tests
+        'chore', // Maintenance
+        'perf', // Performance improvements
+        'ci', // CI configuration
+        'build', // Build system
+        'revert', // Revert changes
+      ],
+    ],
+  },
+};
+```
+
+### 3.5 Update package.json Scripts
+
+Add these scripts to `package.json`:
+
+```json
+{
+  "scripts": {
+    "prepare": "husky install",
+    "test:all": "yarn test && yarn test:e2e",
+    "test:coverage": "jest --coverage",
+    "test:ci": "yarn test:all && yarn test:coverage",
+    "quality:check": "yarn lint && yarn test:all && yarn build",
+    "pre-commit": "lint-staged",
+    "commit": "git-cz"
+  }
+}
+```
+
+### 3.6 Quality Gates Configuration
+
+Create `jest.config.js` with coverage thresholds:
+
+```javascript
+module.exports = {
+  moduleFileExtensions: ['js', 'json', 'ts'],
+  rootDir: 'src',
+  testRegex: '.*\\.spec\\.ts$',
+  transform: {
+    '^.+\\.(t|j)s$': 'ts-jest',
+  },
+  collectCoverageFrom: ['**/*.(t|j)s', '!**/*.spec.ts', '!**/node_modules/**'],
+  coverageDirectory: '../coverage',
+  testEnvironment: 'node',
+  coverageThreshold: {
+    global: {
+      branches: 100,
+      functions: 100,
+      lines: 100,
+      statements: 100,
+    },
+  },
+  coverageReporters: ['text', 'lcov', 'html'],
+  collectCoverage: true,
+};
+```
+
+### 3.7 Git Quality Gates Verification
+
+Test the setup:
+
+```bash
+# Test pre-commit hook
+git add .
+git commit -m "test: verify quality gates"
+
+# This should run:
+# 1. Linting
+# 2. All unit tests
+# 3. All E2E tests
+# 4. Coverage check (100% required)
+# 5. Build verification
+
+# Test pre-push hook
+git push origin feature/setup
+
+# This should run:
+# 1. Final test verification
+# 2. Final coverage check with thresholds
+```
+
+### 3.8 Quality Gates Rules
+
+**🚫 COMMIT BLOCKED IF:**
+
+- Any test fails (unit or E2E)
+- Coverage < 100%
+- Linting errors exist
+- Build fails
+- Commit message doesn't follow conventional format
+
+**🚫 PUSH BLOCKED IF:**
+
+- Any quality gate fails
+- Coverage thresholds not met
+- Tests are not passing
+
+**✅ COMMIT/PUSH ALLOWED ONLY IF:**
+
+- All tests pass (100%)
+- Coverage is 100%
+- Code is properly linted
+- Build succeeds
+- Commit follows conventional format
+
+## 🔧 Phase 4: Core Configuration
+
+### 4.1 TypeScript Configuration
 
 Create `tsconfig.json`:
 

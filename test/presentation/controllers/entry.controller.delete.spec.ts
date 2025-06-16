@@ -78,7 +78,7 @@ describe('EntryController - DELETE', () => {
       expect(metricsSpy.hasRecordedMetric('financial_transactions_total')).toBe(
         true,
       );
-      const successMetrics = metricsSpy.getMetrics(
+      const successMetrics = metricsSpy.getMetricsByFilter(
         'financial_transactions_total',
       );
       expect(
@@ -112,7 +112,7 @@ describe('EntryController - DELETE', () => {
       });
 
       // Verify error metrics
-      const errorMetrics = metricsSpy.getMetrics(
+      const errorMetrics = metricsSpy.getMetricsByFilter(
         'financial_transactions_total',
       );
       expect(

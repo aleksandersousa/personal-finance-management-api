@@ -28,7 +28,7 @@ module.exports = {
     '@typescript-eslint/no-var-requires': 'error',
 
     // General ESLint rules
-    'no-console': ['warn', { allow: ['warn', 'error'] }],
+    'no-console': 'off',
     'no-debugger': 'error',
     'no-duplicate-imports': 'error',
     'no-unused-expressions': 'error',

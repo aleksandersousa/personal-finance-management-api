@@ -14,12 +14,19 @@
     "test": "jest",
     "test:watch": "jest --watch",
     "test:cov": "jest --coverage",
+    "test:coverage": "jest --coverage --coverageThreshold='{\"global\":{\"branches\":100,\"functions\":100,\"lines\":100,\"statements\":100}}'",
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
     "test:e2e": "jest --config ./test/jest-e2e.json",
     "typeorm": "yarn build && npx typeorm -d dist/src/infra/db/typeorm/config/data-source.js",
     "migration:generate": "yarn typeorm -- migration:generate",
     "migration:run": "yarn typeorm -- migration:run",
     "migration:revert": "yarn typeorm -- migration:revert",
+    "test:all": "yarn test && yarn test:e2e",
+    "test:ci": "yarn test:all && yarn test:coverage",
+    "quality:check": "yarn lint && yarn test:all && yarn build",
+    "quality:pre-commit": "lint-staged && yarn test:all && yarn test:coverage && yarn build",
+    "quality:pre-push": "yarn test:ci",
+    "lint:fix": "eslint --fix 'src/**/*.ts' 'test/**/*.ts'",
     "docker:dev": "docker-compose -f .docker/docker-compose.dev.yml --env-file .env.development up",
     "docker:dev:build": "docker-compose -f .docker/docker-compose.dev.yml --env-file .env.development up --build",
     "docker:dev:logs": "docker-compose -f .docker/docker-compose.dev.yml --env-file .env.development logs -f",
@@ -85,7 +92,8 @@
     "monitor:all": "./scripts/monitor-deployment.sh all",
     "monitor:help": "./scripts/monitor-deployment.sh --help",
     "ci:setup": "echo '🚀 Setting up CI/CD...' && echo '✅ GitHub Actions workflows configured' && echo '✅ Deploy scripts ready' && echo '✅ Monitoring scripts ready' && echo '📚 Read docs/CI-CD-SETUP.md for complete guide'",
-    "ci:validate": "echo '🔍 Validating CI/CD setup...' && ls -la .github/workflows/ && ls -la scripts/ && echo '✅ CI/CD setup validation complete'"
+    "ci:validate": "echo '🔍 Validating CI/CD setup...' && ls -la .github/workflows/ && ls -la scripts/ && echo '✅ CI/CD setup validation complete'",
+    "prepare": "husky"
   },
   "keywords": [
     "nestjs",
@@ -124,6 +132,8 @@
     "winston": "^3.17.0"
   },
   "devDependencies": {
+    "@commitlint/cli": "^19.8.1",
+    "@commitlint/config-conventional": "^19.8.1",
     "@nestjs/cli": "^10.2.1",
     "@nestjs/schematics": "^10.0.3",
     "@nestjs/testing": "^10.3.0",
@@ -141,7 +151,9 @@
     "eslint": "^8.56.0",
     "eslint-config-prettier": "^9.1.0",
     "eslint-plugin-prettier": "^5.1.2",
+    "husky": "^9.1.7",
     "jest": "^29.7.0",
+    "lint-staged": "^16.1.2",
     "prettier": "^3.1.1",
     "source-map-support": "^0.5.21",
     "sqlite3": "^5.1.7",
@@ -152,5 +164,15 @@
     "tsconfig-paths": "^4.2.0",
     "typescript": "^5.3.3"
   },
-  "repository": "https://github.com/aleksandersousa/personal-finance-management-api.git"
+  "repository": "https://github.com/aleksandersousa/personal-finance-management-api.git",
+  "lint-staged": {
+    "src/**/*.{ts,js}": [
+      "eslint --fix",
+      "prettier --write"
+    ],
+    "test/**/*.{ts,js}": [
+      "eslint --fix",
+      "prettier --write"
+    ]
+  }
 }

@@ -60,6 +60,7 @@ describe('TypeormEntryRepository', () => {
       warn: jest.fn(),
       debug: jest.fn(),
       verbose: jest.fn(),
+      logBusinessEvent: jest.fn(),
     } as any;
 
     mockMetrics = {

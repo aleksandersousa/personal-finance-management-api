@@ -47,8 +47,8 @@ Este workflow foi atualizado com base em **problemas reais encontrados** durante
 
 - [ ] Development environment set up and running
 - [ ] Database connection established
-- [ ] Observability stack operational (`npm run obs:test`)
-- [ ] All tests passing (`npm run test`)
+- [ ] Observability stack operational (`yarn obs:test`)
+- [ ] All tests passing (`yarn test`)
 - [ ] Git repository clean (`git status`)
 
 ### Documentation Review
@@ -57,6 +57,137 @@ Este workflow foi atualizado com base em **problemas reais encontrados** durante
 - [ ] API requirements understood
 - [ ] Database schema requirements clear
 - [ ] Authentication requirements defined
+
+## 🛠️ Development Guidelines
+
+### Package Manager
+
+**⚠️ IMPORTANT: Always use `yarn` during development, never `npm`**
+
+```bash
+# ✅ Correct
+yarn install
+yarn build
+yarn test
+yarn start:dev
+
+# ❌ Incorrect
+npm install
+npm run build
+npm test
+npm start
+```
+
+### Commit Guidelines
+
+**Commit Message Format:**
+
+- **Maximum 100 characters per line**
+- **Be concise and descriptive**
+- Use conventional commit format: `type: description`
+
+```bash
+# ✅ Good commits (under 100 chars)
+git commit -m "feat: add UpdateEntry use case with validation"
+git commit -m "fix: resolve build errors in entry factory"
+git commit -m "test: add comprehensive tests for UC-06"
+
+# ❌ Bad commits (over 100 chars or unclear)
+git commit -m "feat: implement UC-06 Update Entry with complete validation, error handling, observability, and comprehensive testing suite"
+git commit -m "fix stuff"
+```
+
+### Code Quality Checks
+
+Before any commit, always verify:
+
+- [ ] No unused imports or variables
+- [ ] All methods are being used
+- [ ] Build passes: `yarn build`
+- [ ] **ALL tests pass: `yarn test` + `yarn test:e2e`**
+- [ ] **100% test coverage: `yarn test:coverage`**
+- [ ] Linting passes: `yarn lint`
+
+### 🚀 MANDATORY POST-IMPLEMENTATION WORKFLOW
+
+**⚠️ CRITICAL: After completing ANY use case implementation or bug fix:**
+
+```bash
+# 1. Execute ALL test suites
+yarn test            # Unit tests
+yarn test:e2e        # End-to-end tests
+yarn test:coverage   # Coverage verification (must be 100%)
+
+# 2. Build verification
+yarn build           # Ensure no compilation errors
+yarn lint            # Code quality verification
+
+# 3. Only proceed if ALL tests pass and coverage is 100%
+# 4. Then commit and push
+```
+
+**NEVER commit without 100% test coverage and all tests passing!**
+
+### 🧪 Test-Driven Development (TDD) Guidelines
+
+This project follows **Test-Driven Development (TDD)** principles to ensure high code quality and maintainability:
+
+#### TDD Cycle (Red-Green-Refactor)
+
+1. **🔴 RED**: Write a failing test first
+
+   - Write the minimum test that describes the desired behavior
+   - Run the test to confirm it fails (red)
+   - This ensures the test is actually testing something
+
+2. **🟢 GREEN**: Write the minimum code to make the test pass
+
+   - Implement only enough code to make the test pass
+   - Don't worry about perfect code yet - focus on making it work
+   - Run the test to confirm it passes (green)
+
+3. **🔵 REFACTOR**: Improve the code while keeping tests green
+   - Clean up the code, improve structure, remove duplication
+   - Ensure all tests still pass after refactoring
+   - Apply design patterns and best practices
+
+#### TDD Best Practices
+
+**Test Structure (AAA Pattern):**
+
+```typescript
+describe('FeatureName', () => {
+  it('should describe expected behavior', () => {
+    // Arrange - Set up test data and mocks
+    const input = {
+      /* test data */
+    };
+    const expectedOutput = {
+      /* expected result */
+    };
+
+    // Act - Execute the code under test
+    const result = systemUnderTest.method(input);
+
+    // Assert - Verify the outcome
+    expect(result).toEqual(expectedOutput);
+  });
+});
+```
+
+**TDD Implementation Order:**
+
+1. **Domain Layer First** (Pure business logic)
+2. **Data Layer** (Use cases and repositories)
+3. **Infrastructure Layer** (Database, external services)
+4. **Presentation Layer** (Controllers, DTOs)
+
+**TDD Rules:**
+
+- No production code without a failing test
+- Write only enough test to fail
+- Write only enough production code to pass the test
+- Tests must be fast, independent, and repeatable
 
 ## 🎯 Development Process Overview
 
@@ -364,13 +495,13 @@ export class [Entity]Repository implements [Entity]Repository {
 
 ```bash
 # Generate migration
-npm run migration:generate src/infra/db/typeorm/migrations/[MigrationName]
+yarn migration:generate src/infra/db/typeorm/migrations/[MigrationName]
 
 # Review generated migration
 # Edit if necessary
 
 # Run migration
-npm run migration:run
+yarn migration:run
 ```
 
 **Migration Checklist:**
@@ -1569,13 +1700,13 @@ Update relevant documentation files:
 
 ```bash
 # Run all quality checks
-npm run lint
-npm run test
-npm run test:cov
-npm run test:e2e
+yarn lint
+yarn test
+yarn test:cov
+yarn test:e2e
 
 # Check observability
-npm run obs:test
+yarn obs:test
 
 # Manual API testing
 curl -X POST http://localhost:3000/api/v1/[entities] \
@@ -1605,11 +1736,11 @@ curl -X POST http://localhost:3000/api/v1/[entities] \
 
 ```bash
 # Verify migrations
-npm run migration:run --dry-run
+yarn migration:run --dry-run
 
 # Test rollback
-npm run migration:revert
-npm run migration:run
+yarn migration:revert
+yarn migration:run
 ```
 
 ### 11.2 Environment Configuration

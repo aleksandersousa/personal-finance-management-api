@@ -1,5 +1,6 @@
 import { EntryModel } from '@domain/models/entry.model';
 import { AddEntryRequest } from '@domain/usecases/add-entry.usecase';
+import { UpdateEntryRequest } from '@domain/usecases/update-entry.usecase';
 
 export const mockEntry: EntryModel = {
   id: '550e8400-e29b-41d4-a716-446655440000',
@@ -23,6 +24,17 @@ export const mockAddEntryRequest: AddEntryRequest = {
   type: 'EXPENSE',
   isFixed: false,
   date: new Date('2025-06-01'),
+};
+
+export const mockUpdateEntryRequest: UpdateEntryRequest = {
+  id: '550e8400-e29b-41d4-a716-446655440000',
+  userId: 'user-123',
+  description: 'Updated Test Entry',
+  amount: 15000, // 150.00 in cents
+  categoryId: 'category-456',
+  type: 'INCOME',
+  isFixed: true,
+  date: new Date('2025-06-15'),
 };
 
 /**
@@ -63,6 +75,22 @@ export class MockEntryFactory {
     overrides: Partial<AddEntryRequest> = {},
   ): AddEntryRequest {
     return { ...mockAddEntryRequest, ...overrides };
+  }
+
+  static createUpdateRequest(
+    overrides: Partial<UpdateEntryRequest> = {},
+  ): UpdateEntryRequest {
+    return { ...mockUpdateEntryRequest, ...overrides };
+  }
+
+  static createUpdated(): EntryModel {
+    return this.create({
+      description: 'Updated Test Entry',
+      amount: 15000,
+      type: 'INCOME',
+      isFixed: true,
+      updatedAt: new Date('2025-06-01T10:30:00Z'), // Later timestamp
+    });
   }
 
   static createIncome(amount: number = 50000): EntryModel {
@@ -126,5 +154,31 @@ export class MockEntryFactory {
       isFixed: false,
       date: new Date(),
     };
+  }
+
+  static createInvalidUpdateRequest(): Partial<UpdateEntryRequest> {
+    return {
+      id: '',
+      userId: '',
+      description: '',
+      amount: -100,
+      categoryId: '',
+      type: 'EXPENSE',
+      isFixed: false,
+      date: new Date(),
+    };
+  }
+
+  // Update-specific scenarios
+  static createUpdateRequestForDifferentUser(): UpdateEntryRequest {
+    return this.createUpdateRequest({
+      userId: 'different-user-456',
+    });
+  }
+
+  static createUpdateRequestWithInvalidCategory(): UpdateEntryRequest {
+    return this.createUpdateRequest({
+      categoryId: 'non-existent-category',
+    });
   }
 }

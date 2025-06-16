@@ -168,38 +168,66 @@ export class TypeormEntryRepository implements EntryRepository {
     id: string,
     data: Partial<CreateEntryData>,
   ): Promise<EntryModel> {
-    const updateData: any = {};
-    if (data.userId) {
-      updateData.userId = data.userId;
-    }
-    if (data.description) {
-      updateData.description = data.description;
-    }
-    if (data.amount !== undefined) {
-      updateData.amount = data.amount;
-    }
-    if (data.date) {
-      updateData.date = data.date;
-    }
-    if (data.type) {
-      updateData.type = data.type;
-    }
-    if (data.isFixed !== undefined) {
-      updateData.isFixed = data.isFixed;
-    }
-    if (data.categoryId !== undefined) {
-      updateData.categoryId = data.categoryId;
-    }
+    const startTime = Date.now();
 
-    await this.entryRepository.update(id, updateData);
-    const updatedEntry = await this.entryRepository.findOne({
-      where: { id },
-      relations: ['user', 'category'],
-    });
-    if (!updatedEntry) {
-      throw new Error('Entry not found');
+    try {
+      const updateData: any = {};
+      if (data.userId) {
+        updateData.userId = data.userId;
+      }
+      if (data.description) {
+        updateData.description = data.description;
+      }
+      if (data.amount !== undefined) {
+        updateData.amount = data.amount;
+      }
+      if (data.date) {
+        updateData.date = data.date;
+      }
+      if (data.type) {
+        updateData.type = data.type;
+      }
+      if (data.isFixed !== undefined) {
+        updateData.isFixed = data.isFixed;
+      }
+      if (data.categoryId !== undefined) {
+        updateData.categoryId = data.categoryId;
+      }
+
+      await this.entryRepository.update(id, updateData);
+      const updatedEntry = await this.entryRepository.findOne({
+        where: { id },
+        relations: ['user', 'category'],
+      });
+
+      if (!updatedEntry) {
+        throw new Error('Entry not found');
+      }
+
+      const duration = Date.now() - startTime;
+
+      // Log business event
+      this.logger.logBusinessEvent({
+        event: 'entry_updated',
+        entityId: id,
+        userId: data.userId || 'unknown',
+        duration,
+        changes: Object.keys(updateData),
+      });
+
+      // Record metrics
+      this.metrics.recordTransaction('update', 'success');
+
+      return this.mapToModel(updatedEntry);
+    } catch (error) {
+      // Log error
+      this.logger.error(`Failed to update entry ${id}`, error.stack);
+
+      // Record error metrics
+      this.metrics.recordApiError('entry_repository_update', error.message);
+
+      throw error;
     }
-    return this.mapToModel(updatedEntry);
   }
 
   async delete(id: string): Promise<void> {
