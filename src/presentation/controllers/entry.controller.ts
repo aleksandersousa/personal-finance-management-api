@@ -7,7 +7,9 @@ import {
   HttpStatus,
   Inject,
   NotFoundException,
+  Param,
   Post,
+  Put,
   Query,
   UseGuards,
   ValidationPipe,
@@ -18,6 +20,7 @@ import {
   ApiBody,
   ApiNotFoundResponse,
   ApiOperation,
+  ApiParam,
   ApiQuery,
   ApiResponse,
   ApiTags,
@@ -25,11 +28,15 @@ import {
 } from '@nestjs/swagger';
 import { DbAddEntryUseCase } from '@data/usecases/db-add-entry.usecase';
 import { DbListEntriesByMonthUseCase } from '@data/usecases/db-list-entries-by-month.usecase';
+import { DbUpdateEntryUseCase } from '@data/usecases/db-update-entry.usecase';
 import { CreateEntryDto } from '../dtos/create-entry.dto';
+import { UpdateEntryDto } from '../dtos/update-entry.dto';
 import { EntryResponseDto } from '../dtos/entry-response.dto';
 import { EntryListResponseDto } from '../dtos/entry-list-response.dto';
 import { JwtAuthGuard } from '../guards/jwt-auth.guard';
 import { User } from '../decorators/user.decorator';
+import { ContextAwareLoggerService } from '@infra/logging/context-aware-logger.service';
+import { FinancialMetricsService } from '@infra/metrics/financial-metrics.service';
 
 interface UserPayload {
   id: string;
@@ -45,6 +52,9 @@ export class EntryController {
     private readonly addEntryUseCase: DbAddEntryUseCase,
     @Inject('ListEntriesByMonthUseCase')
     private readonly listEntriesByMonthUseCase: DbListEntriesByMonthUseCase,
+    private readonly updateEntryUseCase: DbUpdateEntryUseCase,
+    private readonly logger: ContextAwareLoggerService,
+    private readonly metrics: FinancialMetricsService,
   ) {}
 
   @Post()
@@ -67,6 +77,8 @@ export class EntryController {
     @Body(ValidationPipe) createEntryDto: CreateEntryDto,
     @User() user: UserPayload,
   ): Promise<EntryResponseDto> {
+    const startTime = Date.now();
+
     try {
       const entry = await this.addEntryUseCase.execute({
         userId: user.id,
@@ -77,6 +89,24 @@ export class EntryController {
         isFixed: createEntryDto.isFixed,
         categoryId: createEntryDto.categoryId,
       });
+
+      const duration = Date.now() - startTime;
+
+      // Log business event
+      this.logger.logBusinessEvent({
+        event: 'entry_api_create_success',
+        entityId: entry.id,
+        userId: user.id,
+        duration,
+        metadata: {
+          type: entry.type,
+          amount: entry.amount,
+          isFixed: entry.isFixed,
+        },
+      });
+
+      // Record metrics
+      this.metrics.recordHttpRequest('POST', '/entries', 201, duration);
 
       return {
         id: entry.id,
@@ -92,6 +122,15 @@ export class EntryController {
         updatedAt: entry.updatedAt,
       };
     } catch (error) {
+      // Log error
+      this.logger.error(
+        `Failed to create entry for user ${user.id}`,
+        error.stack,
+      );
+
+      // Record error metrics
+      this.metrics.recordApiError('entry_create', error.message);
+
       if (this.isNotFoundError(error.message)) {
         throw new NotFoundException('Category not found');
       }
@@ -99,6 +138,100 @@ export class EntryController {
         throw new BadRequestException(error.message);
       }
       throw new BadRequestException('Failed to create entry');
+    }
+  }
+
+  @Put(':id')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Update an existing financial entry',
+    description:
+      'Updates an existing financial entry for the authenticated user. Implements UC-06 (Update Entry). Users can only update their own entries.',
+  })
+  @ApiParam({
+    name: 'id',
+    description: 'Entry ID to update',
+    example: '123e4567-e89b-12d3-a456-426614174000',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Entry updated successfully',
+    type: EntryResponseDto,
+  })
+  @ApiBadRequestResponse({ description: 'Validation failed or invalid data' })
+  @ApiUnauthorizedResponse({ description: 'Invalid or missing JWT token' })
+  @ApiNotFoundResponse({ description: 'Entry or category not found' })
+  @ApiBody({ type: UpdateEntryDto })
+  async update(
+    @Param('id') id: string,
+    @Body(ValidationPipe) updateEntryDto: UpdateEntryDto,
+    @User() user: UserPayload,
+  ): Promise<EntryResponseDto> {
+    const startTime = Date.now();
+
+    try {
+      const entry = await this.updateEntryUseCase.execute({
+        id,
+        userId: user.id,
+        description: updateEntryDto.description,
+        amount: updateEntryDto.amount,
+        date: new Date(updateEntryDto.date),
+        type: updateEntryDto.type,
+        isFixed: updateEntryDto.isFixed,
+        categoryId: updateEntryDto.categoryId,
+      });
+
+      const duration = Date.now() - startTime;
+
+      // Log business event
+      this.logger.logBusinessEvent({
+        event: 'entry_api_update_success',
+        entityId: entry.id,
+        userId: user.id,
+        duration,
+        metadata: {
+          type: entry.type,
+          amount: entry.amount,
+          isFixed: entry.isFixed,
+        },
+      });
+
+      // Record metrics
+      this.metrics.recordHttpRequest('PUT', '/entries/:id', 200, duration);
+
+      return {
+        id: entry.id,
+        amount: entry.amount,
+        description: entry.description,
+        type: entry.type,
+        isFixed: entry.isFixed,
+        categoryId: entry.categoryId,
+        categoryName: 'Category Name', // Would come from category service
+        userId: entry.userId,
+        date: entry.date,
+        createdAt: entry.createdAt,
+        updatedAt: entry.updatedAt,
+      };
+    } catch (error) {
+      // Log error
+      this.logger.error(
+        `Failed to update entry ${id} for user ${user.id}`,
+        error.stack,
+      );
+
+      // Record error metrics
+      this.metrics.recordApiError('entry_update', error.message);
+
+      if (this.isUnauthorizedError(error.message)) {
+        throw new NotFoundException('Entry not found or access denied');
+      }
+      if (this.isNotFoundError(error.message)) {
+        throw new NotFoundException(error.message);
+      }
+      if (this.isClientError(error.message)) {
+        throw new BadRequestException(error.message);
+      }
+      throw new BadRequestException('Failed to update entry');
     }
   }
 
@@ -167,6 +300,8 @@ export class EntryController {
     @Query('category') category: string = 'all',
     @User() user: UserPayload,
   ): Promise<EntryListResponseDto> {
+    const startTime = Date.now();
+
     try {
       // Validate month format
       if (!month || !/^\d{4}-\d{2}$/.test(month)) {
@@ -223,6 +358,24 @@ export class EntryController {
         categoryId: category !== 'all' ? category : undefined,
       });
 
+      const duration = Date.now() - startTime;
+
+      // Log business event
+      this.logger.logBusinessEvent({
+        event: 'entry_api_list_success',
+        userId: user.id,
+        duration,
+        metadata: {
+          month,
+          page: pageNum,
+          limit: limitNum,
+          totalResults: result.data.length,
+        },
+      });
+
+      // Record metrics
+      this.metrics.recordHttpRequest('GET', '/entries', 200, duration);
+
       // Map to response DTO format - data is already processed by use case
       return {
         data: result.data.map(entry => ({
@@ -242,6 +395,15 @@ export class EntryController {
         summary: result.summary,
       };
     } catch (error) {
+      // Log error
+      this.logger.error(
+        `Failed to list entries for user ${user.id}`,
+        error.stack,
+      );
+
+      // Record error metrics
+      this.metrics.recordApiError('entry_list', error.message);
+
       if (this.isClientError(error.message)) {
         throw new BadRequestException(error.message);
       }
@@ -259,7 +421,6 @@ export class EntryController {
       'already exists',
       'not found',
       'unauthorized',
-      'forbidden',
     ];
     return clientErrorPatterns.some(pattern =>
       message.toLowerCase().includes(pattern),
@@ -268,5 +429,9 @@ export class EntryController {
 
   private isNotFoundError(message: string): boolean {
     return message.toLowerCase().includes('not found');
+  }
+
+  private isUnauthorizedError(message: string): boolean {
+    return message.toLowerCase().includes('unauthorized');
   }
 }

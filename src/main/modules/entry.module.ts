@@ -8,6 +8,7 @@ import { TypeormCategoryRepository } from '@infra/db/typeorm/repositories/typeor
 import { UuidGenerator } from '@infra/implementations/uuid-generator';
 import { DbAddEntryUseCase } from '@data/usecases/db-add-entry.usecase';
 import { DbListEntriesByMonthUseCase } from '@data/usecases/db-list-entries-by-month.usecase';
+import { DbUpdateEntryUseCase } from '@data/usecases/db-update-entry.usecase';
 import { AuthModule } from './auth.module';
 
 @Module({
@@ -19,8 +20,13 @@ import { AuthModule } from './auth.module';
   providers: [
     {
       provide: 'EntryRepository',
-      useFactory: repository => makeEntryRepository(repository),
-      inject: [getRepositoryToken(EntryEntity)],
+      useFactory: (repository, logger, metrics) =>
+        makeEntryRepository(repository, logger, metrics),
+      inject: [
+        getRepositoryToken(EntryEntity),
+        'ContextAwareLoggerService',
+        'FinancialMetricsService',
+      ],
     },
     {
       provide: 'CategoryRepository',
@@ -58,7 +64,21 @@ import { AuthModule } from './auth.module';
         new DbListEntriesByMonthUseCase(entryRepository, userRepository),
       inject: ['EntryRepository', 'UserRepository'],
     },
+    {
+      provide: DbUpdateEntryUseCase,
+      useFactory: (entryRepository, userRepository, categoryRepository) =>
+        new DbUpdateEntryUseCase(
+          entryRepository,
+          userRepository,
+          categoryRepository,
+        ),
+      inject: ['EntryRepository', 'UserRepository', 'CategoryRepository'],
+    },
   ],
-  exports: [DbAddEntryUseCase, 'ListEntriesByMonthUseCase'],
+  exports: [
+    DbAddEntryUseCase,
+    'ListEntriesByMonthUseCase',
+    DbUpdateEntryUseCase,
+  ],
 })
 export class EntryModule {}

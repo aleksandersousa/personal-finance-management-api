@@ -4,12 +4,16 @@ import { Repository, SelectQueryBuilder } from 'typeorm';
 import { TypeormEntryRepository } from '@infra/db/typeorm/repositories/typeorm-entry.repository';
 import { EntryEntity } from '@infra/db/typeorm/entities/entry.entity';
 import { FindEntriesByMonthFilters } from '@data/protocols/entry-repository';
+import { ContextAwareLoggerService } from '../../../../../src/infra/logging/context-aware-logger.service';
+import { FinancialMetricsService } from '../../../../../src/infra/metrics/financial-metrics.service';
 
 describe('TypeormEntryRepository', () => {
   let repository: TypeormEntryRepository;
   let testingModule: TestingModule;
   let mockRepository: jest.Mocked<Repository<EntryEntity>>;
   let mockQueryBuilder: jest.Mocked<SelectQueryBuilder<EntryEntity>>;
+  let mockLogger: any;
+  let mockMetrics: any;
 
   const mockEntryEntity: EntryEntity = {
     id: 'entry-1',
@@ -49,12 +53,30 @@ describe('TypeormEntryRepository', () => {
       createQueryBuilder: jest.fn().mockReturnValue(mockQueryBuilder),
     } as any;
 
+    mockLogger = {
+      logBusinessEvent: jest.fn(),
+      error: jest.fn(),
+    };
+
+    mockMetrics = {
+      recordTransaction: jest.fn(),
+      recordApiError: jest.fn(),
+    };
+
     testingModule = await Test.createTestingModule({
       providers: [
         TypeormEntryRepository,
         {
           provide: getRepositoryToken(EntryEntity),
           useValue: mockRepository,
+        },
+        {
+          provide: ContextAwareLoggerService,
+          useValue: mockLogger,
+        },
+        {
+          provide: FinancialMetricsService,
+          useValue: mockMetrics,
         },
       ],
     }).compile();

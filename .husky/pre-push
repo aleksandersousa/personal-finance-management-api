@@ -1,0 +1,16 @@
+echo "🚀 Running pre-push quality gates..."
+
+# Final verification - all tests must pass
+echo "🔬 Final test verification..."
+yarn test
+yarn test:e2e
+
+# Coverage must be 100%
+echo "📈 Final coverage check..."
+yarn test:coverage --passWithNoTests
+
+# Final build check
+echo "🏗️ Final build verification..."
+yarn build
+
+echo "✅ Ready to push!" 

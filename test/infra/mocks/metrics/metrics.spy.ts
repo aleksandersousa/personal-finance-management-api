@@ -53,6 +53,83 @@ export class MetricsSpy {
     });
   }
 
+  // =================== FinancialMetricsService Compatible Methods ===================
+
+  recordHttpRequest(
+    method: string,
+    route: string,
+    statusCode: number,
+    duration: number,
+  ): void {
+    this.recordedMetrics.push({
+      name: 'http_requests_total',
+      labels: { method, route, status_code: statusCode.toString() },
+      type: 'counter',
+      timestamp: new Date(),
+    });
+
+    this.recordedMetrics.push({
+      name: 'http_request_duration_seconds',
+      value: duration / 1000,
+      labels: { method, route },
+      type: 'histogram',
+      timestamp: new Date(),
+    });
+  }
+
+  recordAuthEvent(eventType: string, status: string): void {
+    this.recordedMetrics.push({
+      name: 'auth_events_total',
+      labels: { event_type: eventType, status },
+      type: 'counter',
+      timestamp: new Date(),
+    });
+  }
+
+  recordTransaction(type: string, status: string): void {
+    this.recordedMetrics.push({
+      name: 'financial_transactions_total',
+      labels: { type, status },
+      type: 'counter',
+      timestamp: new Date(),
+    });
+  }
+
+  recordApiError(endpoint: string, errorType: string): void {
+    this.recordedMetrics.push({
+      name: 'api_errors_total',
+      labels: { endpoint, error_type: errorType },
+      type: 'counter',
+      timestamp: new Date(),
+    });
+  }
+
+  updateActiveUsers(period: string, count: number): void {
+    this.recordedMetrics.push({
+      name: 'financial_active_users',
+      value: count,
+      labels: { period },
+      type: 'gauge',
+      timestamp: new Date(),
+    });
+  }
+
+  async getMetrics(): Promise<string> {
+    // Mock implementation that returns a simple metrics string
+    const metricsLines = this.recordedMetrics.map(metric => {
+      const labels = metric.labels
+        ? Object.entries(metric.labels)
+            .map(([key, value]) => `${key}="${value}"`)
+            .join(',')
+        : '';
+      const labelsStr = labels ? `{${labels}}` : '';
+      const value = metric.value || 1;
+      return `${metric.name}${labelsStr} ${value}`;
+    });
+
+    return `# Mock metrics\n${metricsLines.join('\n')}`;
+  }
+
   // =================== Test Utility Methods ===================
 
   /**
@@ -66,7 +143,7 @@ export class MetricsSpy {
   /**
    * Get metrics by name and/or type
    */
-  getMetrics(name?: string, type?: string): MetricRecord[] {
+  getMetricsByFilter(name?: string, type?: string): MetricRecord[] {
     let filtered = this.recordedMetrics;
 
     if (name) {
@@ -101,6 +178,36 @@ export class MetricsSpy {
    */
   hasRecordedMetric(name: string): boolean {
     return this.recordedMetrics.some(m => m.name === name);
+  }
+
+  /**
+   * Check if HTTP request was recorded
+   */
+  hasRecordedHttpRequest(
+    method: string,
+    route: string,
+    statusCode?: number,
+  ): boolean {
+    return this.recordedMetrics.some(
+      m =>
+        m.name === 'http_requests_total' &&
+        m.labels?.method === method &&
+        m.labels?.route === route &&
+        (statusCode === undefined ||
+          m.labels?.status_code === statusCode.toString()),
+    );
+  }
+
+  /**
+   * Check if API error was recorded
+   */
+  hasRecordedApiError(endpoint: string, errorType?: string): boolean {
+    return this.recordedMetrics.some(
+      m =>
+        m.name === 'api_errors_total' &&
+        m.labels?.endpoint === endpoint &&
+        (errorType === undefined || m.labels?.error_type === errorType),
+    );
   }
 
   /**

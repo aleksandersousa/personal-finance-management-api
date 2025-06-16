@@ -233,7 +233,6 @@ describe('DbRegisterUserUseCase', () => {
         userRepositoryStub['errorToThrow'] = null;
 
         // Mock create method to fail
-        const originalCreate = userRepositoryStub.create;
         userRepositoryStub.create = async () => {
           throw error;
         };
