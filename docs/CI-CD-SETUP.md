@@ -408,6 +408,135 @@ Para suporte com CI/CD:
 3. **Scripts:** Usar scripts de debugging disponíveis
 4. **Monitoring:** Verificar dashboards de observabilidade
 
+## 🧪 Configuração de Testes
+
+### Cobertura de Testes
+
+O projeto mantém **100% de cobertura de testes** com exclusões específicas para arquivos que não requerem testes:
+
+#### Arquivos Excluídos da Cobertura
+
+1. **Index.ts Files** - `src/**/index.ts`
+
+   - **Justificativa:** São apenas pontos de re-export, não contêm lógica de negócio
+   - **Configuração:** `'!src/**/index.ts'` no `jest.config.js`
+
+2. **Migrations** - `src/infra/db/typeorm/migrations/**`
+
+   - **Justificativa:** Scripts de schema de banco, testados através de testes de integração
+   - **Configuração:** `'!src/infra/db/typeorm/migrations/**'` no `jest.config.js`
+
+3. **Outros Arquivos Excluídos:**
+   - Arquivos de configuração (`src/main.ts`, `src/**/*.module.ts`)
+   - Estruturas de dados (`src/**/*.interface.ts`, `src/presentation/dtos/**`)
+   - Factories e containers DI (`src/main/factories/**`)
+   - Entidades TypeORM (`src/infra/db/typeorm/entities/**`)
+
+### Pipeline de Testes no CI/CD
+
+```yaml
+# Testes no GitHub Actions
+test:
+  name: 🧪 Test Suite
+  runs-on: ubuntu-latest
+
+  services:
+    postgres:
+      image: postgres:15-alpine
+      env:
+        POSTGRES_PASSWORD: postgres
+        POSTGRES_USER: postgres
+        POSTGRES_DB: financial_db_test
+      options: >-
+        --health-cmd pg_isready
+        --health-interval 10s
+        --health-timeout 5s
+        --health-retries 5
+      ports:
+        - 5432:5432
+
+  steps:
+    - name: 🧪 Run unit tests
+      run: yarn test --passWithNoTests
+
+    - name: 📊 Run test coverage
+      run: yarn test:cov --passWithNoTests
+
+    - name: 🔍 Run E2E tests
+      run: yarn test:e2e --passWithNoTests
+
+    - name: 📈 Upload coverage reports
+      uses: codecov/codecov-action@v3
+      with:
+        file: ./coverage/lcov.info
+        flags: unittests
+        name: codecov-umbrella
+        fail_ci_if_error: false
+```
+
+### Comandos de Teste
+
+```bash
+# Desenvolvimento local
+yarn test                    # Testes unitários
+yarn test:cov               # Cobertura de testes
+yarn test:e2e               # Testes E2E
+yarn test:watch             # Modo watch
+
+# CI/CD
+yarn test --passWithNoTests --ci  # Testes no CI
+```
+
+### Validação de Cobertura
+
+A pipeline **falha** se:
+
+- Cobertura de branches < 100%
+- Cobertura de functions < 100%
+- Cobertura de lines < 100%
+- Cobertura de statements < 100%
+
+### Atualizando Exclusões de Cobertura
+
+Para adicionar novos arquivos às exclusões:
+
+1. **Edite** `jest.config.js`:
+
+   ```javascript
+   collectCoverageFrom: [
+     'src/**/*.(t|j)s',
+     '!src/novo-arquivo/**', // Justificativa da exclusão
+   ],
+   ```
+
+2. **Documente** em `docs/TESTING_GUIDELINES.md`
+
+3. **Teste** localmente:
+
+   ```bash
+   yarn test:cov
+   ```
+
+4. **Valide** no CI/CD através do PR
+
+### Debugging de Testes no CI
+
+```bash
+# Logs de teste
+gh run view --log
+
+# Rerun apenas os testes
+gh workflow run ci-cd.yml --ref feature/branch-name
+
+# Verificar cobertura local
+open ./coverage/lcov-report/index.html
+```
+
+📋 **Referências:**
+
+- [Testing Guidelines](../requirements/guidelines/testing-requirements.md) - Diretrizes completas de teste
+- [Jest Configuration](../jest.config.js) - Configuração do Jest
+
 ---
 
 **Última atualização:** $(date '+%Y-%m-%d')

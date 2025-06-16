@@ -654,5 +654,178 @@ describe('EntryController - LIST_BY_MONTH', () => {
       expect(typeof businessEvents[0].duration).toBe('number');
       expect(businessEvents[0].duration).toBeGreaterThanOrEqual(0);
     });
+
+    it('should handle edge case month values correctly', async () => {
+      // Arrange
+      const mockUser = { id: 'user-123', email: 'test@example.com' };
+
+      const mockUseCaseResponse = {
+        data: [],
+        pagination: {
+          page: 1,
+          limit: 20,
+          total: 0,
+          totalPages: 0,
+          hasNext: false,
+          hasPrev: false,
+        },
+        summary: {
+          totalIncome: 0,
+          totalExpenses: 0,
+          balance: 0,
+          entriesCount: 0,
+        },
+      };
+
+      listEntriesByMonthUseCase.execute.mockResolvedValue(mockUseCaseResponse);
+
+      // Act & Assert - Test valid edge case months
+      await controller.listByMonth(
+        '2024-01',
+        '1',
+        '20',
+        'date',
+        'desc',
+        'all',
+        'all',
+        mockUser,
+      );
+      expect(listEntriesByMonthUseCase.execute).toHaveBeenCalledWith(
+        expect.objectContaining({ year: 2024, month: 1 }),
+      );
+
+      await controller.listByMonth(
+        '2024-12',
+        '1',
+        '20',
+        'date',
+        'desc',
+        'all',
+        'all',
+        mockUser,
+      );
+      expect(listEntriesByMonthUseCase.execute).toHaveBeenCalledWith(
+        expect.objectContaining({ year: 2024, month: 12 }),
+      );
+
+      // Test boundary year values
+      await controller.listByMonth(
+        '1900-06',
+        '1',
+        '20',
+        'date',
+        'desc',
+        'all',
+        'all',
+        mockUser,
+      );
+      expect(listEntriesByMonthUseCase.execute).toHaveBeenCalledWith(
+        expect.objectContaining({ year: 1900, month: 6 }),
+      );
+
+      await controller.listByMonth(
+        '2100-06',
+        '1',
+        '20',
+        'date',
+        'desc',
+        'all',
+        'all',
+        mockUser,
+      );
+      expect(listEntriesByMonthUseCase.execute).toHaveBeenCalledWith(
+        expect.objectContaining({ year: 2100, month: 6 }),
+      );
+    });
+
+    it('should handle NaN page parameter and use default', async () => {
+      // Arrange
+      const month = '2024-01';
+      const mockUser = { id: 'user-123', email: 'test@example.com' };
+
+      const mockUseCaseResponse = {
+        data: [],
+        pagination: {
+          page: 1,
+          limit: 20,
+          total: 0,
+          totalPages: 0,
+          hasNext: false,
+          hasPrev: false,
+        },
+        summary: {
+          totalIncome: 0,
+          totalExpenses: 0,
+          balance: 0,
+          entriesCount: 0,
+        },
+      };
+
+      listEntriesByMonthUseCase.execute.mockResolvedValue(mockUseCaseResponse);
+
+      // Act - Pass non-numeric page that will result in NaN
+      await controller.listByMonth(
+        month,
+        'not-a-number', // This will cause parseInt to return NaN, triggering the || 1 fallback
+        '20',
+        'date',
+        'desc',
+        'all',
+        'all',
+        mockUser,
+      );
+
+      // Assert - Should use page 1 as default
+      expect(listEntriesByMonthUseCase.execute).toHaveBeenCalledWith(
+        expect.objectContaining({
+          page: 1, // Should default to 1 when parseInt returns NaN
+        }),
+      );
+    });
+
+    it('should handle NaN limit parameter and use default', async () => {
+      // Arrange
+      const month = '2024-01';
+      const mockUser = { id: 'user-123', email: 'test@example.com' };
+
+      const mockUseCaseResponse = {
+        data: [],
+        pagination: {
+          page: 1,
+          limit: 20,
+          total: 0,
+          totalPages: 0,
+          hasNext: false,
+          hasPrev: false,
+        },
+        summary: {
+          totalIncome: 0,
+          totalExpenses: 0,
+          balance: 0,
+          entriesCount: 0,
+        },
+      };
+
+      listEntriesByMonthUseCase.execute.mockResolvedValue(mockUseCaseResponse);
+
+      // Act - Pass non-numeric limit that will result in NaN
+      await controller.listByMonth(
+        month,
+        '1',
+        'not-a-number', // This will cause parseInt to return NaN, triggering the || 20 fallback
+        'date',
+        'desc',
+        'all',
+        'all',
+        mockUser,
+      );
+
+      // Assert - Should use limit 20 as default
+      expect(listEntriesByMonthUseCase.execute).toHaveBeenCalledWith(
+        expect.objectContaining({
+          limit: 20, // Should default to 20 when parseInt returns NaN
+        }),
+      );
+    });
   });
 });
