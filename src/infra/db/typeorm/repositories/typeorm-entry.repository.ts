@@ -9,16 +9,15 @@ import {
 } from '@data/protocols/entry-repository';
 import { EntryModel } from '@domain/models/entry.model';
 import { EntryEntity } from '../entities/entry.entity';
-import { ContextAwareLoggerService } from '@infra/logging/context-aware-logger.service';
-import { FinancialMetricsService } from '@infra/metrics/financial-metrics.service';
+import type { Logger, Metrics } from '@/data/protocols';
 
 @Injectable()
 export class TypeormEntryRepository implements EntryRepository {
   constructor(
     @InjectRepository(EntryEntity)
     private readonly entryRepository: Repository<EntryEntity>,
-    private readonly logger: ContextAwareLoggerService,
-    private readonly metrics: FinancialMetricsService,
+    private readonly logger: Logger,
+    private readonly metrics: Metrics,
   ) {}
 
   async create(data: CreateEntryData): Promise<EntryModel> {

@@ -27,10 +27,10 @@ import {
   ApiTags,
   ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
-import { DbAddEntryUseCase } from '@data/usecases/db-add-entry.usecase';
-import { DbListEntriesByMonthUseCase } from '@data/usecases/db-list-entries-by-month.usecase';
-import { DbDeleteEntryUseCase } from '@data/usecases/db-delete-entry.usecase';
-import { DbUpdateEntryUseCase } from '@data/usecases/db-update-entry.usecase';
+import { AddEntryUseCase } from '@domain/usecases/add-entry.usecase';
+import { ListEntriesByMonthUseCase } from '@domain/usecases/list-entries-by-month.usecase';
+import { DeleteEntryUseCase } from '@domain/usecases/delete-entry.usecase';
+import { UpdateEntryUseCase } from '@domain/usecases/update-entry.usecase';
 import { CreateEntryDto } from '../dtos/create-entry.dto';
 import { UpdateEntryDto } from '../dtos/update-entry.dto';
 import { EntryResponseDto } from '../dtos/entry-response.dto';
@@ -38,8 +38,8 @@ import { EntryListResponseDto } from '../dtos/entry-list-response.dto';
 import { DeleteEntryResponseDto } from '../dtos/delete-entry-response.dto';
 import { JwtAuthGuard } from '../guards/jwt-auth.guard';
 import { User } from '../decorators/user.decorator';
-import { ContextAwareLoggerService } from '@infra/logging/context-aware-logger.service';
-import { FinancialMetricsService } from '@infra/metrics/financial-metrics.service';
+import { Logger } from '@data/protocols/logger';
+import { Metrics } from '@data/protocols/metrics';
 
 interface UserPayload {
   id: string;
@@ -52,13 +52,18 @@ interface UserPayload {
 @UseGuards(JwtAuthGuard)
 export class EntryController {
   constructor(
-    private readonly addEntryUseCase: DbAddEntryUseCase,
+    @Inject('AddEntryUseCase')
+    private readonly addEntryUseCase: AddEntryUseCase,
     @Inject('ListEntriesByMonthUseCase')
-    private readonly listEntriesByMonthUseCase: DbListEntriesByMonthUseCase,
-    private readonly deleteEntryUseCase: DbDeleteEntryUseCase,
-    private readonly updateEntryUseCase: DbUpdateEntryUseCase,
-    private readonly logger: ContextAwareLoggerService,
-    private readonly metrics: FinancialMetricsService,
+    private readonly listEntriesByMonthUseCase: ListEntriesByMonthUseCase,
+    @Inject('DeleteEntryUseCase')
+    private readonly deleteEntryUseCase: DeleteEntryUseCase,
+    @Inject('UpdateEntryUseCase')
+    private readonly updateEntryUseCase: UpdateEntryUseCase,
+    @Inject('Logger')
+    private readonly logger: Logger,
+    @Inject('Metrics')
+    private readonly metrics: Metrics,
   ) {}
 
   @Post()

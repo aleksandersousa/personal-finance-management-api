@@ -8,9 +8,6 @@ import {
   makeEntryRepository,
 } from '@/main/factories/repositories';
 import { UuidGenerator } from '@infra/implementations/uuid-generator';
-import { DbAddEntryUseCase } from '@data/usecases/db-add-entry.usecase';
-import { DbDeleteEntryUseCase } from '@data/usecases/db-delete-entry.usecase';
-import { DbUpdateEntryUseCase } from '@data/usecases/db-update-entry.usecase';
 import { AuthModule } from './auth.module';
 import { ObservabilityModule } from './observability.module';
 import {
@@ -48,7 +45,7 @@ import {
       useClass: UuidGenerator,
     },
     {
-      provide: DbAddEntryUseCase,
+      provide: 'AddEntryUseCase',
       useFactory: makeAddEntryFactory,
       inject: [
         'EntryRepository',
@@ -63,21 +60,21 @@ import {
       inject: ['EntryRepository', 'UserRepository'],
     },
     {
-      provide: DbUpdateEntryUseCase,
+      provide: 'UpdateEntryUseCase',
       useFactory: makeUpdateEntryFactory,
       inject: ['EntryRepository', 'UserRepository', 'CategoryRepository'],
     },
     {
-      provide: DbDeleteEntryUseCase,
+      provide: 'DeleteEntryUseCase',
       useFactory: makeDeleteEntryFactory,
       inject: ['EntryRepository'],
     },
   ],
   exports: [
-    DbAddEntryUseCase,
+    'AddEntryUseCase',
     'ListEntriesByMonthUseCase',
-    DbDeleteEntryUseCase,
-    DbUpdateEntryUseCase,
+    'UpdateEntryUseCase',
+    'DeleteEntryUseCase',
   ],
 })
 export class EntryModule {}

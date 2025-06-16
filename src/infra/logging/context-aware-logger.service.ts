@@ -1,34 +1,14 @@
 import { Injectable, LoggerService } from '@nestjs/common';
 import * as winston from 'winston';
-
-export interface BusinessEvent {
-  event: string;
-  userId?: string;
-  traceId?: string;
-  spanId?: string;
-  duration?: number;
-  [key: string]: any;
-}
-
-export interface SecurityEvent {
-  event: string;
-  severity: 'low' | 'medium' | 'high' | 'critical';
-  traceId?: string;
-  clientIp?: string;
-  userAgent?: string;
-  [key: string]: any;
-}
-
-export interface PerformanceEvent {
-  event: string;
-  duration: number;
-  endpoint?: string;
-  traceId?: string;
-  [key: string]: any;
-}
+import {
+  Logger,
+  BusinessEvent,
+  SecurityEvent,
+  PerformanceEvent,
+} from '@data/protocols/logger';
 
 @Injectable()
-export class ContextAwareLoggerService implements LoggerService {
+export class ContextAwareLoggerService implements LoggerService, Logger {
   private readonly logger: winston.Logger;
 
   constructor() {

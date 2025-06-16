@@ -1,12 +1,12 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { BadRequestException, UnauthorizedException } from '@nestjs/common';
-import { AuthController } from '../../../src/presentation/controllers/auth.controller';
-import { RegisterUserUseCase } from '../../../src/domain/usecases/register-user.usecase';
-import { LoginUserUseCase } from '../../../src/domain/usecases/login-user.usecase';
-import { RefreshTokenUseCase } from '../../../src/domain/usecases/refresh-token.usecase';
-import { RegisterUserDto } from '../../../src/presentation/dtos/register-user.dto';
-import { LoginUserDto } from '../../../src/presentation/dtos/login-user.dto';
-import { RefreshTokenDto } from '../../../src/presentation/dtos/refresh-token.dto';
+import { AuthController } from '@presentation/controllers/auth.controller';
+import { RegisterUserUseCase } from '@domain/usecases/register-user.usecase';
+import { LoginUserUseCase } from '@domain/usecases/login-user.usecase';
+import { RefreshTokenUseCase } from '@domain/usecases/refresh-token.usecase';
+import { RegisterUserDto } from '@presentation/dtos/register-user.dto';
+import { LoginUserDto } from '@presentation/dtos/login-user.dto';
+import { RefreshTokenDto } from '@presentation/dtos/refresh-token.dto';
 
 describe('AuthController', () => {
   let controller: AuthController;

@@ -12,6 +12,14 @@ import { MetricsController } from '../../presentation/controllers/metrics.contro
       provide: 'LoggerService',
       useClass: ContextAwareLoggerService,
     },
+    {
+      provide: 'Logger',
+      useClass: ContextAwareLoggerService,
+    },
+    {
+      provide: 'Metrics',
+      useClass: FinancialMetricsService,
+    },
     ContextAwareLoggerService,
     FinancialMetricsService,
     {
@@ -22,6 +30,8 @@ import { MetricsController } from '../../presentation/controllers/metrics.contro
   controllers: [MetricsController],
   exports: [
     'LoggerService',
+    'Logger',
+    'Metrics',
     ContextAwareLoggerService,
     FinancialMetricsService,
   ],

@@ -4,3 +4,5 @@ export * from './token-generator';
 export * from './user-repository';
 export * from './entry-repository';
 export * from './category-repository';
+export * from './logger';
+export * from './metrics';

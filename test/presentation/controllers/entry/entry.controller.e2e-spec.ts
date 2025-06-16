@@ -1,14 +1,10 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication } from '@nestjs/common';
 import * as request from 'supertest';
-import { EntryController } from '../../../src/presentation/controllers/entry.controller';
-import { DbAddEntryUseCase } from '../../../src/data/usecases/db-add-entry.usecase';
-import { DbUpdateEntryUseCase } from '../../../src/data/usecases/db-update-entry.usecase';
-import { ContextAwareLoggerService } from '../../../src/infra/logging/context-aware-logger.service';
-import { FinancialMetricsService } from '../../../src/infra/metrics/financial-metrics.service';
-import { LoggerSpy } from '../../infra/mocks/logging/logger.spy';
-import { MetricsSpy } from '../../infra/mocks/metrics/metrics.spy';
-import { JwtAuthGuard } from '../../../src/presentation/guards/jwt-auth.guard';
+import { EntryController } from '@presentation/controllers/entry.controller';
+import { LoggerSpy } from '../../../infra/mocks/logging/logger.spy';
+import { MetricsSpy } from '../../../infra/mocks/metrics/metrics.spy';
+import { JwtAuthGuard } from '@presentation/guards/jwt-auth.guard';
 
 describe('EntryController (e2e)', () => {
   let app: INestApplication;
@@ -20,6 +16,7 @@ describe('EntryController (e2e)', () => {
   let mockAddEntryUseCase: any;
   let mockListEntriesUseCase: any;
   let mockUpdateEntryUseCase: any;
+  let mockDeleteEntryUseCase: any;
 
   beforeAll(async () => {
     loggerSpy = new LoggerSpy();
@@ -90,11 +87,17 @@ describe('EntryController (e2e)', () => {
       }),
     };
 
+    mockDeleteEntryUseCase = {
+      execute: jest.fn().mockResolvedValue({
+        deletedAt: new Date(),
+      }),
+    };
+
     const moduleFixture: TestingModule = await Test.createTestingModule({
       controllers: [EntryController],
       providers: [
         {
-          provide: DbAddEntryUseCase,
+          provide: 'AddEntryUseCase',
           useValue: mockAddEntryUseCase,
         },
         {
@@ -102,15 +105,19 @@ describe('EntryController (e2e)', () => {
           useValue: mockListEntriesUseCase,
         },
         {
-          provide: DbUpdateEntryUseCase,
+          provide: 'DeleteEntryUseCase',
+          useValue: mockDeleteEntryUseCase,
+        },
+        {
+          provide: 'UpdateEntryUseCase',
           useValue: mockUpdateEntryUseCase,
         },
         {
-          provide: ContextAwareLoggerService,
+          provide: 'Logger',
           useValue: loggerSpy,
         },
         {
-          provide: FinancialMetricsService,
+          provide: 'Metrics',
           useValue: metricsSpy,
         },
       ],

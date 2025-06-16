@@ -115,6 +115,7 @@ mkdir -p src/domain/{models,usecases}
 mkdir -p src/infra/{db,implementations,logging,metrics,middleware}
 mkdir -p src/infra/db/typeorm/{config,entities,repositories}
 mkdir -p src/main/{factories,modules}
+mkdir -p src/main/factories/{usecases,repositories}
 mkdir -p src/presentation/{controllers,decorators,dtos,filters,guards,interceptors,strategies}
 
 # Create test structure
@@ -131,6 +132,9 @@ mkdir -p observability/grafana/provisioning/{datasources,dashboards}
 
 # Create logs directory
 mkdir -p logs
+
+# Factory structure for dependency injection (IMPORTANT!)
+mkdir -p src/main/factories/usecases/{entries,categories,users}
 ```
 
 ## 🔄 Phase 2: Git Workflow Setup
@@ -1148,6 +1152,120 @@ yarn test
 # ❌ NÃO misture
 npm install  # Não fazer se já usa yarn
 ```
+
+---
+
+## 🏗️ Factory Pattern & Dependency Injection Setup
+
+### Factory Pattern Implementation
+
+After basic setup, implement the factory pattern for proper dependency injection:
+
+#### 1. Create Use Case Factories
+
+For each feature (e.g., entries), create factory functions:
+
+```typescript
+// src/main/factories/usecases/entries/make-add-entry.factory.ts
+import type {
+  UserRepository,
+  EntryRepository,
+  CategoryRepository,
+  IdGenerator,
+} from '@/data/protocols';
+import { DbAddEntryUseCase } from '@/data/usecases';
+
+export const makeAddEntryFactory = (
+  entryRepository: EntryRepository,
+  userRepository: UserRepository,
+  categoryRepository: CategoryRepository,
+  idGenerator: IdGenerator,
+) => {
+  return new DbAddEntryUseCase(
+    entryRepository,
+    userRepository,
+    categoryRepository,
+    idGenerator,
+  );
+};
+```
+
+#### 2. Configure Controllers with Interface Injection
+
+**✅ CORRECT Approach:**
+
+```typescript
+// src/presentation/controllers/entry.controller.ts
+import { AddEntryUseCase } from '@domain/usecases/add-entry.usecase';
+
+@Controller('entries')
+export class EntryController {
+  constructor(
+    @Inject('AddEntryUseCase')
+    private readonly addEntryUseCase: AddEntryUseCase, // Interface
+    @Inject('UpdateEntryUseCase')
+    private readonly updateEntryUseCase: UpdateEntryUseCase, // Interface
+  ) {}
+}
+```
+
+**❌ AVOID This Approach:**
+
+```typescript
+// Don't inject concrete implementations directly
+import { DbAddEntryUseCase } from '@data/usecases/db-add-entry.usecase';
+
+export class EntryController {
+  constructor(
+    private readonly addEntryUseCase: DbAddEntryUseCase, // Concrete class
+  ) {}
+}
+```
+
+#### 3. Module Configuration
+
+```typescript
+// src/main/modules/entry.module.ts
+@Module({
+  providers: [
+    {
+      provide: 'AddEntryUseCase',
+      useFactory: makeAddEntryFactory,
+      inject: [
+        'EntryRepository',
+        'UserRepository',
+        'CategoryRepository',
+        'IdGenerator',
+      ],
+    },
+    {
+      provide: 'UpdateEntryUseCase',
+      useFactory: makeUpdateEntryFactory,
+      inject: ['EntryRepository', 'UserRepository', 'CategoryRepository'],
+    },
+  ],
+  exports: ['AddEntryUseCase', 'UpdateEntryUseCase'],
+})
+export class EntryModule {}
+```
+
+#### 4. Benefits of This Approach
+
+1. **Better Testability**: Easy to mock interfaces
+2. **Dependency Inversion**: Controllers depend on abstractions
+3. **Flexibility**: Easy to swap implementations
+4. **Clean Architecture**: Proper separation of concerns
+
+#### 5. Refactoring Existing Controllers
+
+When refactoring existing controllers that inject concrete classes:
+
+1. Update imports to use domain interfaces
+2. Add `@Inject('TokenName')` decorators
+3. Update module providers to use string tokens
+4. Update exports to use string tokens
+
+This pattern ensures your API follows SOLID principles and Clean Architecture guidelines.
 
 ---
 

@@ -6,7 +6,7 @@ import {
   BusinessEvent,
   PerformanceEvent,
   SecurityEvent,
-} from '../../../../src/infra/logging/context-aware-logger.service';
+} from '@data/protocols/logger';
 
 export class LoggerSpy {
   public loggedEvents: any[] = [];

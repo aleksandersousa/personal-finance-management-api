@@ -145,6 +145,162 @@ Contains factories to instantiate and wire dependencies (use cases, repositories
 
 - No framework code should pollute the domain layer.
 
+## 🏗️ Dependency Injection & Factory Pattern Guidelines
+
+### Factory Pattern Implementation
+
+**Use Cases Factories** (`src/main/factories/usecases/`):
+
+- Create factory functions for instantiating use case implementations
+- Factories receive dependencies as parameters and return concrete implementations
+- Follow naming convention: `make[Feature][Action]Factory`
+
+```typescript
+// src/main/factories/usecases/entries/make-add-entry.factory.ts
+export const makeAddEntryFactory = (
+  entryRepository: EntryRepository,
+  userRepository: UserRepository,
+  categoryRepository: CategoryRepository,
+  idGenerator: IdGenerator,
+) => {
+  return new DbAddEntryUseCase(
+    entryRepository,
+    userRepository,
+    categoryRepository,
+    idGenerator,
+  );
+};
+```
+
+### Controllers Dependency Injection
+
+**Always use interfaces instead of concrete implementations:**
+
+```typescript
+// ✅ CORRECT: Using interfaces with @Inject tokens
+export class EntryController {
+  constructor(
+    @Inject('AddEntryUseCase')
+    private readonly addEntryUseCase: AddEntryUseCase, // Interface
+    @Inject('UpdateEntryUseCase')
+    private readonly updateEntryUseCase: UpdateEntryUseCase, // Interface
+    @Inject('Logger')
+    private readonly logger: Logger, // Interface
+    @Inject('Metrics')
+    private readonly metrics: Metrics, // Interface
+  ) {}
+}
+
+// ❌ INCORRECT: Using concrete implementations
+export class EntryController {
+  constructor(
+    private readonly addEntryUseCase: DbAddEntryUseCase, // Concrete class
+    private readonly updateEntryUseCase: DbUpdateEntryUseCase, // Concrete class
+    private readonly logger: ContextAwareLoggerService, // Concrete class
+    private readonly metrics: FinancialMetricsService, // Concrete class
+  ) {}
+}
+```
+
+### Module Configuration
+
+**Provider Configuration in Modules:**
+
+```typescript
+@Module({
+  providers: [
+    // Use string tokens for use cases
+    {
+      provide: 'AddEntryUseCase',
+      useFactory: makeAddEntryFactory,
+      inject: [
+        'EntryRepository',
+        'UserRepository',
+        'CategoryRepository',
+        'IdGenerator',
+      ],
+    },
+    {
+      provide: 'UpdateEntryUseCase',
+      useFactory: makeUpdateEntryFactory,
+      inject: ['EntryRepository', 'UserRepository', 'CategoryRepository'],
+    },
+    // Infrastructure services
+    {
+      provide: 'Logger',
+      useClass: ContextAwareLoggerService,
+    },
+    {
+      provide: 'Metrics',
+      useClass: FinancialMetricsService,
+    },
+  ],
+  exports: [
+    'AddEntryUseCase',
+    'UpdateEntryUseCase',
+    'Logger',
+    'Metrics',
+    // Export string tokens, not concrete classes
+  ],
+})
+export class FeatureModule {}
+```
+
+**Infrastructure Protocols**: Create interfaces for infrastructure services:
+
+```typescript
+// src/data/protocols/logger.ts
+export interface Logger {
+  log(message: any, context?: string): void;
+  error(message: any, trace?: string, context?: string): void;
+  warn(message: any, context?: string): void;
+  debug(message: any, context?: string): void;
+  logBusinessEvent(event: BusinessEvent): void;
+  logSecurityEvent(event: SecurityEvent): void;
+}
+
+// src/data/protocols/metrics.ts
+export interface Metrics {
+  recordHttpRequest(
+    method: string,
+    route: string,
+    statusCode: number,
+    duration: number,
+  ): void;
+  recordAuthEvent(eventType: string, status: string): void;
+  recordTransaction(type: string, status: string): void;
+  recordApiError(endpoint: string, errorType: string): void;
+  updateActiveUsers(period: string, count: number): void;
+  getMetrics(): Promise<string>;
+}
+```
+
+### Benefits of This Approach
+
+1. **Testability**: Easy to mock interfaces for unit tests
+2. **Flexibility**: Can swap implementations without changing controllers
+3. **Dependency Inversion**: Controllers depend on abstractions, not concretions
+4. **Clean Architecture**: Proper separation of concerns
+5. **SOLID Principles**: Better adherence to dependency inversion principle
+
+### Directory Structure for Factories
+
+```
+src/main/factories/
+├── usecases/
+│   ├── entries/
+│   │   ├── make-add-entry.factory.ts
+│   │   ├── make-update-entry.factory.ts
+│   │   ├── make-delete-entry.factory.ts
+│   │   └── make-list-entries-by-month.factory.ts
+│   └── index.ts
+├── repositories/
+│   ├── entry-repository.factory.ts
+│   ├── user-repository.factory.ts
+│   └── index.ts
+└── index.ts
+```
+
 # 🧪 Test Guidelines
 
 - All use cases, controllers, and adapters should be covered by tests. Maintain consistent test folder structure mirroring the source folders.
@@ -277,17 +433,17 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
   // Configuração global de prefixos versionados
-  app.setGlobalPrefix("api");
+  app.setGlobalPrefix('api');
 
   // Diferentes versões da API
   const v1ApiDocs = new DocumentBuilder()
-    .setTitle("Financial API v1")
-    .setVersion("1.0")
+    .setTitle('Financial API v1')
+    .setVersion('1.0')
     .build();
 
   const v2ApiDocs = new DocumentBuilder()
-    .setTitle("Financial API v2")
-    .setVersion("2.0")
+    .setTitle('Financial API v2')
+    .setVersion('2.0')
     .build();
 
   const v1Swagger = SwaggerModule.createDocument(app, v1ApiDocs, {
@@ -298,8 +454,8 @@ async function bootstrap() {
     include: [V2Module],
   });
 
-  SwaggerModule.setup("api/v1/docs", app, v1Swagger);
-  SwaggerModule.setup("api/v2/docs", app, v2Swagger);
+  SwaggerModule.setup('api/v1/docs', app, v1Swagger);
+  SwaggerModule.setup('api/v2/docs', app, v2Swagger);
 
   await app.listen(3000);
 }
@@ -339,23 +495,23 @@ Para uma transição suave entre versões:
 // Decorador customizado para endpoints depreciados
 export function Deprecated(message: string, successorUrl?: string) {
   return applyDecorators(
-    SetMetadata("deprecated", true),
-    SetMetadata("deprecation-message", message),
-    SetMetadata("successor-url", successorUrl),
+    SetMetadata('deprecated', true),
+    SetMetadata('deprecation-message', message),
+    SetMetadata('successor-url', successorUrl),
     ApiResponse({
       status: 200,
       description: `DEPRECATED: ${message}`,
-    })
+    }),
   );
 }
 
 // Uso no controller
-@Controller("api/v1/entries")
+@Controller('api/v1/entries')
 export class EntriesControllerV1 {
   @Get()
   @Deprecated(
-    "This endpoint will be removed on Dec 31, 2024. Use v2 instead.",
-    "/api/v2/entries"
+    'This endpoint will be removed on Dec 31, 2024. Use v2 instead.',
+    '/api/v2/entries',
   )
   async findAll() {
     // ...
@@ -375,7 +531,7 @@ Para otimizar a performance em operações frequentes, especialmente em relatór
 
 ```typescript
 // cache.module.ts
-import { CacheModule } from "@nestjs/cache-manager";
+import { CacheModule } from '@nestjs/cache-manager';
 
 @Module({
   imports: [
@@ -393,8 +549,8 @@ export class AppCacheModule {}
 
 ```typescript
 // cache.module.ts
-import { CacheModule } from "@nestjs/cache-manager";
-import { redisStore } from "cache-manager-redis-store";
+import { CacheModule } from '@nestjs/cache-manager';
+import { redisStore } from 'cache-manager-redis-store';
 
 @Module({
   imports: [
@@ -420,13 +576,13 @@ export class AppCacheModule {}
 export class SummaryService {
   constructor(
     @Inject(CACHE_MANAGER) private cacheManager: Cache,
-    private entryRepository: EntryRepository
+    private entryRepository: EntryRepository,
   ) {}
 
   async getMonthlySummary(
     userId: string,
     year: number,
-    month: number
+    month: number,
   ): Promise<MonthlySummary> {
     const cacheKey = `summary:${userId}:${year}:${month}`;
 
@@ -440,7 +596,7 @@ export class SummaryService {
     const entries = await this.entryRepository.findByYearAndMonth(
       userId,
       year,
-      month
+      month,
     );
     const summary = this.calculateSummary(entries);
 
@@ -454,7 +610,7 @@ export class SummaryService {
   async invalidateUserCache(
     userId: string,
     year: number,
-    month: number
+    month: number,
   ): Promise<void> {
     const cacheKey = `summary:${userId}:${year}:${month}`;
     await this.cacheManager.del(cacheKey);
@@ -470,7 +626,7 @@ export class SummaryService {
 export class EntryService {
   constructor(
     private entryRepository: EntryRepository,
-    private summaryService: SummaryService
+    private summaryService: SummaryService,
   ) {}
 
   async addEntry(userId: string, entryData: CreateEntryDto): Promise<Entry> {
@@ -484,7 +640,7 @@ export class EntryService {
     await this.summaryService.invalidateUserCache(
       userId,
       date.getFullYear(),
-      date.getMonth() + 1
+      date.getMonth() + 1,
     );
 
     return entry;
@@ -503,28 +659,28 @@ export class EntryRepository extends Repository<Entry> {
   // Consulta otimizada para dashboard financeiro
   async getMonthlyTotals(
     userId: string,
-    year: number
+    year: number,
   ): Promise<MonthlyTotal[]> {
-    return this.createQueryBuilder("entry")
-      .select("EXTRACT(MONTH FROM entry.date)", "month")
+    return this.createQueryBuilder('entry')
+      .select('EXTRACT(MONTH FROM entry.date)', 'month')
       .addSelect(
-        "SUM(CASE WHEN entry.type = :incomeType THEN entry.amount ELSE 0 END)",
-        "totalIncome"
+        'SUM(CASE WHEN entry.type = :incomeType THEN entry.amount ELSE 0 END)',
+        'totalIncome',
       )
       .addSelect(
-        "SUM(CASE WHEN entry.type = :expenseType THEN entry.amount ELSE 0 END)",
-        "totalExpense"
+        'SUM(CASE WHEN entry.type = :expenseType THEN entry.amount ELSE 0 END)',
+        'totalExpense',
       )
-      .where("entry.userId = :userId")
-      .andWhere("EXTRACT(YEAR FROM entry.date) = :year")
+      .where('entry.userId = :userId')
+      .andWhere('EXTRACT(YEAR FROM entry.date) = :year')
       .setParameters({
         userId,
         year,
-        incomeType: "INCOME",
-        expenseType: "EXPENSE",
+        incomeType: 'INCOME',
+        expenseType: 'EXPENSE',
       })
-      .groupBy("month")
-      .orderBy("month")
+      .groupBy('month')
+      .orderBy('month')
       .getRawMany();
   }
 }
@@ -581,7 +737,7 @@ export class DomainException extends Error {
   constructor(
     public readonly message: string,
     public readonly code: string,
-    public readonly statusCode: number = 400
+    public readonly statusCode: number = 400,
   ) {
     super(message);
     this.name = this.constructor.name;
@@ -589,36 +745,36 @@ export class DomainException extends Error {
 }
 
 export class InvalidEntryException extends DomainException {
-  constructor(message: string = "Invalid entry data") {
-    super(message, "INVALID_ENTRY", 400);
+  constructor(message: string = 'Invalid entry data') {
+    super(message, 'INVALID_ENTRY', 400);
   }
 }
 
 export class EntryNotFoundException extends DomainException {
   constructor(id: string) {
-    super(`Entry with id ${id} not found`, "ENTRY_NOT_FOUND", 404);
+    super(`Entry with id ${id} not found`, 'ENTRY_NOT_FOUND', 404);
   }
 }
 
 export class InsufficientBalanceException extends DomainException {
   constructor() {
     super(
-      "Insufficient balance for this operation",
-      "INSUFFICIENT_BALANCE",
-      400
+      'Insufficient balance for this operation',
+      'INSUFFICIENT_BALANCE',
+      400,
     );
   }
 }
 
 export class AuthenticationException extends DomainException {
-  constructor(message: string = "Authentication failed") {
-    super(message, "AUTHENTICATION_FAILED", 401);
+  constructor(message: string = 'Authentication failed') {
+    super(message, 'AUTHENTICATION_FAILED', 401);
   }
 }
 
 export class AuthorizationException extends DomainException {
-  constructor(message: string = "Not authorized to perform this action") {
-    super(message, "AUTHORIZATION_FAILED", 403);
+  constructor(message: string = 'Not authorized to perform this action') {
+    super(message, 'AUTHORIZATION_FAILED', 403);
   }
 }
 ```
@@ -630,7 +786,7 @@ export class AuthorizationException extends DomainException {
 
 @Catch()
 export class GlobalExceptionFilter implements ExceptionFilter {
-  private logger = new Logger("ExceptionFilter");
+  private logger = new Logger('ExceptionFilter');
 
   catch(exception: unknown, host: ArgumentsHost) {
     const ctx = host.switchToHttp();
@@ -638,11 +794,11 @@ export class GlobalExceptionFilter implements ExceptionFilter {
     const request = ctx.getRequest<Request>();
 
     // Adicionar traceId para correlacionar logs de uma mesma requisição
-    const traceId = request.headers["x-trace-id"] || randomUUID();
+    const traceId = request.headers['x-trace-id'] || randomUUID();
 
     let status = HttpStatus.INTERNAL_SERVER_ERROR;
-    let message = "Internal server error";
-    let code = "INTERNAL_ERROR";
+    let message = 'Internal server error';
+    let code = 'INTERNAL_ERROR';
 
     // Tratamento específico para nossas exceções de domínio
     if (exception instanceof DomainException) {
@@ -660,13 +816,13 @@ export class GlobalExceptionFilter implements ExceptionFilter {
         exception instanceof ValidationError
           ? this.formatValidationError(exception)
           : exception.message;
-      code = "VALIDATION_ERROR";
+      code = 'VALIDATION_ERROR';
     }
     // Tratamento para erros 404
     else if (exception instanceof NotFoundException) {
       status = HttpStatus.NOT_FOUND;
       message = exception.message;
-      code = "NOT_FOUND";
+      code = 'NOT_FOUND';
     }
 
     // Log estruturado com todos os detalhes relevantes
@@ -693,20 +849,20 @@ export class GlobalExceptionFilter implements ExceptionFilter {
   }
 
   private formatValidationError(
-    errors: ValidationError | ValidationError[]
+    errors: ValidationError | ValidationError[],
   ): string {
     if (!Array.isArray(errors)) {
       errors = [errors];
     }
 
-    const messages = errors.map((error) => {
+    const messages = errors.map(error => {
       if (error.constraints) {
-        return Object.values(error.constraints).join(", ");
+        return Object.values(error.constraints).join(', ');
       }
-      return "Validation error";
+      return 'Validation error';
     });
 
-    return messages.join("; ");
+    return messages.join('; ');
   }
 }
 ```
@@ -717,15 +873,15 @@ export class GlobalExceptionFilter implements ExceptionFilter {
 // i18n/error-messages.ts
 export const errorMessages = {
   en: {
-    INVALID_ENTRY: "Invalid entry data",
-    ENTRY_NOT_FOUND: "Entry not found",
-    INSUFFICIENT_BALANCE: "Insufficient balance for this operation",
+    INVALID_ENTRY: 'Invalid entry data',
+    ENTRY_NOT_FOUND: 'Entry not found',
+    INSUFFICIENT_BALANCE: 'Insufficient balance for this operation',
     // outros códigos...
   },
   pt: {
-    INVALID_ENTRY: "Dados de lançamento inválidos",
-    ENTRY_NOT_FOUND: "Lançamento não encontrado",
-    INSUFFICIENT_BALANCE: "Saldo insuficiente para esta operação",
+    INVALID_ENTRY: 'Dados de lançamento inválidos',
+    ENTRY_NOT_FOUND: 'Lançamento não encontrado',
+    INSUFFICIENT_BALANCE: 'Saldo insuficiente para esta operação',
     // outros códigos...
   },
 };
@@ -733,10 +889,10 @@ export const errorMessages = {
 // Serviço de tradução
 @Injectable()
 export class TranslationService {
-  getErrorMessage(code: string, lang: string = "en"): string {
-    const supportedLang = ["en", "pt"].includes(lang) ? lang : "en";
+  getErrorMessage(code: string, lang: string = 'en'): string {
+    const supportedLang = ['en', 'pt'].includes(lang) ? lang : 'en';
     return (
-      errorMessages[supportedLang][code] || errorMessages["en"][code] || code
+      errorMessages[supportedLang][code] || errorMessages['en'][code] || code
     );
   }
 }
@@ -750,9 +906,9 @@ export class TranslationService {
 export class TraceIdMiddleware implements NestMiddleware {
   use(req: Request, res: Response, next: NextFunction) {
     // Usar trace id existente ou gerar novo
-    const traceId = req.headers["x-trace-id"] || randomUUID();
-    req.headers["x-trace-id"] = traceId;
-    res.setHeader("x-trace-id", traceId);
+    const traceId = req.headers['x-trace-id'] || randomUUID();
+    req.headers['x-trace-id'] = traceId;
+    res.setHeader('x-trace-id', traceId);
     next();
   }
 }
@@ -786,11 +942,11 @@ export class DbAddEntry implements AddEntry {
   async execute(data: AddEntryParams): Promise<EntryModel> {
     // Validação de negócios antes de persistir
     if (data.amount <= 0) {
-      throw new InvalidEntryException("Amount must be greater than zero");
+      throw new InvalidEntryException('Amount must be greater than zero');
     }
 
-    if (data.type !== "INCOME" && data.type !== "EXPENSE") {
-      throw new InvalidEntryException("Type must be INCOME or EXPENSE");
+    if (data.type !== 'INCOME' && data.type !== 'EXPENSE') {
+      throw new InvalidEntryException('Type must be INCOME or EXPENSE');
     }
 
     // Tenta persistir, mas pode lançar outras exceções que serão tratadas pelo filtro global
