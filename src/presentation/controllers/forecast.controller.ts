@@ -20,7 +20,7 @@ import { User } from '@presentation/decorators';
 import { PredictCashFlowUseCase } from '@domain/usecases/predict-cash-flow.usecase';
 import { CashFlowForecastResponseDto } from '@presentation/dtos';
 
-@ApiTags('Forecast')
+@ApiTags('forecast')
 @Controller('forecast')
 @UseGuards(JwtAuthGuard)
 @ApiBearerAuth()

@@ -1,6 +1,4 @@
 import { NestFactory } from '@nestjs/core';
-import { ValidationPipe } from '@nestjs/common';
-import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { ConfigService } from '@nestjs/config';
 import helmet from 'helmet';
 import { AppModule } from './main/modules/app.module';
@@ -9,6 +7,12 @@ import { ContextAwareLoggerService } from './infra/logging/context-aware-logger.
 import { FinancialMetricsService } from './infra/metrics/financial-metrics.service';
 import * as fs from 'fs';
 import * as path from 'path';
+import {
+  swaggerConfig,
+  globalValidation,
+  corsConfig,
+  gracefulShutdown,
+} from './main/config';
 
 async function bootstrap() {
   // Create logs directory if it doesn't exist
@@ -55,111 +59,16 @@ async function bootstrap() {
   );
 
   // CORS configuration
-  const frontendUrl =
-    configService.get('FRONTEND_URL') || 'http://localhost:3001';
-  app.enableCors({
-    origin: frontendUrl,
-    credentials: true,
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'x-trace-id'],
-  });
+  corsConfig(app, configService);
 
   // Global validation with custom error messages
-  app.useGlobalPipes(
-    new ValidationPipe({
-      whitelist: true,
-      forbidNonWhitelisted: true,
-      transform: true,
-      exceptionFactory: errors => {
-        logger.logSecurityEvent({
-          event: 'validation_error',
-          severity: 'medium',
-          details: errors.map(err => ({
-            property: err.property,
-            constraints: err.constraints,
-          })),
-        });
-        return new ValidationPipe().createExceptionFactory()(errors);
-      },
-    }),
-  );
+  globalValidation(app, logger);
 
-  // API prefix
   const apiPrefix = configService.get('API_PREFIX') || 'api/v1';
-  app.setGlobalPrefix(apiPrefix);
-
-  // Enhanced Swagger documentation
-  const config = new DocumentBuilder()
-    .setTitle('Personal Financial Management API')
-    .setDescription(
-      `API for managing personal finances with Clean Architecture and comprehensive observability.
-      
-      **Features:**
-      - User authentication with JWT
-      - Financial entries management (Income/Expense)
-      - Monthly summaries and analytics
-      - Cash flow forecasting
-      - Comprehensive monitoring and logging
-      
-      **Observability:**
-      - Prometheus metrics at \`/api/v1/metrics\`
-      - Health check at \`/api/v1/health\`
-      - Structured logging with trace correlation
-      - Request/response tracking
-      
-      **Security:**
-      - JWT-based authentication
-      - Rate limiting
-      - Input validation
-      - CORS protection
-      - Security headers`,
-    )
-    .setVersion(process.env.APP_VERSION || '1.0.0')
-    .addBearerAuth()
-    .addTag('auth', 'Authentication and authorization')
-    .addTag('entries', 'Financial entries management (UC-01 to UC-07)')
-    .addTag('summary', 'Monthly financial summaries (UC-08)')
-    .addTag('forecast', 'Cash flow forecasting (UC-09)')
-    .addTag('monitoring', 'Health checks and metrics')
-    .build();
-
-  const document = SwaggerModule.createDocument(app, config);
-  SwaggerModule.setup(`${apiPrefix}/docs`, app, document, {
-    swaggerOptions: {
-      persistAuthorization: true,
-      displayRequestDuration: true,
-      tryItOutEnabled: true,
-      filter: true,
-      syntaxHighlight: {
-        theme: 'agate',
-      },
-    },
-    customCss: `
-      .swagger-ui .topbar { display: none }
-      .swagger-ui .info { margin: 50px 0 }
-      .swagger-ui .scheme-container { background: #fafafa; padding: 30px 0 }
-    `,
-    customSiteTitle: 'Financial API Documentation',
-  });
+  swaggerConfig(app, apiPrefix);
 
   // Graceful shutdown handling
-  process.on('SIGTERM', async () => {
-    logger.logBusinessEvent({
-      event: 'application_shutdown',
-      reason: 'SIGTERM',
-      uptime: process.uptime(),
-    });
-    await app.close();
-  });
-
-  process.on('SIGINT', async () => {
-    logger.logBusinessEvent({
-      event: 'application_shutdown',
-      reason: 'SIGINT',
-      uptime: process.uptime(),
-    });
-    await app.close();
-  });
+  gracefulShutdown(app, logger);
 
   // Start server
   const port = configService.get('PORT') || 3000;
