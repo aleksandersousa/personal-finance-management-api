@@ -66,7 +66,6 @@ export class DbUpdateEntryUseCase implements UpdateEntryUseCase {
 
     // Update entry
     const updatedEntry = await this.entryRepository.update(request.id, {
-      userId: request.userId, // Maintain user ownership
       description: request.description.trim(),
       amount: request.amount,
       date: request.date,
