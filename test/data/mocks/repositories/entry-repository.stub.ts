@@ -3,6 +3,9 @@ import {
   EntryRepository,
   FindEntriesByMonthFilters,
   FindEntriesByMonthResult,
+  CategorySummaryItem,
+  FixedEntriesSummary,
+  MonthlySummaryStats,
 } from '@data/protocols/entry-repository';
 import { EntryModel } from '@domain/models/entry.model';
 import { IdGenerator } from '@data/protocols/id-generator';
@@ -215,7 +218,7 @@ export class EntryRepositoryStub implements EntryRepository {
     userId: string,
     year: number,
     month: number,
-  ): Promise<any> {
+  ): Promise<MonthlySummaryStats> {
     if (this.shouldFail && this.errorToThrow) {
       throw this.errorToThrow;
     }
@@ -269,7 +272,7 @@ export class EntryRepositoryStub implements EntryRepository {
     userId: string,
     year: number,
     month: number,
-  ): Promise<any[]> {
+  ): Promise<CategorySummaryItem[]> {
     if (this.shouldFail && this.errorToThrow) {
       throw this.errorToThrow;
     }
@@ -284,7 +287,7 @@ export class EntryRepositoryStub implements EntryRepository {
     );
 
     // Group by category and type
-    const categoryGroups = new Map<string, any>();
+    const categoryGroups = new Map<string, CategorySummaryItem>();
 
     categorizedEntries.forEach(entry => {
       const key = `${entry.categoryId}-${entry.type}`;
@@ -304,6 +307,47 @@ export class EntryRepositoryStub implements EntryRepository {
     });
 
     return Array.from(categoryGroups.values());
+  }
+
+  async getFixedEntriesSummary(userId: string): Promise<FixedEntriesSummary> {
+    if (this.shouldFail && this.errorToThrow) {
+      throw this.errorToThrow;
+    }
+
+    const userEntries = await this.findByUserId(userId);
+    const fixedEntries = userEntries.filter(entry => entry.isFixed === true);
+
+    const fixedIncome = fixedEntries
+      .filter(entry => entry.type === 'INCOME')
+      .reduce((sum, entry) => sum + entry.amount, 0);
+
+    const fixedExpenses = fixedEntries
+      .filter(entry => entry.type === 'EXPENSE')
+      .reduce((sum, entry) => sum + entry.amount, 0);
+
+    return {
+      fixedIncome,
+      fixedExpenses,
+      fixedNetFlow: fixedIncome - fixedExpenses,
+      entriesCount: fixedEntries.length,
+    };
+  }
+
+  async getCurrentBalance(userId: string): Promise<number> {
+    if (this.shouldFail && this.errorToThrow) {
+      throw this.errorToThrow;
+    }
+
+    const userEntries = await this.findByUserId(userId);
+    const totalIncome = userEntries
+      .filter(entry => entry.type === 'INCOME')
+      .reduce((sum, entry) => sum + entry.amount, 0);
+
+    const totalExpenses = userEntries
+      .filter(entry => entry.type === 'EXPENSE')
+      .reduce((sum, entry) => sum + entry.amount, 0);
+
+    return totalIncome - totalExpenses;
   }
 
   // =================== Test Utility Methods ===================

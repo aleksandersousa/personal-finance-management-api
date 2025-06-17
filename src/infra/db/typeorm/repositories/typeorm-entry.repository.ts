@@ -8,6 +8,7 @@ import {
   FindEntriesByMonthResult,
   MonthlySummaryStats,
   CategorySummaryItem,
+  FixedEntriesSummary,
 } from '@data/protocols/entry-repository';
 import { EntryModel } from '@domain/models/entry.model';
 import { EntryEntity } from '../entities/entry.entity';
@@ -419,6 +420,118 @@ export class TypeormEntryRepository implements EntryRepository {
 
       this.metrics.recordApiError('get_category_summary', error.message);
 
+      throw error;
+    }
+  }
+
+  async getFixedEntriesSummary(userId: string): Promise<FixedEntriesSummary> {
+    const startTime = Date.now();
+
+    try {
+      const result = await this.entryRepository
+        .createQueryBuilder('entry')
+        .select(
+          "SUM(CASE WHEN entry.type = 'INCOME' AND entry.isFixed = true THEN entry.amount ELSE 0 END)",
+          'fixedIncome',
+        )
+        .addSelect(
+          "SUM(CASE WHEN entry.type = 'EXPENSE' AND entry.isFixed = true THEN entry.amount ELSE 0 END)",
+          'fixedExpenses',
+        )
+        .addSelect(
+          'COUNT(CASE WHEN entry.isFixed = true THEN 1 END)',
+          'entriesCount',
+        )
+        .where('entry.userId = :userId', { userId })
+        .andWhere('entry.deletedAt IS NULL')
+        .getRawOne();
+
+      const fixedIncome = parseFloat(result?.fixedIncome || '0');
+      const fixedExpenses = parseFloat(result?.fixedExpenses || '0');
+      const fixedNetFlow = fixedIncome - fixedExpenses;
+
+      const duration = Date.now() - startTime;
+
+      // Log business event
+      this.logger.logBusinessEvent({
+        event: 'fixed_entries_summary_calculated',
+        userId,
+        metadata: {
+          fixedIncome,
+          fixedExpenses,
+          fixedNetFlow,
+          entriesCount: parseInt(result?.entriesCount || '0'),
+          duration,
+        },
+      });
+
+      // Record metrics
+      this.metrics.recordTransaction('get_fixed_entries_summary', 'success');
+
+      return {
+        fixedIncome,
+        fixedExpenses,
+        fixedNetFlow,
+        entriesCount: parseInt(result?.entriesCount || '0'),
+      };
+    } catch (error) {
+      this.logger.error(
+        `Failed to get fixed entries summary for user ${userId}`,
+        error.stack,
+      );
+
+      this.metrics.recordApiError('get_fixed_entries_summary', error.message);
+      throw error;
+    }
+  }
+
+  async getCurrentBalance(userId: string): Promise<number> {
+    const startTime = Date.now();
+
+    try {
+      const result = await this.entryRepository
+        .createQueryBuilder('entry')
+        .select(
+          "SUM(CASE WHEN entry.type = 'INCOME' THEN entry.amount ELSE 0 END)",
+          'totalIncome',
+        )
+        .addSelect(
+          "SUM(CASE WHEN entry.type = 'EXPENSE' THEN entry.amount ELSE 0 END)",
+          'totalExpenses',
+        )
+        .where('entry.userId = :userId', { userId })
+        .andWhere('entry.deletedAt IS NULL')
+        .getRawOne();
+
+      const totalIncome = parseFloat(result?.totalIncome || '0');
+      const totalExpenses = parseFloat(result?.totalExpenses || '0');
+      const currentBalance = totalIncome - totalExpenses;
+
+      const duration = Date.now() - startTime;
+
+      // Log business event
+      this.logger.logBusinessEvent({
+        event: 'current_balance_calculated',
+        userId,
+        metadata: {
+          totalIncome,
+          totalExpenses,
+          currentBalance,
+          duration,
+        },
+      });
+
+      // Record metrics
+      this.metrics.recordTransaction('get_current_balance', 'success');
+
+      return currentBalance;
+    } catch (error) {
+      this.logger.error(
+        `Failed to get current balance for user ${userId}`,
+        error.stack,
+      );
+
+      this.metrics.recordApiError('get_current_balance', error.message);
       throw error;
     }
   }
