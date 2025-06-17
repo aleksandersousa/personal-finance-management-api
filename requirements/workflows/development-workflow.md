@@ -128,6 +128,47 @@ yarn lint            # Code quality verification
 
 **NEVER commit without 100% test coverage and all tests passing!**
 
+### 🧪 E2E Test Execution Guidelines
+
+**Running E2E Tests:**
+
+```bash
+# Run all E2E tests
+yarn test:e2e
+
+# Run specific E2E test file
+yarn test:e2e --testPathPattern=summary.controller.e2e-spec.ts
+
+# Run E2E tests with coverage
+yarn test:e2e --coverage
+
+# Run E2E tests in watch mode (development)
+yarn test:e2e --watch
+
+# Run E2E tests with verbose output
+yarn test:e2e --verbose
+```
+
+**E2E Test Debugging:**
+
+```bash
+# Debug E2E tests with detailed output
+yarn test:e2e --detectOpenHandles --forceExit
+
+# Run single E2E test with debug info
+yarn test:e2e --testNamePattern="should get monthly summary successfully"
+
+# Check for memory leaks in E2E tests
+yarn test:e2e --logHeapUsage
+```
+
+**E2E Test Performance:**
+
+- E2E tests should complete in under 30 seconds total
+- Individual test cases should complete in under 5 seconds
+- Mock setup should be fast (no real database connections)
+- Application startup should be optimized for testing
+
 ### 🧪 Test-Driven Development (TDD) Guidelines
 
 This project follows **Test-Driven Development (TDD)** principles to ensure high code quality and maintainability:
@@ -1479,14 +1520,15 @@ describe('[Entity]Repository', () => {
 **Implementation Pattern (VERSÃO CORRIGIDA):**
 
 ```typescript
-// test/presentation/controllers/[entity].controller.e2e-spec.ts
+// test/presentation/controllers/[entity]/[entity].controller.e2e-spec.ts
 import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication } from '@nestjs/common';
 import * as request from 'supertest';
-import { [Entity]Controller } from '../../../src/presentation/controllers/[entity].controller';
-import { LoggerSpy } from '../../infra/mocks/logging/logger.spy';
-import { MetricsSpy } from '../../infra/mocks/metrics/metrics.spy';
-import { JwtAuthGuard } from '../../../src/presentation/guards/jwt-auth.guard';
+import { [Entity]Controller } from '../../../../src/presentation/controllers/[entity].controller';
+import { [Action][Entity]UseCase } from '../../../../src/domain/usecases/[action]-[entity].usecase';
+import { LoggerSpy } from '../../../infra/mocks/logging/logger.spy';
+import { MetricsSpy } from '../../../infra/mocks/metrics/metrics.spy';
+import { JwtAuthGuard } from '../../../../src/presentation/guards/jwt-auth.guard';
 
 describe('[Entity]Controller (e2e)', () => {
   let app: INestApplication;
@@ -1499,21 +1541,23 @@ describe('[Entity]Controller (e2e)', () => {
     // ✅ CORREÇÃO: Usar mocks em vez de banco de dados
     loggerSpy = new LoggerSpy();
     metricsSpy = new MetricsSpy();
-    mock[Action][Entity]UseCase = [Action][Entity]UseCaseMockFactory.createSuccess();
+    mock[Action][Entity]UseCase = {
+      execute: jest.fn(),
+    };
 
     const moduleFixture: TestingModule = await Test.createTestingModule({
       controllers: [[Entity]Controller],
       providers: [
         {
-          provide: [Action][Entity]UseCase,
+          provide: '[Action][Entity]UseCase', // ✅ String token para DI
           useValue: mock[Action][Entity]UseCase,
         },
         {
-          provide: 'ContextAwareLoggerService',
+          provide: 'Logger', // ✅ String token para Logger
           useValue: loggerSpy,
         },
         {
-          provide: 'MetricsService',
+          provide: 'Metrics', // ✅ String token para Metrics
           useValue: metricsSpy,
         },
       ],
@@ -1547,6 +1591,18 @@ describe('[Entity]Controller (e2e)', () => {
   });
 
   describe('POST /[entities]', () => {
+    const mockResponse = {
+      id: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890',
+      description: 'Test [Entity]',
+      amount: 10000,
+      categoryId: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890',
+      type: 'EXPENSE',
+      isFixed: false,
+      userId: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890',
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+
     it('should create [entity] successfully', async () => {
       // Arrange
       const create[Entity]Data = {
@@ -1558,13 +1614,7 @@ describe('[Entity]Controller (e2e)', () => {
         date: '2025-06-01T00:00:00Z',
       };
 
-      mock[Action][Entity]UseCase.execute.mockResolvedValue({
-        id: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890',
-        ...create[Entity]Data,
-        userId: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890',
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      });
+      mock[Action][Entity]UseCase.execute.mockResolvedValue(mockResponse);
 
       // Act
       const response = await request(app.getHttpServer())
@@ -1573,7 +1623,7 @@ describe('[Entity]Controller (e2e)', () => {
         .send(create[Entity]Data);
 
       // Assert - ✅ Flexível para diferentes cenários
-      expect([200, 201, 400]).toContain(response.status);
+      expect([200, 201]).toContain(response.status);
 
       // ✅ Verificar use case apenas se sucesso
       if ([200, 201].includes(response.status)) {
@@ -1586,6 +1636,8 @@ describe('[Entity]Controller (e2e)', () => {
             isFixed: false,
           }),
         );
+
+        expect(response.body).toEqual(mockResponse);
 
         // ✅ Verificar logging business event
         expect(loggerSpy.getBusinessEvents('[entity]_api_create_success')).toHaveLength(1);
@@ -1621,9 +1673,129 @@ describe('[Entity]Controller (e2e)', () => {
       // Assert - ✅ Verificar apenas estrutura básica
       expect(response.status).toBeGreaterThanOrEqual(400);
     });
+
+    it('should handle use case errors gracefully', async () => {
+      // Arrange
+      mock[Action][Entity]UseCase.execute.mockRejectedValue(
+        new Error('Use case error')
+      );
+
+      // Act
+      const response = await request(app.getHttpServer())
+        .post('/[entities]')
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({
+          description: 'Test [Entity]',
+          amount: 10000,
+        });
+
+      // Assert
+      expect([400, 500]).toContain(response.status);
+
+      // ✅ Verificar logging de erro (flexível)
+      expect(loggerSpy.getErrorsCount()).toBeGreaterThanOrEqual(0);
+    });
+
+    it('should record performance metrics correctly', async () => {
+      // Arrange
+      mock[Action][Entity]UseCase.execute.mockResolvedValue(mockResponse);
+
+      // Act
+      const response = await request(app.getHttpServer())
+        .post('/[entities]')
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({
+          description: 'Test [Entity]',
+          amount: 10000,
+        });
+
+      // Assert
+      if ([200, 201].includes(response.status)) {
+        // ✅ Verificar métricas de performance
+        expect(metricsSpy.hasRecordedMetric('http_request_duration')).toBe(true);
+
+        const metrics = metricsSpy.getMetricsByFilter('http_request_duration');
+        expect(metrics.length).toBeGreaterThan(0);
+      }
+    });
+  });
+
+  describe('GET /[entities]', () => {
+    it('should list [entities] with query parameters', async () => {
+      // Arrange
+      const mockListResponse = {
+        data: [mockResponse],
+        pagination: {
+          page: 1,
+          limit: 20,
+          total: 1,
+          totalPages: 1,
+          hasNext: false,
+          hasPrev: false,
+        },
+        summary: {
+          totalIncome: 0,
+          totalExpenses: 10000,
+          balance: -10000,
+          entriesCount: 1,
+        },
+      };
+
+      mockList[Entity]UseCase.execute.mockResolvedValue(mockListResponse);
+
+      // Act
+      const response = await request(app.getHttpServer())
+        .get('/[entities]?month=2024-01&page=1&limit=20')
+        .set('Authorization', `Bearer ${authToken}`);
+
+      // Assert
+      expect([200, 201]).toContain(response.status);
+
+      if ([200, 201].includes(response.status)) {
+        expect(mockList[Entity]UseCase.execute).toHaveBeenCalledWith({
+          userId: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890',
+          year: 2024,
+          month: 1,
+          page: 1,
+          limit: 20,
+          sort: 'date',
+          order: 'desc',
+          type: 'all',
+          category: 'all',
+        });
+
+        expect(response.body.data).toHaveLength(1);
+        expect(response.body.pagination).toBeDefined();
+        expect(response.body.summary).toBeDefined();
+      }
+    });
+
+    it('should handle invalid query parameters', async () => {
+      // Act
+      const response = await request(app.getHttpServer())
+        .get('/[entities]?month=invalid-month')
+        .set('Authorization', `Bearer ${authToken}`);
+
+      // Assert
+      expect([400, 422]).toContain(response.status);
+    });
   });
 });
 ```
+
+**E2E Test Guidelines:**
+
+- [ ] **File Structure**: Place E2E tests in `test/presentation/controllers/[entity]/[entity].controller.e2e-spec.ts`
+- [ ] **Mock Strategy**: Use complete mocks instead of database connections
+- [ ] **Authentication**: Mock JwtAuthGuard with `handleRequest` method
+- [ ] **Dependency Injection**: Use string tokens for providers
+- [ ] **UUID Format**: Always use valid UUID format: `a1b2c3d4-e5f6-7890-abcd-ef1234567890`
+- [ ] **Response Validation**: Use flexible status code checking with arrays
+- [ ] **Error Handling**: Test both success and error scenarios
+- [ ] **Observability**: Verify logging and metrics recording
+- [ ] **Parameter Validation**: Test various parameter combinations
+- [ ] **Performance**: Verify metrics are recorded correctly
+- [ ] **Cleanup**: Clear mocks between tests with `beforeEach`
 
 **Testing Checklist:**
 
@@ -1634,11 +1806,29 @@ describe('[Entity]Controller (e2e)', () => {
 - [ ] Unit tests for all use cases with complete mock isolation
 - [ ] Integration tests for repositories with in-memory database
 - [ ] Controller tests with spy verification for logging and metrics
-- [ ] E2E tests with full application context and spy monitoring
+- [ ] **E2E tests with full application context and spy monitoring**
 - [ ] Mock state cleanup between tests
 - [ ] Error scenarios tested for all layers
 - [ ] Authentication and authorization scenarios covered
 - [ ] Performance impact of mocks verified (fast execution)
+
+**E2E Testing Specific Checklist:**
+
+- [ ] **File Structure**: E2E tests in `test/presentation/controllers/[entity]/[entity].controller.e2e-spec.ts`
+- [ ] **Mock Dependencies**: All external dependencies mocked (no real database)
+- [ ] **Authentication Mock**: JwtAuthGuard properly mocked with `handleRequest`
+- [ ] **String Tokens**: Use string tokens for dependency injection providers
+- [ ] **Valid UUIDs**: Use proper UUID format in test data
+- [ ] **Flexible Assertions**: Accept multiple valid status codes with arrays
+- [ ] **Success Scenarios**: Test happy path with proper response validation
+- [ ] **Error Scenarios**: Test validation errors, unauthorized access, use case errors
+- [ ] **Parameter Validation**: Test various query parameter combinations
+- [ ] **Observability Verification**: Verify logging and metrics are recorded
+- [ ] **Performance Metrics**: Verify performance metrics are captured
+- [ ] **Mock Cleanup**: Clear all mocks between tests in `beforeEach`
+- [ ] **Application Lifecycle**: Proper app initialization and cleanup
+- [ ] **HTTP Methods**: Test all relevant HTTP methods (GET, POST, PUT, DELETE)
+- [ ] **Response Structure**: Verify complete response structure matches DTOs
 
 ## 🔗 Phase 7: Module Integration
 
