@@ -13,6 +13,7 @@ module.exports = {
     '!src/main.ts',
     // Exclude files that don't need testing
     '!src/main/factories/**', // Factories are DI containers
+    '!src/main/config/**', // Simple config files
     '!src/infra/db/typeorm/config/**', // Database configuration
     '!src/infra/db/typeorm/entities/**', // Entities are data structures
     '!src/presentation/dtos/**', // DTOs are data structures
