@@ -66,10 +66,7 @@ export class LoggerSpy {
   }
 
   logSecurityEvent(event: SecurityEvent): void {
-    this.loggedSecurityEvents.push({
-      ...event,
-      timestamp: new Date(),
-    });
+    this.loggedSecurityEvents.push(event);
   }
 
   logPerformanceEvent(event: PerformanceEvent): void {

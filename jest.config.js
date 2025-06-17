@@ -21,7 +21,6 @@ module.exports = {
     '!src/infra/implementations/uuid-generator.ts', // Simple wrapper
     // Exclude unimplemented user stories
     '!src/infra/db/typeorm/repositories/typeorm-category.repository.ts', // Categories not implemented yet
-    '!src/presentation/filters/global-exception.filter.ts', // Global exception handling not implemented yet
     '!src/presentation/interceptors/metrics.interceptor.ts', // Metrics interceptor not implemented yet
     '!src/presentation/strategies/jwt.strategy.ts', // JWT strategy not actively used yet
     // Exclude index.ts files and migrations from coverage

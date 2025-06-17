@@ -14,6 +14,7 @@ export const globalValidation = (
         logger.logSecurityEvent({
           event: 'validation_error',
           severity: 'medium',
+          message: 'Validation failed for request',
           details: errors.map(err => ({
             property: err.property,
             constraints: err.constraints,

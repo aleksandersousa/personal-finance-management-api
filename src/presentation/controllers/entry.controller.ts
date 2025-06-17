@@ -471,10 +471,14 @@ export class EntryController {
       this.logger.logSecurityEvent({
         event: 'entry_api_delete_failed',
         severity: 'medium',
+        message: error.message,
         userId: user.id,
         entityId: id,
         error: error.message,
-        duration,
+        endpoint: `DELETE /entries/${id}`,
+        details: {
+          duration,
+        },
       });
 
       this.metrics.recordTransaction('delete', 'error');
