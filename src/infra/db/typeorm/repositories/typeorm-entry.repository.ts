@@ -279,30 +279,30 @@ export class TypeormEntryRepository implements EntryRepository {
 
       const result = await this.entryRepository
         .createQueryBuilder('entry')
-        .select([
+        .select(
           "SUM(CASE WHEN entry.type = 'INCOME' THEN entry.amount ELSE 0 END)",
           'totalIncome',
-        ])
-        .addSelect([
+        )
+        .addSelect(
           "SUM(CASE WHEN entry.type = 'EXPENSE' THEN entry.amount ELSE 0 END)",
           'totalExpenses',
-        ])
-        .addSelect([
+        )
+        .addSelect(
           "SUM(CASE WHEN entry.type = 'INCOME' AND entry.isFixed = true THEN entry.amount ELSE 0 END)",
           'fixedIncome',
-        ])
-        .addSelect([
+        )
+        .addSelect(
           "SUM(CASE WHEN entry.type = 'INCOME' AND entry.isFixed = false THEN entry.amount ELSE 0 END)",
           'dynamicIncome',
-        ])
-        .addSelect([
+        )
+        .addSelect(
           "SUM(CASE WHEN entry.type = 'EXPENSE' AND entry.isFixed = true THEN entry.amount ELSE 0 END)",
           'fixedExpenses',
-        ])
-        .addSelect([
+        )
+        .addSelect(
           "SUM(CASE WHEN entry.type = 'EXPENSE' AND entry.isFixed = false THEN entry.amount ELSE 0 END)",
           'dynamicExpenses',
-        ])
+        )
         .addSelect('COUNT(*)', 'totalEntries')
         .addSelect(
           "COUNT(CASE WHEN entry.type = 'INCOME' THEN 1 END)",

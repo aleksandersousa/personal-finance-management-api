@@ -703,30 +703,30 @@ describe('TypeormEntryRepository', () => {
       );
 
       expect(mockRepository.createQueryBuilder).toHaveBeenCalledWith('entry');
-      expect(mockQueryBuilder.select).toHaveBeenCalledWith([
+      expect(mockQueryBuilder.select).toHaveBeenCalledWith(
         "SUM(CASE WHEN entry.type = 'INCOME' THEN entry.amount ELSE 0 END)",
         'totalIncome',
-      ]);
-      expect(mockQueryBuilder.addSelect).toHaveBeenCalledWith([
+      );
+      expect(mockQueryBuilder.addSelect).toHaveBeenCalledWith(
         "SUM(CASE WHEN entry.type = 'EXPENSE' THEN entry.amount ELSE 0 END)",
         'totalExpenses',
-      ]);
-      expect(mockQueryBuilder.addSelect).toHaveBeenCalledWith([
+      );
+      expect(mockQueryBuilder.addSelect).toHaveBeenCalledWith(
         "SUM(CASE WHEN entry.type = 'INCOME' AND entry.isFixed = true THEN entry.amount ELSE 0 END)",
         'fixedIncome',
-      ]);
-      expect(mockQueryBuilder.addSelect).toHaveBeenCalledWith([
+      );
+      expect(mockQueryBuilder.addSelect).toHaveBeenCalledWith(
         "SUM(CASE WHEN entry.type = 'INCOME' AND entry.isFixed = false THEN entry.amount ELSE 0 END)",
         'dynamicIncome',
-      ]);
-      expect(mockQueryBuilder.addSelect).toHaveBeenCalledWith([
+      );
+      expect(mockQueryBuilder.addSelect).toHaveBeenCalledWith(
         "SUM(CASE WHEN entry.type = 'EXPENSE' AND entry.isFixed = true THEN entry.amount ELSE 0 END)",
         'fixedExpenses',
-      ]);
-      expect(mockQueryBuilder.addSelect).toHaveBeenCalledWith([
+      );
+      expect(mockQueryBuilder.addSelect).toHaveBeenCalledWith(
         "SUM(CASE WHEN entry.type = 'EXPENSE' AND entry.isFixed = false THEN entry.amount ELSE 0 END)",
         'dynamicExpenses',
-      ]);
+      );
       expect(mockQueryBuilder.addSelect).toHaveBeenCalledWith(
         'COUNT(*)',
         'totalEntries',
