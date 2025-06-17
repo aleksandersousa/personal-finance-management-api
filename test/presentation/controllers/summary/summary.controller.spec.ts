@@ -1,15 +1,13 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { BadRequestException } from '@nestjs/common';
-import { SummaryController } from '../../../../src/presentation/controllers/summary.controller';
-import { GetMonthlySummaryUseCase } from '../../../../src/domain/usecases/get-monthly-summary.usecase';
-import { Logger } from '../../../../src/data/protocols/logger';
-import { Metrics } from '../../../../src/data/protocols/metrics';
+import { SummaryController } from '@presentation/controllers/summary.controller';
+import { GetMonthlySummaryUseCase } from '@domain/usecases/get-monthly-summary.usecase';
+import { Logger } from '@data/protocols/logger';
 
 describe('SummaryController', () => {
   let controller: SummaryController;
   let getMonthlySummaryUseCase: jest.Mocked<GetMonthlySummaryUseCase>;
   let logger: jest.Mocked<Logger>;
-  let metrics: jest.Mocked<Metrics>;
 
   beforeEach(async () => {
     const mockGetMonthlySummaryUseCase = {
@@ -57,7 +55,6 @@ describe('SummaryController', () => {
     controller = module.get<SummaryController>(SummaryController);
     getMonthlySummaryUseCase = module.get('GetMonthlySummaryUseCase');
     logger = module.get('Logger');
-    metrics = module.get('Metrics');
   });
 
   describe('getMonthlySummary', () => {

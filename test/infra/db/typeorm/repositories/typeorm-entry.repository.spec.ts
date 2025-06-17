@@ -652,5 +652,485 @@ describe('TypeormEntryRepository', () => {
         'TypeormEntryRepository',
       );
     });
+
+    it('should handle database errors during soft delete', async () => {
+      const dbError = new Error('Database connection failed');
+      mockRepository.update.mockRejectedValue(dbError);
+
+      await expect(repository.softDelete('entry-1')).rejects.toThrow(
+        'Database connection failed',
+      );
+
+      expect(mockMetrics.recordTransaction).toHaveBeenCalledWith(
+        'delete',
+        'error',
+      );
+      expect(mockLogger.error).toHaveBeenCalledWith(
+        'Failed to soft delete entry entry-1',
+        dbError.stack,
+      );
+    });
+  });
+
+  describe('getMonthlySummaryStats', () => {
+    const mockSummaryStats = {
+      totalIncome: '5000.00',
+      totalExpenses: '3000.00',
+      fixedIncome: '4000.00',
+      dynamicIncome: '1000.00',
+      fixedExpenses: '2000.00',
+      dynamicExpenses: '1000.00',
+      totalEntries: '10',
+      incomeEntries: '4',
+      expenseEntries: '6',
+    };
+
+    beforeEach(() => {
+      jest.spyOn(Date, 'now').mockReturnValue(1234567890);
+    });
+
+    afterEach(() => {
+      jest.restoreAllMocks();
+    });
+
+    it('should get monthly summary stats successfully', async () => {
+      mockQueryBuilder.getRawOne.mockResolvedValue(mockSummaryStats);
+
+      const result = await repository.getMonthlySummaryStats(
+        'user-123',
+        2024,
+        1,
+      );
+
+      expect(mockRepository.createQueryBuilder).toHaveBeenCalledWith('entry');
+      expect(mockQueryBuilder.select).toHaveBeenCalledWith([
+        "SUM(CASE WHEN entry.type = 'INCOME' THEN entry.amount ELSE 0 END)",
+        'totalIncome',
+      ]);
+      expect(mockQueryBuilder.addSelect).toHaveBeenCalledWith([
+        "SUM(CASE WHEN entry.type = 'EXPENSE' THEN entry.amount ELSE 0 END)",
+        'totalExpenses',
+      ]);
+      expect(mockQueryBuilder.addSelect).toHaveBeenCalledWith([
+        "SUM(CASE WHEN entry.type = 'INCOME' AND entry.isFixed = true THEN entry.amount ELSE 0 END)",
+        'fixedIncome',
+      ]);
+      expect(mockQueryBuilder.addSelect).toHaveBeenCalledWith([
+        "SUM(CASE WHEN entry.type = 'INCOME' AND entry.isFixed = false THEN entry.amount ELSE 0 END)",
+        'dynamicIncome',
+      ]);
+      expect(mockQueryBuilder.addSelect).toHaveBeenCalledWith([
+        "SUM(CASE WHEN entry.type = 'EXPENSE' AND entry.isFixed = true THEN entry.amount ELSE 0 END)",
+        'fixedExpenses',
+      ]);
+      expect(mockQueryBuilder.addSelect).toHaveBeenCalledWith([
+        "SUM(CASE WHEN entry.type = 'EXPENSE' AND entry.isFixed = false THEN entry.amount ELSE 0 END)",
+        'dynamicExpenses',
+      ]);
+      expect(mockQueryBuilder.addSelect).toHaveBeenCalledWith(
+        'COUNT(*)',
+        'totalEntries',
+      );
+      expect(mockQueryBuilder.addSelect).toHaveBeenCalledWith(
+        "COUNT(CASE WHEN entry.type = 'INCOME' THEN 1 END)",
+        'incomeEntries',
+      );
+      expect(mockQueryBuilder.addSelect).toHaveBeenCalledWith(
+        "COUNT(CASE WHEN entry.type = 'EXPENSE' THEN 1 END)",
+        'expenseEntries',
+      );
+
+      expect(mockQueryBuilder.where).toHaveBeenCalledWith(
+        'entry.userId = :userId',
+        { userId: 'user-123' },
+      );
+      expect(mockQueryBuilder.andWhere).toHaveBeenCalledWith(
+        'entry.date >= :startDate',
+        { startDate: new Date(2024, 0, 1) },
+      );
+      expect(mockQueryBuilder.andWhere).toHaveBeenCalledWith(
+        'entry.date <= :endDate',
+        { endDate: new Date(2024, 1, 0, 23, 59, 59) },
+      );
+      expect(mockQueryBuilder.andWhere).toHaveBeenCalledWith(
+        'entry.deletedAt IS NULL',
+      );
+
+      expect(result).toEqual({
+        totalIncome: 5000,
+        totalExpenses: 3000,
+        fixedIncome: 4000,
+        dynamicIncome: 1000,
+        fixedExpenses: 2000,
+        dynamicExpenses: 1000,
+        totalEntries: 10,
+        incomeEntries: 4,
+        expenseEntries: 6,
+      });
+
+      // Verify business event logging
+      expect(mockLogger.logBusinessEvent).toHaveBeenCalledWith({
+        event: 'monthly_summary_stats_calculated',
+        userId: 'user-123',
+        metadata: {
+          year: 2024,
+          month: 1,
+          duration: 0, // Date.now() - startTime mocked to return 0
+        },
+      });
+
+      // Verify metrics recording
+      expect(mockMetrics.recordTransaction).toHaveBeenCalledWith(
+        'get_monthly_summary_stats',
+        'success',
+      );
+    });
+
+    it('should handle null values in summary stats', async () => {
+      mockQueryBuilder.getRawOne.mockResolvedValue({
+        totalIncome: null,
+        totalExpenses: null,
+        fixedIncome: null,
+        dynamicIncome: null,
+        fixedExpenses: null,
+        dynamicExpenses: null,
+        totalEntries: null,
+        incomeEntries: null,
+        expenseEntries: null,
+      });
+
+      const result = await repository.getMonthlySummaryStats(
+        'user-123',
+        2024,
+        1,
+      );
+
+      expect(result).toEqual({
+        totalIncome: 0,
+        totalExpenses: 0,
+        fixedIncome: 0,
+        dynamicIncome: 0,
+        fixedExpenses: 0,
+        dynamicExpenses: 0,
+        totalEntries: 0,
+        incomeEntries: 0,
+        expenseEntries: 0,
+      });
+    });
+
+    it('should handle undefined result from query', async () => {
+      mockQueryBuilder.getRawOne.mockResolvedValue(undefined);
+
+      const result = await repository.getMonthlySummaryStats(
+        'user-123',
+        2024,
+        1,
+      );
+
+      expect(result).toEqual({
+        totalIncome: 0,
+        totalExpenses: 0,
+        fixedIncome: 0,
+        dynamicIncome: 0,
+        fixedExpenses: 0,
+        dynamicExpenses: 0,
+        totalEntries: 0,
+        incomeEntries: 0,
+        expenseEntries: 0,
+      });
+    });
+
+    it('should handle database errors during getMonthlySummaryStats', async () => {
+      const dbError = new Error('Database query failed');
+      mockQueryBuilder.getRawOne.mockRejectedValue(dbError);
+
+      await expect(
+        repository.getMonthlySummaryStats('user-123', 2024, 1),
+      ).rejects.toThrow('Database query failed');
+
+      expect(mockLogger.error).toHaveBeenCalledWith(
+        'Failed to get monthly summary stats for user user-123',
+        dbError.stack,
+      );
+      expect(mockMetrics.recordApiError).toHaveBeenCalledWith(
+        'get_monthly_summary_stats',
+        'Database query failed',
+      );
+    });
+
+    it('should calculate correct date range for different months', async () => {
+      mockQueryBuilder.getRawOne.mockResolvedValue(mockSummaryStats);
+
+      // Test February 2024 (leap year)
+      await repository.getMonthlySummaryStats('user-123', 2024, 2);
+
+      expect(mockQueryBuilder.andWhere).toHaveBeenCalledWith(
+        'entry.date >= :startDate',
+        { startDate: new Date(2024, 1, 1) }, // February 1st
+      );
+      expect(mockQueryBuilder.andWhere).toHaveBeenCalledWith(
+        'entry.date <= :endDate',
+        { endDate: new Date(2024, 2, 0, 23, 59, 59) }, // February 29th (leap year)
+      );
+    });
+
+    it('should calculate correct date range for December', async () => {
+      mockQueryBuilder.getRawOne.mockResolvedValue(mockSummaryStats);
+
+      await repository.getMonthlySummaryStats('user-123', 2024, 12);
+
+      expect(mockQueryBuilder.andWhere).toHaveBeenCalledWith(
+        'entry.date >= :startDate',
+        { startDate: new Date(2024, 11, 1) }, // December 1st
+      );
+      expect(mockQueryBuilder.andWhere).toHaveBeenCalledWith(
+        'entry.date <= :endDate',
+        { endDate: new Date(2024, 12, 0, 23, 59, 59) }, // December 31st
+      );
+    });
+  });
+
+  describe('getCategorySummaryForMonth', () => {
+    const mockCategorySummaryResults = [
+      {
+        entry_categoryId: 'category-1',
+        category_name: 'Food',
+        entry_type: 'EXPENSE',
+        sum: '1500.00',
+        count: '5',
+      },
+      {
+        entry_categoryId: 'category-2',
+        category_name: 'Salary',
+        entry_type: 'INCOME',
+        sum: '5000.00',
+        count: '1',
+      },
+      {
+        entry_categoryId: 'category-3',
+        category_name: null, // Test null category name
+        entry_type: 'EXPENSE',
+        sum: '500.00',
+        count: '2',
+      },
+    ];
+
+    beforeEach(() => {
+      jest.spyOn(Date, 'now').mockReturnValue(1234567890);
+      mockQueryBuilder.leftJoin = jest.fn().mockReturnThis();
+      mockQueryBuilder.groupBy = jest.fn().mockReturnThis();
+      mockQueryBuilder.getRawMany = jest.fn();
+    });
+
+    afterEach(() => {
+      jest.restoreAllMocks();
+    });
+
+    it('should get category summary for month successfully', async () => {
+      mockQueryBuilder.getRawMany.mockResolvedValue(mockCategorySummaryResults);
+
+      const result = await repository.getCategorySummaryForMonth(
+        'user-123',
+        2024,
+        1,
+      );
+
+      expect(mockRepository.createQueryBuilder).toHaveBeenCalledWith('entry');
+      expect(mockQueryBuilder.leftJoin).toHaveBeenCalledWith(
+        'entry.category',
+        'category',
+      );
+      expect(mockQueryBuilder.select).toHaveBeenCalledWith([
+        'entry.categoryId',
+        'category.name',
+        'entry.type',
+        'SUM(entry.amount)',
+        'COUNT(*)',
+      ]);
+
+      expect(mockQueryBuilder.where).toHaveBeenCalledWith(
+        'entry.userId = :userId',
+        { userId: 'user-123' },
+      );
+      expect(mockQueryBuilder.andWhere).toHaveBeenCalledWith(
+        'entry.date >= :startDate',
+        { startDate: new Date(2024, 0, 1) },
+      );
+      expect(mockQueryBuilder.andWhere).toHaveBeenCalledWith(
+        'entry.date <= :endDate',
+        { endDate: new Date(2024, 1, 0, 23, 59, 59) },
+      );
+      expect(mockQueryBuilder.andWhere).toHaveBeenCalledWith(
+        'entry.deletedAt IS NULL',
+      );
+      expect(mockQueryBuilder.andWhere).toHaveBeenCalledWith(
+        'entry.categoryId IS NOT NULL',
+      );
+      expect(mockQueryBuilder.groupBy).toHaveBeenCalledWith(
+        'entry.categoryId, category.name, entry.type',
+      );
+      expect(mockQueryBuilder.orderBy).toHaveBeenCalledWith(
+        'SUM(entry.amount)',
+        'DESC',
+      );
+
+      expect(result).toEqual([
+        {
+          categoryId: 'category-1',
+          categoryName: 'Food',
+          type: 'EXPENSE',
+          total: 1500,
+          count: 5,
+        },
+        {
+          categoryId: 'category-2',
+          categoryName: 'Salary',
+          type: 'INCOME',
+          total: 5000,
+          count: 1,
+        },
+        {
+          categoryId: 'category-3',
+          categoryName: 'Unknown Category', // Should default to 'Unknown Category'
+          type: 'EXPENSE',
+          total: 500,
+          count: 2,
+        },
+      ]);
+
+      // Verify business event logging
+      expect(mockLogger.logBusinessEvent).toHaveBeenCalledWith({
+        event: 'category_summary_calculated',
+        userId: 'user-123',
+        metadata: {
+          year: 2024,
+          month: 1,
+          categoriesCount: 3,
+          duration: 0, // Date.now() - startTime mocked to return 0
+        },
+      });
+
+      // Verify metrics recording
+      expect(mockMetrics.recordTransaction).toHaveBeenCalledWith(
+        'get_category_summary',
+        'success',
+      );
+    });
+
+    it('should handle empty results', async () => {
+      mockQueryBuilder.getRawMany.mockResolvedValue([]);
+
+      const result = await repository.getCategorySummaryForMonth(
+        'user-123',
+        2024,
+        1,
+      );
+
+      expect(result).toEqual([]);
+
+      // Verify business event logging with zero categories
+      expect(mockLogger.logBusinessEvent).toHaveBeenCalledWith({
+        event: 'category_summary_calculated',
+        userId: 'user-123',
+        metadata: {
+          year: 2024,
+          month: 1,
+          categoriesCount: 0,
+          duration: 0,
+        },
+      });
+    });
+
+    it('should handle null values in result data', async () => {
+      const resultsWithNulls = [
+        {
+          entry_categoryId: 'category-1',
+          category_name: 'Food',
+          entry_type: 'EXPENSE',
+          sum: null, // null sum
+          count: null, // null count
+        },
+      ];
+      mockQueryBuilder.getRawMany.mockResolvedValue(resultsWithNulls);
+
+      const result = await repository.getCategorySummaryForMonth(
+        'user-123',
+        2024,
+        1,
+      );
+
+      expect(result).toEqual([
+        {
+          categoryId: 'category-1',
+          categoryName: 'Food',
+          type: 'EXPENSE',
+          total: 0, // Should convert null to 0
+          count: 0, // Should convert null to 0
+        },
+      ]);
+    });
+
+    it('should handle database errors during getCategorySummaryForMonth', async () => {
+      const dbError = new Error('Database query failed');
+      mockQueryBuilder.getRawMany.mockRejectedValue(dbError);
+
+      await expect(
+        repository.getCategorySummaryForMonth('user-123', 2024, 1),
+      ).rejects.toThrow('Database query failed');
+
+      expect(mockLogger.error).toHaveBeenCalledWith(
+        'Failed to get category summary for user user-123',
+        dbError.stack,
+      );
+      expect(mockMetrics.recordApiError).toHaveBeenCalledWith(
+        'get_category_summary',
+        'Database query failed',
+      );
+    });
+
+    it('should calculate correct date range for different months', async () => {
+      mockQueryBuilder.getRawMany.mockResolvedValue([]);
+
+      // Test June 2024
+      await repository.getCategorySummaryForMonth('user-123', 2024, 6);
+
+      expect(mockQueryBuilder.andWhere).toHaveBeenCalledWith(
+        'entry.date >= :startDate',
+        { startDate: new Date(2024, 5, 1) }, // June 1st
+      );
+      expect(mockQueryBuilder.andWhere).toHaveBeenCalledWith(
+        'entry.date <= :endDate',
+        { endDate: new Date(2024, 6, 0, 23, 59, 59) }, // June 30th
+      );
+    });
+
+    it('should handle undefined sum and count values', async () => {
+      const resultsWithUndefined = [
+        {
+          entry_categoryId: 'category-1',
+          category_name: 'Food',
+          entry_type: 'EXPENSE',
+          sum: undefined,
+          count: undefined,
+        },
+      ];
+      mockQueryBuilder.getRawMany.mockResolvedValue(resultsWithUndefined);
+
+      const result = await repository.getCategorySummaryForMonth(
+        'user-123',
+        2024,
+        1,
+      );
+
+      expect(result).toEqual([
+        {
+          categoryId: 'category-1',
+          categoryName: 'Food',
+          type: 'EXPENSE',
+          total: 0, // Should convert undefined to 0
+          count: 0, // Should convert undefined to 0
+        },
+      ]);
+    });
   });
 });

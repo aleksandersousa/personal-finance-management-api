@@ -117,6 +117,21 @@ export class SummaryController {
 
       const duration = Date.now() - startTime;
 
+      // Log business event
+      this.logger.logBusinessEvent({
+        event: 'monthly_summary_generated',
+        userId: user.id,
+        metadata: {
+          year,
+          month: monthNumber,
+          includeCategories: shouldIncludeCategories,
+          duration,
+        },
+      });
+
+      // Record metrics
+      this.metrics.recordHttpRequest('GET', '/summary', 200, duration);
+
       this.logger.log(
         `Monthly summary generated successfully in ${duration}ms`,
         'SummaryController',
