@@ -18,7 +18,7 @@ declare global {
 export class TraceContextMiddleware implements NestMiddleware {
   use(req: Request, res: Response, next: NextFunction): void {
     // Generate or preserve traceId from headers
-    const traceId = (req.headers['x-trace-id'] as string) || randomUUID();
+    const traceId = (req.headers?.['x-trace-id'] as string) || randomUUID();
     const spanId = randomUUID().split('-')[0];
 
     // Set trace context on request
