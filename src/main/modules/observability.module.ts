@@ -22,6 +22,7 @@ import { MetricsController } from '../../presentation/controllers/metrics.contro
     },
     ContextAwareLoggerService,
     FinancialMetricsService,
+    MetricsInterceptor,
     {
       provide: APP_INTERCEPTOR,
       useClass: MetricsInterceptor,
@@ -34,6 +35,7 @@ import { MetricsController } from '../../presentation/controllers/metrics.contro
     'Metrics',
     ContextAwareLoggerService,
     FinancialMetricsService,
+    MetricsInterceptor,
   ],
 })
 export class ObservabilityModule {}

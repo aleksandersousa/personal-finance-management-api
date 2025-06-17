@@ -3,15 +3,16 @@ import {
   ExecutionContext,
   Injectable,
   NestInterceptor,
+  Inject,
 } from '@nestjs/common';
 import { Observable } from 'rxjs';
 import { tap } from 'rxjs/operators';
 import { Request, Response } from 'express';
-import { FinancialMetricsService } from '../../infra/metrics/financial-metrics.service';
+import type { Metrics } from '@/data/protocols';
 
 @Injectable()
 export class MetricsInterceptor implements NestInterceptor {
-  constructor(private readonly metricsService: FinancialMetricsService) {}
+  constructor(@Inject('Metrics') private readonly metricsService: Metrics) {}
 
   intercept(context: ExecutionContext, next: CallHandler): Observable<any> {
     const req = context.switchToHttp().getRequest<Request>();
