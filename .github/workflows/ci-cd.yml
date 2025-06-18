@@ -266,27 +266,41 @@ jobs:
               console.log('Error processing vulnerability report:', error);
             }
 
+  build-and-scan:
+    name: 🏗️ Build & Security Scan Docker Image
+    runs-on: ubuntu-latest
+    needs: [test]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+      - name: Build Docker image
+        run: docker build -t myapp:ci-test -f .docker/Dockerfile.prod .
+      - name: Run Trivy scan
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: 'myapp:ci-test'
+          format: 'table'
+          exit-code: '1'
+
   # 🚀 Deploy to Staging
   deploy-staging:
     name: 🚀 Deploy to Staging
     runs-on: ubuntu-latest
-    needs: [test, security-scan]
+    needs: [build-and-scan]
     if: |
       always() && 
-      needs.test.result == 'success' && 
-      (needs.security-scan.result == 'success' || needs.security-scan.result == 'skipped') &&
+      needs.build-and-scan.result == 'success' &&
       (github.ref == 'refs/heads/staging' || 
        (github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'staging'))
-
     environment:
       name: staging
-
     steps:
       - name: 📥 Checkout code
         uses: actions/checkout@v4
       - uses: superfly/flyctl-actions/setup-flyctl@master
       - name: 🚀 Deploy to Fly.io Staging
-        run: flyctl deploy --config fly.dev.toml --remote-only
+        run: flyctl deploy --config fly.staging.toml --remote-only
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN_STAGING }}
       - name: 🔍 Health Check
@@ -304,17 +318,14 @@ jobs:
   deploy-production:
     name: 🚀 Deploy to Production
     runs-on: ubuntu-latest
-    needs: [test, security-scan]
+    needs: [build-and-scan]
     if: |
       always() && 
-      needs.test.result == 'success' && 
-      needs.security-scan.result == 'success' &&
+      needs.build-and-scan.result == 'success' &&
       (github.ref == 'refs/heads/main' || 
        (github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'production'))
-
     environment:
       name: production
-
     steps:
       - name: 📥 Checkout code
         uses: actions/checkout@v4
@@ -337,23 +348,3 @@ jobs:
         run: |
           echo "🎉 Production deployment completed successfully!"
           echo "🚀 Application is now live!"
-
-  # 📊 Post-Deployment Monitoring
-  post-deployment:
-    name: 📊 Post-Deployment Monitoring
-    runs-on: ubuntu-latest
-    needs: [deploy-staging, deploy-production]
-    if: always() && (needs.deploy-staging.result == 'success' || needs.deploy-production.result == 'success')
-
-    steps:
-      - name: 📊 Setup monitoring alerts
-        run: |
-          echo "📊 Setting up post-deployment monitoring..."
-          # Aqui será implementado o setup de monitoring real
-          echo "✅ Monitoring alerts configured!"
-
-      - name: 📈 Performance baseline
-        run: |
-          echo "📈 Establishing performance baseline..."
-          # Aqui será implementado o baseline de performance
-          echo "✅ Performance baseline established!"
