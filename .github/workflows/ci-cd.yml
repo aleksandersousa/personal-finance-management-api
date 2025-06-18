@@ -135,151 +135,88 @@ jobs:
           PORT: 3001
 
       - name: 📈 Upload coverage reports
-        uses: codecov/codecov-action@v3
+        uses: codecov/codecov-action@v4
         with:
           file: ./coverage/lcov.info
           flags: unittests
           name: codecov-umbrella
           fail_ci_if_error: false
+          token: ${{ secrets.CODECOV_TOKEN }}
 
-  # 🛡️ Security Scan
-  security-scan:
-    name: 🛡️ Security Scan
+      - name: 📦 Cache dist folder
+        uses: actions/cache@v4
+        with:
+          path: dist
+          key: dist-${{ github.sha }}
+          restore-keys: |
+            dist-
+
+  # 🛡️ Security Scan & Build
+  build-and-scan:
+    name: 🏗️ Build & Security Scan Docker Image
     runs-on: ubuntu-latest
-    needs: [build]
-    if: always() && needs.build.result == 'success'
+    needs: [test]
+    if: always() && needs.test.result == 'success'
+
+    outputs:
+      image-digest: ${{ steps.build.outputs.digest }}
+      image-tag: ${{ steps.meta.outputs.tags }}
 
     steps:
       - name: 📥 Checkout code
         uses: actions/checkout@v4
 
-      - name: 🔍 Extract primary image tag
-        id: extract-tag
-        run: |
-          # Extract the first tag from the multi-line output
-          PRIMARY_TAG=$(echo "${{ needs.build.outputs.image-tag }}" | head -n1)
-          echo "primary-tag=$PRIMARY_TAG" >> $GITHUB_OUTPUT
-          echo "🏷️ Primary tag for scanning: $PRIMARY_TAG"
-
-      - name: 🛡️ Run Trivy vulnerability scanner (Table format)
-        run: |
-          echo "🔍 Running Trivy security scan..."
-          docker run --rm \
-            -v /var/run/docker.sock:/var/run/docker.sock \
-            aquasec/trivy:latest image \
-            --severity HIGH,CRITICAL \
-            --format table \
-            --exit-code 0 \
-            ${{ steps.extract-tag.outputs.primary-tag }} || echo "⚠️ Trivy scan completed with warnings"
-
-      - name: 🛡️ Run Trivy vulnerability scanner (JSON format)
-        run: |
-          echo "📊 Generating detailed vulnerability report..."
-          docker run --rm \
-            -v /var/run/docker.sock:/var/run/docker.sock \
-            -v ${{ github.workspace }}:/workspace \
-            aquasec/trivy:latest image \
-            --severity HIGH,CRITICAL \
-            --format json \
-            --output /workspace/trivy-results.json \
-            --exit-code 0 \
-            ${{ steps.extract-tag.outputs.primary-tag }} || echo "⚠️ JSON report generation completed with warnings"
-
-      - name: 📋 Process vulnerability results
-        if: always()
-        run: |
-          echo "🛡️ Security scan completed"
-
-          if [ -f "trivy-results.json" ]; then
-            echo "✅ Vulnerability report generated successfully"
-            echo "📊 Report size: $(du -h trivy-results.json | cut -f1)"
-            
-            # Count vulnerabilities by severity
-            HIGH_COUNT=$(jq '[.Results[]?.Vulnerabilities[]? | select(.Severity == "HIGH")] | length' trivy-results.json 2>/dev/null || echo "0")
-            CRITICAL_COUNT=$(jq '[.Results[]?.Vulnerabilities[]? | select(.Severity == "CRITICAL")] | length' trivy-results.json 2>/dev/null || echo "0")
-            
-            echo "🔴 Critical vulnerabilities: $CRITICAL_COUNT"
-            echo "🟠 High vulnerabilities: $HIGH_COUNT"
-            
-            # Set outputs for other jobs
-            echo "critical-count=$CRITICAL_COUNT" >> $GITHUB_OUTPUT
-            echo "high-count=$HIGH_COUNT" >> $GITHUB_OUTPUT
-            
-            if [ "$CRITICAL_COUNT" -gt 0 ]; then
-              echo "⚠️ Critical vulnerabilities found! Review recommended."
-            fi
-          else
-            echo "⚠️ No vulnerability report generated"
-          fi
-
-      - name: 📤 Upload vulnerability report as artifact
-        if: always() && hashFiles('trivy-results.json') != ''
-        uses: actions/upload-artifact@v4
-        with:
-          name: trivy-vulnerability-report
-          path: trivy-results.json
-          retention-days: 30
-
-      - name: 💬 Comment vulnerability summary (PR only)
-        if: github.event_name == 'pull_request' && hashFiles('trivy-results.json') != ''
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const fs = require('fs');
-
-            try {
-              const report = JSON.parse(fs.readFileSync('trivy-results.json', 'utf8'));
-              let criticalCount = 0;
-              let highCount = 0;
-              
-              if (report.Results) {
-                report.Results.forEach(result => {
-                  if (result.Vulnerabilities) {
-                    result.Vulnerabilities.forEach(vuln => {
-                      if (vuln.Severity === 'CRITICAL') criticalCount++;
-                      if (vuln.Severity === 'HIGH') highCount++;
-                    });
-                  }
-                });
-              }
-              
-              const body = `## 🛡️ Security Scan Results
-              
-              **Image:** \`${{ steps.extract-tag.outputs.primary-tag }}\`
-              
-              | Severity | Count |
-              |----------|-------|
-              | 🔴 Critical | ${criticalCount} |
-              | 🟠 High | ${highCount} |
-              
-              ${criticalCount > 0 ? '⚠️ **Critical vulnerabilities found!** Please review and address before merging.' : '✅ No critical vulnerabilities found.'}
-              
-              📊 Full report available in the workflow artifacts.`;
-              
-              github.rest.issues.createComment({
-                issue_number: context.issue.number,
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                body: body
-              });
-            } catch (error) {
-              console.log('Error processing vulnerability report:', error);
-            }
-
-  build-and-scan:
-    name: 🏗️ Build & Security Scan Docker Image
-    runs-on: ubuntu-latest
-    needs: [test]
-    steps:
-      - uses: actions/checkout@v4
-      - name: Set up Docker Buildx
+      - name: 🔧 Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
-      - name: Build Docker image
-        run: docker build -t myapp:ci-test -f .docker/Dockerfile.prod .
-      - name: Run Trivy scan
+
+      - name: 🏷️ Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ github.repository }}
+          tags: |
+            type=ref,event=branch
+            type=ref,event=pr
+            type=sha,prefix={{branch}}-
+            type=raw,value=latest,enable={{is_default_branch}}
+
+      - name: 🔐 Log in to Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: 🏗️ Build Docker image
+        id: build
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: .docker/Dockerfile.prod
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          platforms: linux/amd64
+
+      - name: 🛡️ Run Trivy security scan
         uses: aquasecurity/trivy-action@master
         with:
-          image-ref: 'myapp:ci-test'
+          image-ref: ${{ steps.meta.outputs.tags }}
+          format: 'sarif'
+          output: 'trivy-results.sarif'
+
+      - name: 📊 Upload Trivy scan results
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: 'trivy-results.sarif'
+
+      - name: 🛡️ Run Trivy scan (table format for logs)
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: ${{ steps.meta.outputs.tags }}
           format: 'table'
           exit-code: '1'
 
@@ -295,23 +232,49 @@ jobs:
        (github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'staging'))
     environment:
       name: staging
+      url: https://api-staging-financial-app.fly.dev
+
     steps:
       - name: 📥 Checkout code
         uses: actions/checkout@v4
-      - uses: superfly/flyctl-actions/setup-flyctl@master
+
+      - name: 🔧 Setup Flyctl
+        uses: superfly/flyctl-actions/setup-flyctl@master
+
       - name: 🚀 Deploy to Fly.io Staging
-        run: flyctl deploy --config fly.staging.toml --remote-only
+        run: flyctl deploy --config fly.dev.toml --remote-only
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN_STAGING }}
+
+      - name: ⏳ Wait for deployment
+        run: sleep 30
+
       - name: 🔍 Health Check
         run: |
           echo "🔍 Running health checks..."
-          # Aqui será implementado o health check real
-          echo "✅ Health checks passed!"
+          max_attempts=10
+          attempt=1
+
+          while [ $attempt -le $max_attempts ]; do
+            if curl -f --max-time 30 https://api-staging-financial-app.fly.dev/api/v1/health; then
+              echo "✅ Health check passed!"
+              break
+            else
+              echo "❌ Health check failed (attempt $attempt/$max_attempts)"
+              if [ $attempt -eq $max_attempts ]; then
+                echo "🚨 Health check failed after $max_attempts attempts"
+                exit 1
+              fi
+              sleep 10
+              attempt=$((attempt + 1))
+            fi
+          done
+
       - name: 🧪 Run smoke tests
         run: |
           echo "🧪 Running smoke tests on staging..."
-          # Aqui serão implementados os smoke tests reais
+          # Basic API availability test
+          curl -f --max-time 30 https://api-staging-financial-app.fly.dev/api/v1/health
           echo "✅ Smoke tests passed!"
 
   # 🚀 Deploy to Production
@@ -326,25 +289,53 @@ jobs:
        (github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'production'))
     environment:
       name: production
+      url: https://api-financial-app.fly.dev
+
     steps:
       - name: 📥 Checkout code
         uses: actions/checkout@v4
-      - uses: superfly/flyctl-actions/setup-flyctl@master
+
+      - name: 🔧 Setup Flyctl
+        uses: superfly/flyctl-actions/setup-flyctl@master
+
       - name: 🚀 Deploy to Fly.io Production
         run: flyctl deploy --config fly.prod.toml --remote-only
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN_PROD }}
+
+      - name: ⏳ Wait for deployment
+        run: sleep 30
+
       - name: 🔍 Health Check
         run: |
           echo "🔍 Running health checks..."
-          # Aqui será implementado o health check real
-          echo "✅ Health checks passed!"
+          max_attempts=10
+          attempt=1
+
+          while [ $attempt -le $max_attempts ]; do
+            if curl -f --max-time 30 https://api-financial-app.fly.dev/api/v1/health; then
+              echo "✅ Health check passed!"
+              break
+            else
+              echo "❌ Health check failed (attempt $attempt/$max_attempts)"
+              if [ $attempt -eq $max_attempts ]; then
+                echo "🚨 Health check failed after $max_attempts attempts"
+                exit 1
+              fi
+              sleep 10
+              attempt=$((attempt + 1))
+            fi
+          done
+
       - name: 🧪 Run smoke tests
         run: |
           echo "🧪 Running smoke tests on production..."
-          # Aqui serão implementados os smoke tests reais
+          # Basic API availability test
+          curl -f --max-time 30 https://api-financial-app.fly.dev/api/v1/health
           echo "✅ Smoke tests passed!"
+
       - name: 🔔 Notify deployment success
         run: |
           echo "🎉 Production deployment completed successfully!"
           echo "🚀 Application is now live!"
+          echo "📊 Monitor the application at: https://api-financial-app.fly.dev/api/v1/health"

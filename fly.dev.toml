@@ -1,4 +1,4 @@
-# fly.staging.toml - Fly.io config para ambiente de staging
+# fly.dev.toml - Fly.io config para ambiente de staging
 app = 'api-dev-financial-app'
 primary_region = 'gru'
 
@@ -17,3 +17,14 @@ primary_region = 'gru'
   memory = '1gb'
   cpu_kind = 'shared'
   cpus = 1
+
+# Configurações específicas para staging
+[experimental]
+  auto_rollback = true
+
+[deploy]
+  release_command = "echo 'Staging deployment starting...'"
+  
+[metrics]
+  port = 9091
+  path = "/metrics" 
