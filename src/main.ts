@@ -15,10 +15,16 @@ import {
 } from './main/config';
 
 async function bootstrap() {
-  // Create logs directory if it doesn't exist
+  // Create logs directory if it doesn't exist (handle permission errors gracefully)
   const logsDir = path.join(process.cwd(), 'logs');
-  if (!fs.existsSync(logsDir)) {
-    fs.mkdirSync(logsDir, { recursive: true });
+  try {
+    if (!fs.existsSync(logsDir)) {
+      fs.mkdirSync(logsDir, { recursive: true });
+    }
+  } catch (error) {
+    console.warn(
+      `Unable to create logs directory: ${error.message}. This is normal when running in a container with pre-created directories.`,
+    );
   }
 
   // Create app with custom logger

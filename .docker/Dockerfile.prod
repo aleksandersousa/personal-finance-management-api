@@ -72,6 +72,10 @@ RUN (yarn config set network-timeout 300000 && \
 # Copia apenas arquivos necessários do estágio de build
 COPY --from=builder --chown=appuser:appgroup /app/dist ./dist
 
+# Create logs directory and set permissions
+RUN mkdir -p /app/logs && \
+  chown -R appuser:appgroup /app/logs
+
 # Reduz superfície de ataque executando como usuário não-root
 USER appuser
 
