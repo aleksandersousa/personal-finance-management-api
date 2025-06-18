@@ -58,6 +58,13 @@ export interface CategorySummaryItem {
   count: number;
 }
 
+export interface FixedEntriesSummary {
+  fixedIncome: number;
+  fixedExpenses: number;
+  fixedNetFlow: number;
+  entriesCount: number;
+}
+
 export interface EntryRepository {
   create(data: CreateEntryData): Promise<EntryModel>;
   findById(id: string): Promise<EntryModel | null>;
@@ -80,6 +87,8 @@ export interface EntryRepository {
     year: number,
     month: number,
   ): Promise<CategorySummaryItem[]>;
+  getFixedEntriesSummary(userId: string): Promise<FixedEntriesSummary>;
+  getCurrentBalance(userId: string): Promise<number>;
   update(id: string, data: UpdateEntryData): Promise<EntryModel>;
   delete(id: string): Promise<void>;
   softDelete(id: string): Promise<Date>;

@@ -12,13 +12,21 @@ export interface BusinessEvent {
 export interface SecurityEvent {
   event: string;
   severity: 'low' | 'medium' | 'high' | 'critical';
+  statusCode?: number;
+  message: string;
+  endpoint?: string;
+  userAgent?: string;
+  clientIp?: string;
+  traceId?: string;
+  spanId?: string;
   userId?: string;
   entityId?: string;
-  traceId?: string;
-  clientIp?: string;
-  userAgent?: string;
   error?: string;
-  [key: string]: any;
+  details?: {
+    exceptionType?: string;
+    stack?: string;
+    [key: string]: any;
+  };
 }
 
 export interface PerformanceEvent {
@@ -38,4 +46,9 @@ export interface Logger {
   logBusinessEvent(event: BusinessEvent): void;
   logSecurityEvent(event: SecurityEvent): void;
   logPerformanceEvent?(event: PerformanceEvent): void;
+}
+
+export interface LoggerProtocol {
+  error(message: string, stack?: string, context?: string): void;
+  logSecurityEvent(event: SecurityEvent): void;
 }

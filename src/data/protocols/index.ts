@@ -6,3 +6,4 @@ export * from './entry-repository';
 export * from './category-repository';
 export * from './logger';
 export * from './metrics';
+export * from './cache';

@@ -13,6 +13,7 @@ module.exports = {
     '!src/main.ts',
     // Exclude files that don't need testing
     '!src/main/factories/**', // Factories are DI containers
+    '!src/main/config/**', // Simple config files
     '!src/infra/db/typeorm/config/**', // Database configuration
     '!src/infra/db/typeorm/entities/**', // Entities are data structures
     '!src/presentation/dtos/**', // DTOs are data structures
@@ -20,10 +21,6 @@ module.exports = {
     '!src/infra/implementations/uuid-generator.ts', // Simple wrapper
     // Exclude unimplemented user stories
     '!src/infra/db/typeorm/repositories/typeorm-category.repository.ts', // Categories not implemented yet
-    '!src/infra/middleware/trace-context.middleware.ts', // Tracing not implemented yet
-    '!src/presentation/filters/global-exception.filter.ts', // Global exception handling not implemented yet
-    '!src/presentation/interceptors/metrics.interceptor.ts', // Metrics interceptor not implemented yet
-    '!src/presentation/strategies/jwt.strategy.ts', // JWT strategy not actively used yet
     // Exclude index.ts files and migrations from coverage
     '!src/**/index.ts', // Index files are just re-exports
     '!src/infra/db/typeorm/migrations/**', // Migrations are database schema changes

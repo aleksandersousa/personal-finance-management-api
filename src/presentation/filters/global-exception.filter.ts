@@ -6,16 +6,19 @@ import {
   HttpStatus,
   Injectable,
   Logger,
+  Inject,
 } from '@nestjs/common';
 import { Request, Response } from 'express';
-import { ContextAwareLoggerService } from '../../infra/logging/context-aware-logger.service';
+import { LoggerProtocol } from '@data/protocols/logger';
 
 @Catch()
 @Injectable()
 export class GlobalExceptionFilter implements ExceptionFilter {
   private readonly defaultLogger = new Logger(GlobalExceptionFilter.name);
 
-  constructor(private readonly customLogger?: ContextAwareLoggerService) {}
+  constructor(
+    @Inject('Logger') private readonly customLogger?: LoggerProtocol,
+  ) {}
 
   catch(exception: unknown, host: ArgumentsHost): void {
     const ctx = host.switchToHttp();
@@ -24,7 +27,7 @@ export class GlobalExceptionFilter implements ExceptionFilter {
 
     // Extract trace context if available
     const { traceId, spanId } = (request as any).traceContext || {};
-    const clientIp = request.ip || request.connection.remoteAddress;
+    const clientIp = request.ip || request.connection?.remoteAddress;
 
     let status: number;
     let message: string | string[];

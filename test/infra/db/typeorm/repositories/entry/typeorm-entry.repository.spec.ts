@@ -1132,5 +1132,585 @@ describe('TypeormEntryRepository', () => {
         },
       ]);
     });
+
+    it('should get category summary for a specific month', async () => {
+      // Arrange
+      const userId = 'test-user-id';
+      const year = 2023;
+      const month = 10;
+      const startDate = new Date(year, month - 1, 1);
+      const endDate = new Date(year, month, 0, 23, 59, 59);
+
+      const mockResults = [
+        {
+          entry_categoryId: 'cat1',
+          category_name: 'Food',
+          entry_type: 'EXPENSE',
+          sum: '150.50',
+          count: '3',
+        },
+        {
+          entry_categoryId: 'cat2',
+          category_name: 'Salary',
+          entry_type: 'INCOME',
+          sum: '5000.00',
+          count: '1',
+        },
+      ];
+
+      const mockQueryBuilder = {
+        leftJoin: jest.fn().mockReturnThis(),
+        select: jest.fn().mockReturnThis(),
+        where: jest.fn().mockReturnThis(),
+        andWhere: jest.fn().mockReturnThis(),
+        groupBy: jest.fn().mockReturnThis(),
+        orderBy: jest.fn().mockReturnThis(),
+        getRawMany: jest.fn().mockResolvedValue(mockResults),
+      };
+
+      mockRepository.createQueryBuilder = jest
+        .fn()
+        .mockReturnValue(mockQueryBuilder);
+
+      // Act
+      const result = await repository.getCategorySummaryForMonth(
+        userId,
+        year,
+        month,
+      );
+
+      // Assert
+      expect(mockRepository.createQueryBuilder).toHaveBeenCalledWith('entry');
+      expect(mockQueryBuilder.leftJoin).toHaveBeenCalledWith(
+        'entry.category',
+        'category',
+      );
+      expect(mockQueryBuilder.select).toHaveBeenCalledWith([
+        'entry.categoryId',
+        'category.name',
+        'entry.type',
+        'SUM(entry.amount)',
+        'COUNT(*)',
+      ]);
+      expect(mockQueryBuilder.where).toHaveBeenCalledWith(
+        'entry.userId = :userId',
+        { userId },
+      );
+      expect(mockQueryBuilder.andWhere).toHaveBeenCalledWith(
+        'entry.date >= :startDate',
+        { startDate },
+      );
+      expect(mockQueryBuilder.andWhere).toHaveBeenCalledWith(
+        'entry.date <= :endDate',
+        { endDate },
+      );
+      expect(mockQueryBuilder.andWhere).toHaveBeenCalledWith(
+        'entry.deletedAt IS NULL',
+      );
+      expect(mockQueryBuilder.andWhere).toHaveBeenCalledWith(
+        'entry.categoryId IS NOT NULL',
+      );
+      expect(mockQueryBuilder.groupBy).toHaveBeenCalledWith(
+        'entry.categoryId, category.name, entry.type',
+      );
+      expect(mockQueryBuilder.orderBy).toHaveBeenCalledWith(
+        'SUM(entry.amount)',
+        'DESC',
+      );
+      expect(mockQueryBuilder.getRawMany).toHaveBeenCalled();
+
+      expect(result).toHaveLength(2);
+      expect(result[0]).toEqual({
+        categoryId: 'cat1',
+        categoryName: 'Food',
+        type: 'EXPENSE',
+        total: 150.5,
+        count: 3,
+      });
+      expect(result[1]).toEqual({
+        categoryId: 'cat2',
+        categoryName: 'Salary',
+        type: 'INCOME',
+        total: 5000,
+        count: 1,
+      });
+
+      expect(mockLogger.logBusinessEvent).toHaveBeenCalledWith({
+        event: 'category_summary_calculated',
+        userId,
+        metadata: expect.objectContaining({
+          year,
+          month,
+          categoriesCount: 2,
+          duration: expect.any(Number),
+        }),
+      });
+
+      expect(mockMetrics.recordTransaction).toHaveBeenCalledWith(
+        'get_category_summary',
+        'success',
+      );
+    });
+
+    it('should handle errors when getting category summary', async () => {
+      // Arrange
+      const userId = 'test-user-id';
+      const year = 2023;
+      const month = 10;
+      const error = new Error('Database error');
+
+      const mockQueryBuilder = {
+        leftJoin: jest.fn().mockReturnThis(),
+        select: jest.fn().mockReturnThis(),
+        where: jest.fn().mockReturnThis(),
+        andWhere: jest.fn().mockReturnThis(),
+        groupBy: jest.fn().mockReturnThis(),
+        orderBy: jest.fn().mockReturnThis(),
+        getRawMany: jest.fn().mockRejectedValue(error),
+      };
+
+      mockRepository.createQueryBuilder = jest
+        .fn()
+        .mockReturnValue(mockQueryBuilder);
+
+      // Act & Assert
+      await expect(
+        repository.getCategorySummaryForMonth(userId, year, month),
+      ).rejects.toThrow(error);
+
+      expect(mockLogger.error).toHaveBeenCalledWith(
+        `Failed to get category summary for user ${userId}`,
+        error.stack,
+      );
+
+      expect(mockMetrics.recordApiError).toHaveBeenCalledWith(
+        'get_category_summary',
+        error.message,
+      );
+    });
+  });
+
+  describe('getFixedEntriesSummary', () => {
+    it('should get fixed entries summary', async () => {
+      // Arrange
+      const userId = 'test-user-id';
+      const mockResult = {
+        fixedIncome: '5000.00',
+        fixedExpenses: '2500.00',
+        entriesCount: '5',
+      };
+
+      const mockQueryBuilder = {
+        select: jest.fn().mockReturnThis(),
+        addSelect: jest.fn().mockReturnThis(),
+        where: jest.fn().mockReturnThis(),
+        andWhere: jest.fn().mockReturnThis(),
+        getRawOne: jest.fn().mockResolvedValue(mockResult),
+      };
+
+      mockRepository.createQueryBuilder = jest
+        .fn()
+        .mockReturnValue(mockQueryBuilder);
+
+      // Act
+      const result = await repository.getFixedEntriesSummary(userId);
+
+      // Assert
+      expect(mockRepository.createQueryBuilder).toHaveBeenCalledWith('entry');
+      expect(mockQueryBuilder.select).toHaveBeenCalledWith(
+        "SUM(CASE WHEN entry.type = 'INCOME' AND entry.isFixed = true THEN entry.amount ELSE 0 END)",
+        'fixedIncome',
+      );
+      expect(mockQueryBuilder.addSelect).toHaveBeenCalledWith(
+        "SUM(CASE WHEN entry.type = 'EXPENSE' AND entry.isFixed = true THEN entry.amount ELSE 0 END)",
+        'fixedExpenses',
+      );
+      expect(mockQueryBuilder.addSelect).toHaveBeenCalledWith(
+        'COUNT(CASE WHEN entry.isFixed = true THEN 1 END)',
+        'entriesCount',
+      );
+      expect(mockQueryBuilder.where).toHaveBeenCalledWith(
+        'entry.userId = :userId',
+        { userId },
+      );
+      expect(mockQueryBuilder.andWhere).toHaveBeenCalledWith(
+        'entry.deletedAt IS NULL',
+      );
+      expect(mockQueryBuilder.getRawOne).toHaveBeenCalled();
+
+      expect(result).toEqual({
+        fixedIncome: 5000,
+        fixedExpenses: 2500,
+        fixedNetFlow: 2500,
+        entriesCount: 5,
+      });
+
+      expect(mockLogger.logBusinessEvent).toHaveBeenCalledWith({
+        event: 'fixed_entries_summary_calculated',
+        userId,
+        metadata: expect.objectContaining({
+          fixedIncome: 5000,
+          fixedExpenses: 2500,
+          fixedNetFlow: 2500,
+          entriesCount: 5,
+          duration: expect.any(Number),
+        }),
+      });
+
+      expect(mockMetrics.recordTransaction).toHaveBeenCalledWith(
+        'get_fixed_entries_summary',
+        'success',
+      );
+    });
+
+    it('should handle null result from database query', async () => {
+      // This test targets lines 449 and 475 where parseFloat and parseInt handle null/undefined values
+      const userId = 'test-user-id';
+
+      const mockQueryBuilder = {
+        select: jest.fn().mockReturnThis(),
+        addSelect: jest.fn().mockReturnThis(),
+        where: jest.fn().mockReturnThis(),
+        andWhere: jest.fn().mockReturnThis(),
+        getRawOne: jest.fn().mockResolvedValue(null), // null result to test fallback
+      };
+
+      mockRepository.createQueryBuilder = jest
+        .fn()
+        .mockReturnValue(mockQueryBuilder);
+
+      // Act
+      const result = await repository.getFixedEntriesSummary(userId);
+
+      // Assert
+      expect(result).toEqual({
+        fixedIncome: 0, // parseFloat(null?.fixedIncome || '0')
+        fixedExpenses: 0, // parseFloat(null?.fixedExpenses || '0')
+        fixedNetFlow: 0,
+        entriesCount: 0, // parseInt(null?.entriesCount || '0')
+      });
+
+      expect(mockLogger.logBusinessEvent).toHaveBeenCalledWith({
+        event: 'fixed_entries_summary_calculated',
+        userId,
+        metadata: expect.objectContaining({
+          fixedIncome: 0,
+          fixedExpenses: 0,
+          fixedNetFlow: 0,
+          entriesCount: 0,
+          duration: expect.any(Number),
+        }),
+      });
+    });
+
+    it('should handle undefined values in database result', async () => {
+      // This test targets lines 449 and 475 with undefined values in the result object
+      const userId = 'test-user-id';
+      const mockResult = {
+        fixedIncome: undefined, // Test undefined fixedIncome
+        fixedExpenses: undefined, // Test undefined fixedExpenses
+        entriesCount: undefined, // Test undefined entriesCount
+      };
+
+      const mockQueryBuilder = {
+        select: jest.fn().mockReturnThis(),
+        addSelect: jest.fn().mockReturnThis(),
+        where: jest.fn().mockReturnThis(),
+        andWhere: jest.fn().mockReturnThis(),
+        getRawOne: jest.fn().mockResolvedValue(mockResult),
+      };
+
+      mockRepository.createQueryBuilder = jest
+        .fn()
+        .mockReturnValue(mockQueryBuilder);
+
+      // Act
+      const result = await repository.getFixedEntriesSummary(userId);
+
+      // Assert
+      expect(result).toEqual({
+        fixedIncome: 0, // parseFloat(undefined || '0')
+        fixedExpenses: 0, // parseFloat(undefined || '0')
+        fixedNetFlow: 0,
+        entriesCount: 0, // parseInt(undefined || '0')
+      });
+
+      expect(mockLogger.logBusinessEvent).toHaveBeenCalledWith({
+        event: 'fixed_entries_summary_calculated',
+        userId,
+        metadata: expect.objectContaining({
+          fixedIncome: 0,
+          fixedExpenses: 0,
+          fixedNetFlow: 0,
+          entriesCount: 0,
+        }),
+      });
+    });
+
+    it('should handle empty string values in database result', async () => {
+      // This test ensures parseFloat and parseInt handle empty strings correctly
+      const userId = 'test-user-id';
+      const mockResult = {
+        fixedIncome: '', // Empty string
+        fixedExpenses: '', // Empty string
+        entriesCount: '', // Empty string
+      };
+
+      const mockQueryBuilder = {
+        select: jest.fn().mockReturnThis(),
+        addSelect: jest.fn().mockReturnThis(),
+        where: jest.fn().mockReturnThis(),
+        andWhere: jest.fn().mockReturnThis(),
+        getRawOne: jest.fn().mockResolvedValue(mockResult),
+      };
+
+      mockRepository.createQueryBuilder = jest
+        .fn()
+        .mockReturnValue(mockQueryBuilder);
+
+      // Act
+      const result = await repository.getFixedEntriesSummary(userId);
+
+      // Assert
+      expect(result).toEqual({
+        fixedIncome: 0, // parseFloat('' || '0')
+        fixedExpenses: 0, // parseFloat('' || '0')
+        fixedNetFlow: 0,
+        entriesCount: 0, // parseInt('' || '0')
+      });
+    });
+
+    it('should handle errors when getting fixed entries summary', async () => {
+      // Arrange
+      const userId = 'test-user-id';
+      const error = new Error('Database error');
+
+      const mockQueryBuilder = {
+        select: jest.fn().mockReturnThis(),
+        addSelect: jest.fn().mockReturnThis(),
+        where: jest.fn().mockReturnThis(),
+        andWhere: jest.fn().mockReturnThis(),
+        getRawOne: jest.fn().mockRejectedValue(error),
+      };
+
+      mockRepository.createQueryBuilder = jest
+        .fn()
+        .mockReturnValue(mockQueryBuilder);
+
+      // Act & Assert
+      await expect(repository.getFixedEntriesSummary(userId)).rejects.toThrow(
+        error,
+      );
+
+      expect(mockLogger.error).toHaveBeenCalledWith(
+        `Failed to get fixed entries summary for user ${userId}`,
+        error.stack,
+      );
+
+      expect(mockMetrics.recordApiError).toHaveBeenCalledWith(
+        'get_fixed_entries_summary',
+        error.message,
+      );
+    });
+  });
+
+  describe('getCurrentBalance', () => {
+    it('should get current balance', async () => {
+      // Arrange
+      const userId = 'test-user-id';
+      const mockResult = {
+        totalIncome: '8000.00',
+        totalExpenses: '3500.00',
+      };
+
+      const mockQueryBuilder = {
+        select: jest.fn().mockReturnThis(),
+        addSelect: jest.fn().mockReturnThis(),
+        where: jest.fn().mockReturnThis(),
+        andWhere: jest.fn().mockReturnThis(),
+        getRawOne: jest.fn().mockResolvedValue(mockResult),
+      };
+
+      mockRepository.createQueryBuilder = jest
+        .fn()
+        .mockReturnValue(mockQueryBuilder);
+
+      // Act
+      const result = await repository.getCurrentBalance(userId);
+
+      // Assert
+      expect(result).toBe(4500);
+      expect(mockRepository.createQueryBuilder).toHaveBeenCalledWith('entry');
+      expect(mockQueryBuilder.select).toHaveBeenCalledWith(
+        "SUM(CASE WHEN entry.type = 'INCOME' THEN entry.amount ELSE 0 END)",
+        'totalIncome',
+      );
+      expect(mockQueryBuilder.addSelect).toHaveBeenCalledWith(
+        "SUM(CASE WHEN entry.type = 'EXPENSE' THEN entry.amount ELSE 0 END)",
+        'totalExpenses',
+      );
+      expect(mockQueryBuilder.where).toHaveBeenCalledWith(
+        'entry.userId = :userId',
+        { userId },
+      );
+      expect(mockQueryBuilder.andWhere).toHaveBeenCalledWith(
+        'entry.deletedAt IS NULL',
+      );
+      expect(mockQueryBuilder.getRawOne).toHaveBeenCalled();
+      expect(mockLogger.logBusinessEvent).toHaveBeenCalledWith(
+        expect.objectContaining({
+          event: 'current_balance_calculated',
+          userId,
+          metadata: expect.objectContaining({
+            totalIncome: 8000,
+            totalExpenses: 3500,
+            currentBalance: 4500,
+          }),
+        }),
+      );
+      expect(mockMetrics.recordTransaction).toHaveBeenCalledWith(
+        'get_current_balance',
+        'success',
+      );
+    });
+
+    it('should handle null result from database', async () => {
+      // Arrange
+      const userId = 'test-user-id';
+      const mockQueryBuilder = {
+        select: jest.fn().mockReturnThis(),
+        addSelect: jest.fn().mockReturnThis(),
+        where: jest.fn().mockReturnThis(),
+        andWhere: jest.fn().mockReturnThis(),
+        getRawOne: jest.fn().mockResolvedValue(null),
+      };
+
+      mockRepository.createQueryBuilder = jest
+        .fn()
+        .mockReturnValue(mockQueryBuilder);
+
+      // Act
+      const result = await repository.getCurrentBalance(userId);
+
+      // Assert
+      expect(result).toBe(0);
+      expect(mockLogger.logBusinessEvent).toHaveBeenCalledWith(
+        expect.objectContaining({
+          event: 'current_balance_calculated',
+          userId,
+          metadata: expect.objectContaining({
+            totalIncome: 0,
+            totalExpenses: 0,
+            currentBalance: 0,
+          }),
+        }),
+      );
+    });
+
+    it('should handle empty string values from database', async () => {
+      // Arrange
+      const userId = 'test-user-id';
+      const mockResult = {
+        totalIncome: '',
+        totalExpenses: '',
+      };
+
+      const mockQueryBuilder = {
+        select: jest.fn().mockReturnThis(),
+        addSelect: jest.fn().mockReturnThis(),
+        where: jest.fn().mockReturnThis(),
+        andWhere: jest.fn().mockReturnThis(),
+        getRawOne: jest.fn().mockResolvedValue(mockResult),
+      };
+
+      mockRepository.createQueryBuilder = jest
+        .fn()
+        .mockReturnValue(mockQueryBuilder);
+
+      // Act
+      const result = await repository.getCurrentBalance(userId);
+
+      // Assert
+      expect(result).toBe(0);
+      expect(mockLogger.logBusinessEvent).toHaveBeenCalledWith(
+        expect.objectContaining({
+          event: 'current_balance_calculated',
+          userId,
+          metadata: expect.objectContaining({
+            totalIncome: 0,
+            totalExpenses: 0,
+            currentBalance: 0,
+          }),
+        }),
+      );
+    });
+
+    it('should handle negative balance', async () => {
+      // Arrange
+      const userId = 'test-user-id';
+      const mockResult = {
+        totalIncome: '1000.00',
+        totalExpenses: '3000.00',
+      };
+
+      const mockQueryBuilder = {
+        select: jest.fn().mockReturnThis(),
+        addSelect: jest.fn().mockReturnThis(),
+        where: jest.fn().mockReturnThis(),
+        andWhere: jest.fn().mockReturnThis(),
+        getRawOne: jest.fn().mockResolvedValue(mockResult),
+      };
+
+      mockRepository.createQueryBuilder = jest
+        .fn()
+        .mockReturnValue(mockQueryBuilder);
+
+      // Act
+      const result = await repository.getCurrentBalance(userId);
+
+      // Assert
+      expect(result).toBe(-2000);
+      expect(mockLogger.logBusinessEvent).toHaveBeenCalledWith(
+        expect.objectContaining({
+          event: 'current_balance_calculated',
+          userId,
+          metadata: expect.objectContaining({
+            totalIncome: 1000,
+            totalExpenses: 3000,
+            currentBalance: -2000,
+          }),
+        }),
+      );
+    });
+
+    it('should handle database error', async () => {
+      // Arrange
+      const userId = 'test-user-id';
+      const mockError = new Error('Database connection error');
+      const mockQueryBuilder = {
+        select: jest.fn().mockReturnThis(),
+        addSelect: jest.fn().mockReturnThis(),
+        where: jest.fn().mockReturnThis(),
+        andWhere: jest.fn().mockReturnThis(),
+        getRawOne: jest.fn().mockRejectedValue(mockError),
+      };
+
+      mockRepository.createQueryBuilder = jest
+        .fn()
+        .mockReturnValue(mockQueryBuilder);
+
+      // Act & Assert
+      await expect(repository.getCurrentBalance(userId)).rejects.toThrow(
+        mockError,
+      );
+      expect(mockLogger.error).toHaveBeenCalledWith(
+        `Failed to get current balance for user ${userId}`,
+        mockError.stack,
+      );
+      expect(mockMetrics.recordApiError).toHaveBeenCalledWith(
+        'get_current_balance',
+        mockError.message,
+      );
+    });
   });
 });

@@ -1,4 +1,5 @@
 export * from './auth-response.dto';
+export * from './cash-flow-forecast-response.dto';
 export * from './create-entry.dto';
 export * from './delete-entry-response.dto';
 export * from './entry-list-response.dto';
