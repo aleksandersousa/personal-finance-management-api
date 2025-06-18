@@ -203,7 +203,7 @@ jobs:
       - name: 🛡️ Run Trivy security scan
         uses: aquasecurity/trivy-action@master
         with:
-          image-ref: ${{ steps.meta.outputs.tags }}
+          image-ref: ${{ fromJson(steps.meta.outputs.json).tags[0] }}
           format: 'table'
           severity: 'CRITICAL,HIGH,MEDIUM'
           exit-code: '0' # Don't fail the build for security issues, just report them
