@@ -142,175 +142,6 @@ jobs:
           name: codecov-umbrella
           fail_ci_if_error: false
 
-  # 🏗️ Build & Package
-  build:
-    name: 🏗️ Build & Package
-    runs-on: ubuntu-latest
-    needs: [test]
-    if: always() && needs.test.result == 'success'
-
-    outputs:
-      image-tag: ${{ steps.set-outputs.outputs.image-tag }}
-      image-digest: ${{ steps.build.outputs.digest }}
-      environment: ${{ steps.determine-env.outputs.environment }}
-
-    steps:
-      - name: 📥 Checkout code
-        uses: actions/checkout@v4
-
-      - name: 🎯 Determine environment
-        id: determine-env
-        run: |
-          if [[ "${{ github.ref }}" == "refs/heads/main" ]]; then
-            echo "environment=production" >> $GITHUB_OUTPUT
-          elif [[ "${{ github.ref }}" == "refs/heads/staging" ]]; then
-            echo "environment=staging" >> $GITHUB_OUTPUT
-          else
-            echo "environment=development" >> $GITHUB_OUTPUT
-          fi
-
-      - name: 🔐 Log in to Container Registry
-        uses: docker/login-action@v3
-        with:
-          registry: ${{ env.REGISTRY }}
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: 🏷️ Extract metadata
-        id: meta
-        uses: docker/metadata-action@v5
-        with:
-          images: ${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ env.IMAGE_NAME }}
-          tags: |
-            type=ref,event=branch
-            type=ref,event=pr
-            type=sha,prefix={{branch}}-,enable=${{ github.event_name != 'pull_request' }}
-            type=sha,prefix=pr-,enable=${{ github.event_name == 'pull_request' }}
-            type=raw,value=latest,enable={{is_default_branch}}
-
-      - name: 🔧 Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-        with:
-          driver-opts: |
-            network=host
-          buildkitd-flags: |
-            --allow-insecure-entitlement network.host
-
-      - name: 🏗️ Build and push Docker image
-        id: build
-        uses: docker/build-push-action@v5
-        with:
-          context: .
-          file: .docker/Dockerfile.prod
-          push: true
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-          platforms: linux/amd64,linux/arm64
-          build-args: |
-            BUILDKIT_INLINE_CACHE=1
-          provenance: false
-          sbom: false
-        timeout-minutes: 45
-        continue-on-error: true
-
-      # Fallback 1: Try with different image name format
-      - name: 🔄 Build with alternative naming (fallback)
-        if: failure()
-        id: build-alt
-        uses: docker/build-push-action@v5
-        with:
-          context: .
-          file: .docker/Dockerfile.prod
-          push: true
-          tags: |
-            ${{ env.REGISTRY }}/${{ github.actor }}/${{ env.IMAGE_NAME }}:${{ github.ref_name }}
-            ${{ env.REGISTRY }}/${{ github.actor }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
-          labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-          platforms: linux/amd64,linux/arm64
-          build-args: |
-            BUILDKIT_INLINE_CACHE=1
-          provenance: false
-          sbom: false
-        timeout-minutes: 45
-        continue-on-error: true
-
-      # Fallback 2: Build architectures separately if multi-arch fails
-      - name: 🏗️ Build AMD64 image (fallback)
-        if: failure()
-        id: build-amd64
-        uses: docker/build-push-action@v5
-        with:
-          context: .
-          file: .docker/Dockerfile.prod
-          push: true
-          tags: |
-            ${{ env.REGISTRY }}/${{ github.actor }}/${{ env.IMAGE_NAME }}:${{ github.ref_name }}-amd64
-            ${{ env.REGISTRY }}/${{ github.actor }}/${{ env.IMAGE_NAME }}:${{ github.sha }}-amd64
-          labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-          platforms: linux/amd64
-          build-args: |
-            BUILDKIT_INLINE_CACHE=1
-          provenance: false
-          sbom: false
-        timeout-minutes: 30
-        continue-on-error: true
-
-      - name: 🏗️ Build ARM64 image (fallback)
-        if: failure()
-        id: build-arm64
-        uses: docker/build-push-action@v5
-        with:
-          context: .
-          file: .docker/Dockerfile.prod
-          push: true
-          tags: |
-            ${{ env.REGISTRY }}/${{ github.actor }}/${{ env.IMAGE_NAME }}:${{ github.ref_name }}-arm64
-            ${{ env.REGISTRY }}/${{ github.actor }}/${{ env.IMAGE_NAME }}:${{ github.sha }}-arm64
-          labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-          platforms: linux/arm64
-          build-args: |
-            BUILDKIT_INLINE_CACHE=1
-          provenance: false
-          sbom: false
-        timeout-minutes: 30
-        continue-on-error: true
-
-      - name: 🔗 Create multi-arch manifest (fallback)
-        if: steps.build-amd64.outcome == 'success' && steps.build-arm64.outcome == 'success'
-        run: |
-          docker buildx imagetools create \
-            --tag ${{ env.REGISTRY }}/${{ github.actor }}/${{ env.IMAGE_NAME }}:${{ github.ref_name }} \
-            ${{ env.REGISTRY }}/${{ github.actor }}/${{ env.IMAGE_NAME }}:${{ github.ref_name }}-amd64 \
-            ${{ env.REGISTRY }}/${{ github.actor }}/${{ env.IMAGE_NAME }}:${{ github.ref_name }}-arm64
-
-      - name: 📊 Set build outputs
-        id: set-outputs
-        run: |
-          if [[ "${{ steps.build.outcome }}" == "success" ]]; then
-            # Extract primary tag from multi-line output
-            PRIMARY_TAG=$(echo "${{ steps.meta.outputs.tags }}" | head -n1)
-            echo "image-tag=$PRIMARY_TAG" >> $GITHUB_OUTPUT
-            echo "✅ Primary build succeeded"
-            echo "🏷️ Primary tag: $PRIMARY_TAG"
-          elif [[ "${{ steps.build-alt.outcome }}" == "success" ]]; then
-            echo "image-tag=${{ env.REGISTRY }}/${{ github.actor }}/${{ env.IMAGE_NAME }}:${{ github.ref_name }}" >> $GITHUB_OUTPUT
-            echo "✅ Alternative build succeeded"
-          elif [[ "${{ steps.build-amd64.outcome }}" == "success" ]]; then
-            echo "image-tag=${{ env.REGISTRY }}/${{ github.actor }}/${{ env.IMAGE_NAME }}:${{ github.ref_name }}" >> $GITHUB_OUTPUT
-            echo "✅ Separate architecture builds succeeded"
-          else
-            echo "❌ All build attempts failed"
-            exit 1
-          fi
-
   # 🛡️ Security Scan
   security-scan:
     name: 🛡️ Security Scan
@@ -435,203 +266,84 @@ jobs:
               console.log('Error processing vulnerability report:', error);
             }
 
-  # 🚀 Deploy to Development
-  deploy-development:
-    name: 🚀 Deploy to Development
-    runs-on: ubuntu-latest
-    needs: [build, security-scan]
-    if: |
-      always() && 
-      needs.build.result == 'success' && 
-      (needs.security-scan.result == 'success' || needs.security-scan.result == 'skipped') &&
-      (github.ref == 'refs/heads/develop' || 
-       (github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'develop'))
-
-    environment:
-      name: development
-      url: ${{ steps.deploy.outputs.app-url }}
-
-    steps:
-      - name: 📥 Checkout code
-        uses: actions/checkout@v4
-
-      - name: 🔍 Extract primary image tag
-        id: extract-tag
-        run: |
-          # Extract the first tag from the multi-line output
-          PRIMARY_TAG=$(echo "${{ needs.build.outputs.image-tag }}" | head -n1)
-          echo "primary-tag=$PRIMARY_TAG" >> $GITHUB_OUTPUT
-          echo "🏷️ Primary tag for deployment: $PRIMARY_TAG"
-
-      - name: 🔧 Setup deployment environment
-        run: |
-          echo "Setting up development environment..."
-          echo "IMAGE_TAG=${{ steps.extract-tag.outputs.primary-tag }}" >> $GITHUB_ENV
-          echo "ENVIRONMENT=development" >> $GITHUB_ENV
-
-      - name: 🚀 Deploy to Development
-        id: deploy
-        run: |
-          echo "🚀 Deploying to Development environment..."
-          echo "Image: ${{ steps.extract-tag.outputs.primary-tag }}"
-          echo "Environment: development"
-
-          # Aqui será implementado o deploy real
-          # Por enquanto, simulamos o deploy
-          echo "✅ Development deployment completed successfully!"
-          echo "app-url=https://dev.financial-app.com" >> $GITHUB_OUTPUT
-
-      - name: 🔍 Health Check
-        run: |
-          echo "🔍 Running health checks..."
-          # Aqui será implementado o health check real
-          echo "✅ Health checks passed!"
-
-      - name: 📊 Update deployment status
-        run: |
-          echo "📊 Deployment Status: SUCCESS"
-          echo "🔗 URL: ${{ steps.deploy.outputs.app-url }}"
-          echo "🏷️ Image Tag: ${{ steps.extract-tag.outputs.primary-tag }}"
-
   # 🚀 Deploy to Staging
   deploy-staging:
     name: 🚀 Deploy to Staging
     runs-on: ubuntu-latest
-    needs: [build, security-scan]
+    needs: [test, security-scan]
     if: |
       always() && 
-      needs.build.result == 'success' && 
+      needs.test.result == 'success' && 
       (needs.security-scan.result == 'success' || needs.security-scan.result == 'skipped') &&
       (github.ref == 'refs/heads/staging' || 
        (github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'staging'))
 
     environment:
       name: staging
-      url: ${{ steps.deploy.outputs.app-url }}
 
     steps:
       - name: 📥 Checkout code
         uses: actions/checkout@v4
-
-      - name: 🔍 Extract primary image tag
-        id: extract-tag
-        run: |
-          # Extract the first tag from the multi-line output
-          PRIMARY_TAG=$(echo "${{ needs.build.outputs.image-tag }}" | head -n1)
-          echo "primary-tag=$PRIMARY_TAG" >> $GITHUB_OUTPUT
-          echo "🏷️ Primary tag for deployment: $PRIMARY_TAG"
-
-      - name: 🔧 Setup deployment environment
-        run: |
-          echo "Setting up staging environment..."
-          echo "IMAGE_TAG=${{ steps.extract-tag.outputs.primary-tag }}" >> $GITHUB_ENV
-          echo "ENVIRONMENT=staging" >> $GITHUB_ENV
-
-      - name: 🚀 Deploy to Staging
-        id: deploy
-        run: |
-          echo "🚀 Deploying to Staging environment..."
-          echo "Image: ${{ steps.extract-tag.outputs.primary-tag }}"
-          echo "Environment: staging"
-
-          # Aqui será implementado o deploy real
-          # Por enquanto, simulamos o deploy
-          echo "✅ Staging deployment completed successfully!"
-          echo "app-url=https://staging.financial-app.com" >> $GITHUB_OUTPUT
-
+      - uses: superfly/flyctl-actions/setup-flyctl@master
+      - name: 🚀 Deploy to Fly.io Staging
+        run: flyctl deploy --config fly.dev.toml --remote-only
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN_STAGING }}
       - name: 🔍 Health Check
         run: |
           echo "🔍 Running health checks..."
           # Aqui será implementado o health check real
           echo "✅ Health checks passed!"
-
       - name: 🧪 Run smoke tests
         run: |
           echo "🧪 Running smoke tests on staging..."
           # Aqui serão implementados os smoke tests reais
           echo "✅ Smoke tests passed!"
 
-      - name: 📊 Update deployment status
-        run: |
-          echo "📊 Deployment Status: SUCCESS"
-          echo "🔗 URL: ${{ steps.deploy.outputs.app-url }}"
-          echo "🏷️ Image Tag: ${{ steps.extract-tag.outputs.primary-tag }}"
-
   # 🚀 Deploy to Production
   deploy-production:
     name: 🚀 Deploy to Production
     runs-on: ubuntu-latest
-    needs: [build, security-scan]
+    needs: [test, security-scan]
     if: |
       always() && 
-      needs.build.result == 'success' && 
+      needs.test.result == 'success' && 
       needs.security-scan.result == 'success' &&
       (github.ref == 'refs/heads/main' || 
        (github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'production'))
 
     environment:
       name: production
-      url: ${{ steps.deploy.outputs.app-url }}
 
     steps:
       - name: 📥 Checkout code
         uses: actions/checkout@v4
-
-      - name: 🔍 Extract primary image tag
-        id: extract-tag
-        run: |
-          # Extract the first tag from the multi-line output
-          PRIMARY_TAG=$(echo "${{ needs.build.outputs.image-tag }}" | head -n1)
-          echo "primary-tag=$PRIMARY_TAG" >> $GITHUB_OUTPUT
-          echo "🏷️ Primary tag for deployment: $PRIMARY_TAG"
-
-      - name: 🔧 Setup deployment environment
-        run: |
-          echo "Setting up production environment..."
-          echo "IMAGE_TAG=${{ steps.extract-tag.outputs.primary-tag }}" >> $GITHUB_ENV
-          echo "ENVIRONMENT=production" >> $GITHUB_ENV
-
-      - name: 🚀 Deploy to Production
-        id: deploy
-        run: |
-          echo "🚀 Deploying to Production environment..."
-          echo "Image: ${{ steps.extract-tag.outputs.primary-tag }}"
-          echo "Environment: production"
-
-          # Aqui será implementado o deploy real
-          # Por enquanto, simulamos o deploy
-          echo "✅ Production deployment completed successfully!"
-          echo "app-url=https://financial-app.com" >> $GITHUB_OUTPUT
-
+      - uses: superfly/flyctl-actions/setup-flyctl@master
+      - name: 🚀 Deploy to Fly.io Production
+        run: flyctl deploy --config fly.prod.toml --remote-only
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN_PROD }}
       - name: 🔍 Health Check
         run: |
           echo "🔍 Running health checks..."
           # Aqui será implementado o health check real
           echo "✅ Health checks passed!"
-
       - name: 🧪 Run smoke tests
         run: |
           echo "🧪 Running smoke tests on production..."
           # Aqui serão implementados os smoke tests reais
           echo "✅ Smoke tests passed!"
-
-      - name: 📊 Update deployment status
-        run: |
-          echo "📊 Deployment Status: SUCCESS"
-          echo "🔗 URL: ${{ steps.deploy.outputs.app-url }}"
-          echo "🏷️ Image Tag: ${{ steps.extract-tag.outputs.primary-tag }}"
-
       - name: 🔔 Notify deployment success
         run: |
           echo "🎉 Production deployment completed successfully!"
-          echo "🚀 Application is now live at: ${{ steps.deploy.outputs.app-url }}"
+          echo "🚀 Application is now live!"
 
   # 📊 Post-Deployment Monitoring
   post-deployment:
     name: 📊 Post-Deployment Monitoring
     runs-on: ubuntu-latest
-    needs: [deploy-development, deploy-staging, deploy-production]
-    if: always() && (needs.deploy-development.result == 'success' || needs.deploy-staging.result == 'success' || needs.deploy-production.result == 'success')
+    needs: [deploy-staging, deploy-production]
+    if: always() && (needs.deploy-staging.result == 'success' || needs.deploy-production.result == 'success')
 
     steps:
       - name: 📊 Setup monitoring alerts
