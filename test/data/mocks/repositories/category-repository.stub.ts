@@ -16,6 +16,7 @@ export class CategoryRepositoryStub implements CategoryRepository {
   private categories: Map<string, Category> = new Map();
   private shouldFail = false;
   private errorToThrow: Error | null = null;
+  private hasEntriesAssociatedResult = false;
 
   async create(data: CategoryCreateData): Promise<Category> {
     if (this.shouldFail && this.errorToThrow) {
@@ -154,8 +155,7 @@ export class CategoryRepositoryStub implements CategoryRepository {
     if (this.shouldFail && this.errorToThrow) {
       throw this.errorToThrow;
     }
-    // Stub implementation - always returns false
-    return false;
+    return this.hasEntriesAssociatedResult;
   }
 
   // =================== Test Utility Methods ===================
@@ -167,6 +167,7 @@ export class CategoryRepositoryStub implements CategoryRepository {
     this.categories.clear();
     this.shouldFail = false;
     this.errorToThrow = null;
+    this.hasEntriesAssociatedResult = false;
   }
 
   /**
@@ -223,5 +224,12 @@ export class CategoryRepositoryStub implements CategoryRepository {
 
   getAllCategories(): Category[] {
     return Array.from(this.categories.values());
+  }
+
+  /**
+   * Mock the hasEntriesAssociated method to return a specific value
+   */
+  mockHasEntriesAssociated(hasEntries: boolean): void {
+    this.hasEntriesAssociatedResult = hasEntries;
   }
 }

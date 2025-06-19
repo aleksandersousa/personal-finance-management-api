@@ -14,6 +14,7 @@ import {
   NotFoundException,
   ForbiddenException,
   ConflictException,
+  Delete,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -29,10 +30,12 @@ import {
   UpdateCategoryDto,
   CategoryResponseDto,
   CategoryListResponseDto,
+  DeleteCategoryResponseDto,
 } from '@presentation/dtos';
 import { AddCategoryUseCase } from '@domain/usecases/add-category.usecase';
 import { ListCategoriesUseCase } from '@domain/usecases/list-categories.usecase';
 import { UpdateCategoryUseCase } from '@domain/usecases/update-category.usecase';
+import { DeleteCategoryUseCase } from '@domain/usecases/delete-category.usecase';
 import {
   Category,
   CategoryType,
@@ -40,6 +43,12 @@ import {
   CategoryWithStats,
 } from '@domain/models/category.model';
 import type { Logger, Metrics } from '@/data/protocols';
+import { User } from '@presentation/decorators/user.decorator';
+
+interface UserPayload {
+  id: string;
+  email: string;
+}
 
 @Controller('categories')
 @ApiTags('categories')
@@ -53,6 +62,8 @@ export class CategoryController {
     private readonly listCategoriesUseCase: ListCategoriesUseCase,
     @Inject('UpdateCategoryUseCase')
     private readonly updateCategoryUseCase: UpdateCategoryUseCase,
+    @Inject('DeleteCategoryUseCase')
+    private readonly deleteCategoryUseCase: DeleteCategoryUseCase,
     @Inject('Logger')
     private readonly logger: Logger,
     @Inject('Metrics')
@@ -87,6 +98,7 @@ export class CategoryController {
   async list(
     @Query('type') type: CategoryType | 'all' = 'all',
     @Query('includeStats') includeStats: string = 'false',
+    @User() user: UserPayload,
     @Request() req: any,
   ): Promise<CategoryListResponseDto> {
     const startTime = Date.now();
@@ -95,7 +107,7 @@ export class CategoryController {
       const includeStatsBoolean = includeStats === 'true';
 
       const result = await this.listCategoriesUseCase.execute({
-        userId: req.user.id,
+        userId: user.id,
         type: type === 'all' ? undefined : type,
         includeStats: includeStatsBoolean,
       });
@@ -104,7 +116,7 @@ export class CategoryController {
 
       this.logger.logBusinessEvent({
         event: 'category_api_list_success',
-        userId: req.user.id,
+        userId: user.id,
         duration,
         traceId: req.traceId,
         metadata: {
@@ -122,7 +134,7 @@ export class CategoryController {
       this.logger.logSecurityEvent({
         event: 'category_api_list_failed',
         severity: 'medium',
-        userId: req.user.id,
+        userId: user.id,
         error: error.message,
         traceId: req.traceId,
         message: `Failed to list categories`,
@@ -152,6 +164,7 @@ export class CategoryController {
   })
   async create(
     @Body() createCategoryDto: CreateCategoryDto,
+    @User() user: UserPayload,
     @Request() req: any,
   ): Promise<CategoryResponseDto> {
     const startTime = Date.now();
@@ -159,7 +172,7 @@ export class CategoryController {
     try {
       const category = await this.addCategoryUseCase.execute({
         ...createCategoryDto,
-        userId: req.user.id,
+        userId: user.id,
       });
 
       const duration = Date.now() - startTime;
@@ -167,7 +180,7 @@ export class CategoryController {
       this.logger.logBusinessEvent({
         event: 'category_api_create_success',
         entityId: category.id,
-        userId: req.user.id,
+        userId: user.id,
         duration,
         traceId: req.traceId,
         metadata: {
@@ -184,7 +197,7 @@ export class CategoryController {
       this.logger.logSecurityEvent({
         event: 'category_api_create_failed',
         severity: 'medium',
-        userId: req.user.id,
+        userId: user.id,
         error: error.message,
         traceId: req.traceId,
         message: `Failed to create category: ${createCategoryDto.name}`,
@@ -229,6 +242,7 @@ export class CategoryController {
   async update(
     @Param('id') id: string,
     @Body() updateCategoryDto: UpdateCategoryDto,
+    @User() user: UserPayload,
     @Request() req: any,
   ): Promise<CategoryResponseDto> {
     const startTime = Date.now();
@@ -236,7 +250,7 @@ export class CategoryController {
     try {
       const category = await this.updateCategoryUseCase.execute({
         id,
-        userId: req.user.id,
+        userId: user.id,
         ...updateCategoryDto,
       });
 
@@ -245,7 +259,7 @@ export class CategoryController {
       this.logger.logBusinessEvent({
         event: 'category_api_update_success',
         entityId: category.id,
-        userId: req.user.id,
+        userId: user.id,
         duration,
         traceId: req.traceId,
         metadata: {
@@ -262,7 +276,7 @@ export class CategoryController {
       this.logger.logSecurityEvent({
         event: 'category_api_update_failed',
         severity: 'medium',
-        userId: req.user.id,
+        userId: user.id,
         error: error.message,
         traceId: req.traceId,
         message: `Failed to update category: ${id}`,
@@ -292,6 +306,111 @@ export class CategoryController {
 
       this.metrics.recordHttpRequest(
         'PUT',
+        `/categories/${id}`,
+        httpStatus,
+        duration,
+      );
+      this.metrics.recordApiError('categories', error.message);
+      throw httpException;
+    }
+  }
+
+  @Delete(':id')
+  @ApiOperation({ summary: 'Delete a category' })
+  @ApiParam({
+    name: 'id',
+    description: 'Category ID',
+    example: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Category deleted successfully',
+    type: DeleteCategoryResponseDto,
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Cannot delete category with existing entries',
+  })
+  @ApiResponse({
+    status: 401,
+    description: 'Unauthorized - invalid or missing JWT token',
+  })
+  @ApiResponse({
+    status: 403,
+    description:
+      'Forbidden - cannot delete default categories or categories belonging to other users',
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Category not found',
+  })
+  async delete(
+    @Param('id') id: string,
+    @User() user: UserPayload,
+    @Request() req: any,
+  ): Promise<DeleteCategoryResponseDto> {
+    const startTime = Date.now();
+
+    try {
+      const result = await this.deleteCategoryUseCase.execute({
+        id,
+        userId: user.id,
+      });
+
+      const duration = Date.now() - startTime;
+
+      this.logger.logBusinessEvent({
+        event: 'category_api_delete_success',
+        entityId: id,
+        userId: user.id,
+        duration,
+        traceId: req.traceId,
+        deletedAt: result.deletedAt.toISOString(),
+      });
+
+      this.metrics.recordHttpRequest(
+        'DELETE',
+        `/categories/${id}`,
+        200,
+        duration,
+      );
+      return {
+        deletedAt: result.deletedAt,
+      };
+    } catch (error) {
+      const duration = Date.now() - startTime;
+
+      this.logger.logSecurityEvent({
+        event: 'category_api_delete_failed',
+        severity: 'medium',
+        userId: user.id,
+        error: error.message,
+        traceId: req.traceId,
+        message: `Failed to delete category: ${id}`,
+        endpoint: `/categories/${id}`,
+      });
+
+      // Map specific error messages to appropriate HTTP status codes
+      const errorMessage = error.message.toLowerCase();
+      let httpStatus = 400;
+      let httpException: HttpException;
+
+      if (errorMessage.includes('not found')) {
+        httpStatus = 404;
+        httpException = new NotFoundException(error.message);
+      } else if (
+        errorMessage.includes('cannot delete default') ||
+        errorMessage.includes('only delete your own') ||
+        errorMessage.includes('cannot delete category with existing entries')
+      ) {
+        httpStatus = 403;
+        httpException = new ForbiddenException(error.message);
+      } else {
+        httpException = new BadRequestException(error.message);
+      }
+
+      this.metrics.recordHttpRequest(
+        'DELETE',
         `/categories/${id}`,
         httpStatus,
         duration,

@@ -46,6 +46,10 @@ describe('CategoryController - List (e2e)', () => {
           useValue: { execute: jest.fn() },
         },
         {
+          provide: 'DeleteCategoryUseCase',
+          useValue: { execute: jest.fn() },
+        },
+        {
           provide: 'Logger', // ✅ String token para Logger
           useValue: loggerSpy,
         },
@@ -225,6 +229,10 @@ describe('CategoryController - List (e2e)', () => {
           },
           {
             provide: 'UpdateCategoryUseCase',
+            useValue: { execute: jest.fn() },
+          },
+          {
+            provide: 'DeleteCategoryUseCase',
             useValue: { execute: jest.fn() },
           },
           {

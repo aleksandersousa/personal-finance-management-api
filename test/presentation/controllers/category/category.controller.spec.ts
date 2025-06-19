@@ -10,12 +10,14 @@ import { MockCategoryFactory } from '../../../domain/mocks/models/category.mock'
 import { AddCategoryUseCase } from '../../../../src/domain/usecases/add-category.usecase';
 import { ListCategoriesUseCase } from '../../../../src/domain/usecases/list-categories.usecase';
 import { UpdateCategoryUseCase } from '../../../../src/domain/usecases/update-category.usecase';
+import { DeleteCategoryUseCase } from '../../../../src/domain/usecases/delete-category.usecase';
 
 describe('CategoryController', () => {
   let controller: CategoryController;
   let addCategoryUseCase: jest.Mocked<AddCategoryUseCase>;
   let listCategoriesUseCase: jest.Mocked<ListCategoriesUseCase>;
   let updateCategoryUseCase: jest.Mocked<UpdateCategoryUseCase>;
+  let deleteCategoryUseCase: jest.Mocked<DeleteCategoryUseCase>;
   let loggerSpy: LoggerSpy;
   let metricsSpy: MetricsSpy;
 
@@ -23,6 +25,7 @@ describe('CategoryController', () => {
     addCategoryUseCase = AddCategoryUseCaseMockFactory.createSuccess();
     listCategoriesUseCase = ListCategoriesUseCaseMockFactory.createSuccess();
     updateCategoryUseCase = { execute: jest.fn() };
+    deleteCategoryUseCase = { execute: jest.fn() };
     loggerSpy = new LoggerSpy();
     metricsSpy = new MetricsSpy();
 
@@ -32,6 +35,7 @@ describe('CategoryController', () => {
         { provide: 'AddCategoryUseCase', useValue: addCategoryUseCase },
         { provide: 'ListCategoriesUseCase', useValue: listCategoriesUseCase },
         { provide: 'UpdateCategoryUseCase', useValue: updateCategoryUseCase },
+        { provide: 'DeleteCategoryUseCase', useValue: deleteCategoryUseCase },
         { provide: 'Logger', useValue: loggerSpy },
         { provide: 'Metrics', useValue: metricsSpy },
       ],
@@ -56,7 +60,11 @@ describe('CategoryController', () => {
       addCategoryUseCase.execute.mockResolvedValue(expectedCategory);
 
       // Act
-      const result = await controller.create(createCategoryDto, mockRequest);
+      const result = await controller.create(
+        createCategoryDto,
+        mockRequest.user,
+        mockRequest,
+      );
 
       // Assert
       expect(result).toEqual({
@@ -106,7 +114,11 @@ describe('CategoryController', () => {
       addCategoryUseCase.execute.mockResolvedValue(expectedCategory);
 
       // Act
-      const result = await controller.create(createCategoryDto, mockRequest);
+      const result = await controller.create(
+        createCategoryDto,
+        mockRequest.user,
+        mockRequest,
+      );
 
       // Assert
       expect(result.type).toBe('EXPENSE');
@@ -134,7 +146,11 @@ describe('CategoryController', () => {
       addCategoryUseCase.execute.mockResolvedValue(expectedCategory);
 
       // Act
-      const result = await controller.create(createCategoryDto, mockRequest);
+      const result = await controller.create(
+        createCategoryDto,
+        mockRequest.user,
+        mockRequest,
+      );
 
       // Assert
       expect(result.name).toBe('Simple Category');
@@ -153,7 +169,7 @@ describe('CategoryController', () => {
 
       // Act & Assert
       await expect(
-        controller.create(createCategoryDto, mockRequest),
+        controller.create(createCategoryDto, mockRequest.user, mockRequest),
       ).rejects.toThrow(error);
 
       // Verify security event logging
@@ -184,7 +200,7 @@ describe('CategoryController', () => {
 
       // Act & Assert
       await expect(
-        controller.create(createCategoryDto, mockRequest),
+        controller.create(createCategoryDto, mockRequest.user, mockRequest),
       ).rejects.toThrow('Category name already exists for this user');
 
       expect(addCategoryUseCase.execute).toHaveBeenCalledWith({
@@ -203,7 +219,7 @@ describe('CategoryController', () => {
 
       // Act & Assert
       await expect(
-        controller.create(createCategoryDto, mockRequest),
+        controller.create(createCategoryDto, mockRequest.user, mockRequest),
       ).rejects.toThrow('Category name is required');
     });
 
@@ -217,7 +233,7 @@ describe('CategoryController', () => {
 
       // Act & Assert
       await expect(
-        controller.create(createCategoryDto, mockRequest),
+        controller.create(createCategoryDto, mockRequest.user, mockRequest),
       ).rejects.toThrow('Database connection failed');
 
       // Verify error logging
@@ -235,7 +251,7 @@ describe('CategoryController', () => {
       addCategoryUseCase.execute.mockResolvedValue(expectedCategory);
 
       // Act
-      await controller.create(createCategoryDto, mockRequest);
+      await controller.create(createCategoryDto, mockRequest.user, mockRequest);
 
       // Assert
       // Verify HTTP request metrics
@@ -262,7 +278,7 @@ describe('CategoryController', () => {
       addCategoryUseCase.execute.mockResolvedValue(expectedCategory);
 
       // Act
-      await controller.create(createCategoryDto, mockRequest);
+      await controller.create(createCategoryDto, mockRequest.user, mockRequest);
 
       // Assert
       const businessEvents = loggerSpy.getBusinessEvents(

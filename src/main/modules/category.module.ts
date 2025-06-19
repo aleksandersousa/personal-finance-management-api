@@ -6,6 +6,7 @@ import {
   makeAddCategoryFactory,
   makeListCategoriesFactory,
   makeUpdateCategoryFactory,
+  makeDeleteCategoryFactory,
 } from '@main/factories/usecases/categories';
 import { makeCategoryRepository } from '@/main/factories/repositories';
 import { AuthModule } from './auth.module';
@@ -39,11 +40,17 @@ import { ObservabilityModule } from './observability.module';
       useFactory: makeUpdateCategoryFactory,
       inject: ['CategoryRepository'],
     },
+    {
+      provide: 'DeleteCategoryUseCase',
+      useFactory: makeDeleteCategoryFactory,
+      inject: ['CategoryRepository'],
+    },
   ],
   exports: [
     'AddCategoryUseCase',
     'ListCategoriesUseCase',
     'UpdateCategoryUseCase',
+    'DeleteCategoryUseCase',
   ],
 })
 export class CategoryModule {}

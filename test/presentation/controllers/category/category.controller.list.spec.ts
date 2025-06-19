@@ -25,6 +25,7 @@ describe('CategoryController - List', () => {
         { provide: 'AddCategoryUseCase', useValue: jest.fn() },
         { provide: 'ListCategoriesUseCase', useValue: listCategoriesUseCase },
         { provide: 'UpdateCategoryUseCase', useValue: jest.fn() },
+        { provide: 'DeleteCategoryUseCase', useValue: { execute: jest.fn() } },
         { provide: 'Logger', useValue: loggerSpy },
         { provide: 'Metrics', useValue: metricsSpy },
       ],
@@ -58,7 +59,12 @@ describe('CategoryController - List', () => {
       listCategoriesUseCase.execute.mockResolvedValue(expectedResult);
 
       // Act
-      const result = await controller.list('all', 'false', mockRequest);
+      const result = await controller.list(
+        'all',
+        'false',
+        mockRequest.user,
+        mockRequest,
+      );
 
       // Assert
       expect(result).toHaveProperty('data');
@@ -102,6 +108,7 @@ describe('CategoryController - List', () => {
       const result = await controller.list(
         CategoryType.INCOME,
         'false',
+        mockRequest.user,
         mockRequest,
       );
 
@@ -128,7 +135,12 @@ describe('CategoryController - List', () => {
       listCategoriesUseCase.execute.mockResolvedValue(expectedResult);
 
       // Act
-      const result = await controller.list('all', 'true', mockRequest);
+      const result = await controller.list(
+        'all',
+        'true',
+        mockRequest.user,
+        mockRequest,
+      );
 
       // Assert
       expect(listCategoriesUseCase.execute).toHaveBeenCalledWith({
@@ -150,7 +162,7 @@ describe('CategoryController - List', () => {
 
       // Act & Assert
       await expect(
-        controller.list('all', 'false', mockRequest),
+        controller.list('all', 'false', mockRequest.user, mockRequest),
       ).rejects.toThrow(error);
 
       // Verify security event logging
@@ -179,7 +191,7 @@ describe('CategoryController - List', () => {
       const mockRequest = RequestMockFactory.createWithUser('user-123');
 
       // Act
-      await controller.list('all', 'true', mockRequest);
+      await controller.list('all', 'true', mockRequest.user, mockRequest);
 
       // Assert
       expect(listCategoriesUseCase.execute).toHaveBeenCalledWith({
@@ -194,7 +206,7 @@ describe('CategoryController - List', () => {
       const mockRequest = RequestMockFactory.createWithUser('user-123');
 
       // Act
-      await controller.list('all', 'invalid', mockRequest);
+      await controller.list('all', 'invalid', mockRequest.user, mockRequest);
 
       // Assert
       expect(listCategoriesUseCase.execute).toHaveBeenCalledWith({
@@ -215,7 +227,12 @@ describe('CategoryController - List', () => {
       listCategoriesUseCase.execute.mockResolvedValue(expectedResult);
 
       // Act
-      const result = await controller.list(undefined, undefined, mockRequest);
+      const result = await controller.list(
+        undefined,
+        undefined,
+        mockRequest.user,
+        mockRequest,
+      );
 
       // Assert
       expect(listCategoriesUseCase.execute).toHaveBeenCalledWith({
@@ -239,7 +256,12 @@ describe('CategoryController - List', () => {
       listCategoriesUseCase.execute.mockResolvedValue(expectedResult);
 
       // Act
-      const result = await controller.list(undefined, 'true', mockRequest);
+      const result = await controller.list(
+        undefined,
+        'true',
+        mockRequest.user,
+        mockRequest,
+      );
 
       // Assert
       expect(listCategoriesUseCase.execute).toHaveBeenCalledWith({
@@ -266,6 +288,7 @@ describe('CategoryController - List', () => {
       const result = await controller.list(
         CategoryType.EXPENSE,
         undefined,
+        mockRequest.user,
         mockRequest,
       );
 

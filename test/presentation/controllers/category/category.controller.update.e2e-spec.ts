@@ -39,6 +39,10 @@ describe('CategoryController - update (e2e)', () => {
           useValue: mockUpdateCategoryUseCase,
         },
         {
+          provide: 'DeleteCategoryUseCase',
+          useValue: { execute: jest.fn() },
+        },
+        {
           provide: 'Logger',
           useValue: loggerSpy,
         },

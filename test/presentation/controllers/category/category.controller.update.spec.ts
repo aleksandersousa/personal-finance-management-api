@@ -24,6 +24,7 @@ describe('CategoryController - update', () => {
         { provide: 'AddCategoryUseCase', useValue: { execute: jest.fn() } },
         { provide: 'ListCategoriesUseCase', useValue: { execute: jest.fn() } },
         { provide: 'UpdateCategoryUseCase', useValue: updateCategoryUseCase },
+        { provide: 'DeleteCategoryUseCase', useValue: { execute: jest.fn() } },
         { provide: 'Logger', useValue: loggerSpy },
         { provide: 'Metrics', useValue: metricsSpy },
       ],
@@ -63,6 +64,7 @@ describe('CategoryController - update', () => {
       const result = await controller.update(
         'category-456',
         updateDto,
+        mockRequest.user,
         mockRequest,
       );
 
@@ -136,6 +138,7 @@ describe('CategoryController - update', () => {
       const result = await controller.update(
         'category-456',
         updateDto,
+        mockRequest.user,
         mockRequest,
       );
 
@@ -167,7 +170,12 @@ describe('CategoryController - update', () => {
 
       // Act & Assert
       await expect(
-        controller.update('category-456', updateDto, mockRequest),
+        controller.update(
+          'category-456',
+          updateDto,
+          mockRequest.user,
+          mockRequest,
+        ),
       ).rejects.toThrow(error);
 
       // Verify security event logging
@@ -209,7 +217,12 @@ describe('CategoryController - update', () => {
 
       // Act & Assert
       await expect(
-        controller.update('non-existent', updateDto, mockRequest),
+        controller.update(
+          'non-existent',
+          updateDto,
+          mockRequest.user,
+          mockRequest,
+        ),
       ).rejects.toThrow(error);
 
       // Verify security event logging
@@ -236,7 +249,12 @@ describe('CategoryController - update', () => {
 
       // Act & Assert
       await expect(
-        controller.update('other-user-category', updateDto, mockRequest),
+        controller.update(
+          'other-user-category',
+          updateDto,
+          mockRequest.user,
+          mockRequest,
+        ),
       ).rejects.toThrow(error);
 
       // Verify security event logging for unauthorized access
@@ -261,7 +279,12 @@ describe('CategoryController - update', () => {
 
       // Act & Assert
       await expect(
-        controller.update('default-category', updateDto, mockRequest),
+        controller.update(
+          'default-category',
+          updateDto,
+          mockRequest.user,
+          mockRequest,
+        ),
       ).rejects.toThrow(error);
 
       // Verify security event logging
@@ -286,7 +309,12 @@ describe('CategoryController - update', () => {
 
       // Act & Assert
       await expect(
-        controller.update('category-456', updateDto, mockRequest),
+        controller.update(
+          'category-456',
+          updateDto,
+          mockRequest.user,
+          mockRequest,
+        ),
       ).rejects.toThrow(error);
 
       // Verify security event logging
@@ -314,7 +342,12 @@ describe('CategoryController - update', () => {
       updateCategoryUseCase.execute.mockResolvedValue(expectedCategory);
 
       // Act
-      await controller.update('category-456', updateDto, mockRequest);
+      await controller.update(
+        'category-456',
+        updateDto,
+        mockRequest.user,
+        mockRequest,
+      );
 
       // Assert - verify performance metrics
       expect(
@@ -346,6 +379,7 @@ describe('CategoryController - update', () => {
       const result = await controller.update(
         'category-456',
         updateDto,
+        mockRequest.user,
         mockRequest,
       );
 
@@ -375,7 +409,12 @@ describe('CategoryController - update', () => {
 
       // Act & Assert
       await expect(
-        controller.update('category-456', updateDto, mockRequest),
+        controller.update(
+          'category-456',
+          updateDto,
+          mockRequest.user,
+          mockRequest,
+        ),
       ).rejects.toThrow(error);
 
       // Verify security event logging
