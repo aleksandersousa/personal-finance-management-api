@@ -4,6 +4,7 @@ export * from './db-delete-entry.usecase';
 export * from './db-get-monthly-summary.usecase';
 export * from './db-list-categories.usecase';
 export * from './db-list-entries-by-month.usecase';
+export * from './db-update-category.usecase';
 export * from './db-login-user.usecase';
 export * from './db-predict-cash-flow.usecase';
 export * from './db-refresh-token.usecase';

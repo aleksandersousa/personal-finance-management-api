@@ -24,6 +24,7 @@ describe('CategoryController - List', () => {
       providers: [
         { provide: 'AddCategoryUseCase', useValue: jest.fn() },
         { provide: 'ListCategoriesUseCase', useValue: listCategoriesUseCase },
+        { provide: 'UpdateCategoryUseCase', useValue: jest.fn() },
         { provide: 'Logger', useValue: loggerSpy },
         { provide: 'Metrics', useValue: metricsSpy },
       ],

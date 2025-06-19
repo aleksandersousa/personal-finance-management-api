@@ -4,6 +4,7 @@ export * from './category-list-response.dto';
 export * from './category-response.dto';
 export * from './create-category.dto';
 export * from './create-entry.dto';
+export * from './update-category.dto';
 export * from './delete-entry-response.dto';
 export * from './entry-list-response.dto';
 export * from './entry-response.dto';

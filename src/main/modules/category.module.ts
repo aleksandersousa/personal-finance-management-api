@@ -5,6 +5,7 @@ import { CategoryController } from '@presentation/controllers';
 import {
   makeAddCategoryFactory,
   makeListCategoriesFactory,
+  makeUpdateCategoryFactory,
 } from '@main/factories/usecases/categories';
 import { makeCategoryRepository } from '@/main/factories/repositories';
 import { AuthModule } from './auth.module';
@@ -33,7 +34,16 @@ import { ObservabilityModule } from './observability.module';
       useFactory: makeListCategoriesFactory,
       inject: ['CategoryRepository'],
     },
+    {
+      provide: 'UpdateCategoryUseCase',
+      useFactory: makeUpdateCategoryFactory,
+      inject: ['CategoryRepository'],
+    },
   ],
-  exports: ['AddCategoryUseCase', 'ListCategoriesUseCase'],
+  exports: [
+    'AddCategoryUseCase',
+    'ListCategoriesUseCase',
+    'UpdateCategoryUseCase',
+  ],
 })
 export class CategoryModule {}

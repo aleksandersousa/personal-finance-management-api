@@ -2,11 +2,18 @@ import {
   Controller,
   Post,
   Get,
+  Put,
   Body,
   Query,
+  Param,
   UseGuards,
   Request,
   Inject,
+  HttpException,
+  BadRequestException,
+  NotFoundException,
+  ForbiddenException,
+  ConflictException,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -14,15 +21,18 @@ import {
   ApiResponse,
   ApiBearerAuth,
   ApiQuery,
+  ApiParam,
 } from '@nestjs/swagger';
 import { JwtAuthGuard } from '@presentation/guards/jwt-auth.guard';
 import {
   CreateCategoryDto,
+  UpdateCategoryDto,
   CategoryResponseDto,
   CategoryListResponseDto,
 } from '@presentation/dtos';
 import { AddCategoryUseCase } from '@domain/usecases/add-category.usecase';
 import { ListCategoriesUseCase } from '@domain/usecases/list-categories.usecase';
+import { UpdateCategoryUseCase } from '@domain/usecases/update-category.usecase';
 import {
   Category,
   CategoryType,
@@ -41,6 +51,8 @@ export class CategoryController {
     private readonly addCategoryUseCase: AddCategoryUseCase,
     @Inject('ListCategoriesUseCase')
     private readonly listCategoriesUseCase: ListCategoriesUseCase,
+    @Inject('UpdateCategoryUseCase')
+    private readonly updateCategoryUseCase: UpdateCategoryUseCase,
     @Inject('Logger')
     private readonly logger: Logger,
     @Inject('Metrics')
@@ -185,6 +197,110 @@ export class CategoryController {
     }
   }
 
+  @Put(':id')
+  @ApiOperation({ summary: 'Update an existing category' })
+  @ApiParam({
+    name: 'id',
+    description: 'Category ID',
+    example: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Category updated successfully',
+    type: CategoryResponseDto,
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Validation error or category name already exists',
+  })
+  @ApiResponse({
+    status: 401,
+    description: 'Unauthorized - invalid or missing JWT token',
+  })
+  @ApiResponse({
+    status: 403,
+    description:
+      'Forbidden - cannot update default categories or categories belonging to other users',
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Category not found',
+  })
+  async update(
+    @Param('id') id: string,
+    @Body() updateCategoryDto: UpdateCategoryDto,
+    @Request() req: any,
+  ): Promise<CategoryResponseDto> {
+    const startTime = Date.now();
+
+    try {
+      const category = await this.updateCategoryUseCase.execute({
+        id,
+        userId: req.user.id,
+        ...updateCategoryDto,
+      });
+
+      const duration = Date.now() - startTime;
+
+      this.logger.logBusinessEvent({
+        event: 'category_api_update_success',
+        entityId: category.id,
+        userId: req.user.id,
+        duration,
+        traceId: req.traceId,
+        metadata: {
+          categoryName: category.name,
+          updatedFields: Object.keys(updateCategoryDto),
+        },
+      });
+
+      this.metrics.recordHttpRequest('PUT', `/categories/${id}`, 200, duration);
+      return this.mapToResponseDto(category);
+    } catch (error) {
+      const duration = Date.now() - startTime;
+
+      this.logger.logSecurityEvent({
+        event: 'category_api_update_failed',
+        severity: 'medium',
+        userId: req.user.id,
+        error: error.message,
+        traceId: req.traceId,
+        message: `Failed to update category: ${id}`,
+        endpoint: `/categories/${id}`,
+      });
+
+      // Map specific error messages to appropriate HTTP status codes
+      const errorMessage = error.message.toLowerCase();
+      let httpStatus = 400;
+      let httpException: HttpException;
+
+      if (errorMessage.includes('not found')) {
+        httpStatus = 404;
+        httpException = new NotFoundException(error.message);
+      } else if (
+        errorMessage.includes('cannot update default') ||
+        errorMessage.includes('only update your own')
+      ) {
+        httpStatus = 403;
+        httpException = new ForbiddenException(error.message);
+      } else if (errorMessage.includes('already exists')) {
+        httpStatus = 409;
+        httpException = new ConflictException(error.message);
+      } else {
+        httpException = new BadRequestException(error.message);
+      }
+
+      this.metrics.recordHttpRequest(
+        'PUT',
+        `/categories/${id}`,
+        httpStatus,
+        duration,
+      );
+      this.metrics.recordApiError('categories', error.message);
+      throw httpException;
+    }
+  }
+
   private mapToListResponseDto(
     result: CategoryListResponse,
   ): CategoryListResponseDto {
@@ -203,8 +319,8 @@ export class CategoryController {
       color: category.color,
       icon: category.icon,
       isDefault: category.isDefault,
-      entriesCount: category.entriesCount,
-      totalAmount: category.totalAmount,
+      entriesCount: category.entriesCount || 0,
+      totalAmount: category.totalAmount || 0,
       lastUsed: category.lastUsed,
       createdAt: category.createdAt,
       updatedAt: category.updatedAt,

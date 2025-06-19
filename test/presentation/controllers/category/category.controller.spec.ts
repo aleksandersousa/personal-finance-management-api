@@ -9,17 +9,20 @@ import { CategoryRequestMockFactory } from '../../../presentation/mocks/controll
 import { MockCategoryFactory } from '../../../domain/mocks/models/category.mock';
 import { AddCategoryUseCase } from '../../../../src/domain/usecases/add-category.usecase';
 import { ListCategoriesUseCase } from '../../../../src/domain/usecases/list-categories.usecase';
+import { UpdateCategoryUseCase } from '../../../../src/domain/usecases/update-category.usecase';
 
 describe('CategoryController', () => {
   let controller: CategoryController;
   let addCategoryUseCase: jest.Mocked<AddCategoryUseCase>;
   let listCategoriesUseCase: jest.Mocked<ListCategoriesUseCase>;
+  let updateCategoryUseCase: jest.Mocked<UpdateCategoryUseCase>;
   let loggerSpy: LoggerSpy;
   let metricsSpy: MetricsSpy;
 
   beforeEach(async () => {
     addCategoryUseCase = AddCategoryUseCaseMockFactory.createSuccess();
     listCategoriesUseCase = ListCategoriesUseCaseMockFactory.createSuccess();
+    updateCategoryUseCase = { execute: jest.fn() };
     loggerSpy = new LoggerSpy();
     metricsSpy = new MetricsSpy();
 
@@ -28,6 +31,7 @@ describe('CategoryController', () => {
       providers: [
         { provide: 'AddCategoryUseCase', useValue: addCategoryUseCase },
         { provide: 'ListCategoriesUseCase', useValue: listCategoriesUseCase },
+        { provide: 'UpdateCategoryUseCase', useValue: updateCategoryUseCase },
         { provide: 'Logger', useValue: loggerSpy },
         { provide: 'Metrics', useValue: metricsSpy },
       ],

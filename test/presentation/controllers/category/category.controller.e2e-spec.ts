@@ -42,6 +42,10 @@ describe('CategoryController - List (e2e)', () => {
           useValue: mockListCategoriesUseCase,
         },
         {
+          provide: 'UpdateCategoryUseCase', // ✅ Missing dependency
+          useValue: { execute: jest.fn() },
+        },
+        {
           provide: 'Logger', // ✅ String token para Logger
           useValue: loggerSpy,
         },
@@ -218,6 +222,10 @@ describe('CategoryController - List (e2e)', () => {
           {
             provide: 'ListCategoriesUseCase',
             useValue: mockListCategoriesUseCase,
+          },
+          {
+            provide: 'UpdateCategoryUseCase',
+            useValue: { execute: jest.fn() },
           },
           {
             provide: 'Logger',
