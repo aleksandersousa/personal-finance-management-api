@@ -4,6 +4,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { ThrottlerModule } from '@nestjs/throttler';
 import { EntryModule } from './entry.module';
 import { AuthModule } from './auth.module';
+import { CategoryModule } from './category.module';
 import { ForecastModule } from './forecast.module';
 import { SummaryModule } from './summary.module';
 import { ObservabilityModule } from './observability.module';
@@ -39,6 +40,7 @@ import { typeOrmConfig } from '@infra/db/typeorm/config/data-source';
     // Feature Modules
     EntryModule,
     AuthModule,
+    CategoryModule,
     ForecastModule,
     SummaryModule,
   ],

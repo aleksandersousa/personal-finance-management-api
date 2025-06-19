@@ -19,8 +19,6 @@ module.exports = {
     '!src/presentation/dtos/**', // DTOs are data structures
     '!src/presentation/decorators/**', // Simple decorators
     '!src/infra/implementations/uuid-generator.ts', // Simple wrapper
-    // Exclude unimplemented user stories
-    '!src/infra/db/typeorm/repositories/typeorm-category.repository.ts', // Categories not implemented yet
     // Exclude index.ts files and migrations from coverage
     '!src/**/index.ts', // Index files are just re-exports
     '!src/infra/db/typeorm/migrations/**', // Migrations are database schema changes
