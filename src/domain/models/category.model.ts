@@ -43,3 +43,16 @@ export interface CategoryWithStats extends Category {
   totalAmount?: number;
   lastUsed?: Date | null;
 }
+
+export interface CategoryListSummary {
+  total: number;
+  income: number;
+  expense: number;
+  custom: number;
+  default: number;
+}
+
+export interface CategoryListResponse {
+  data: CategoryWithStats[];
+  summary: CategoryListSummary;
+}

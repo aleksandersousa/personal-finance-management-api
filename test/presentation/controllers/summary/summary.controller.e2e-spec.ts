@@ -1,6 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication } from '@nestjs/common';
 import * as request from 'supertest';
+import { ConfigModule } from '@nestjs/config';
 import { SummaryController } from '@presentation/controllers/summary.controller';
 import { GetMonthlySummaryUseCase } from '@domain/usecases/get-monthly-summary.usecase';
 import { LoggerSpy } from '../../../infra/mocks/logging/logger.spy';
@@ -22,6 +23,12 @@ describe('SummaryController (e2e)', () => {
     };
 
     const moduleFixture: TestingModule = await Test.createTestingModule({
+      imports: [
+        ConfigModule.forRoot({
+          isGlobal: true,
+          envFilePath: '.env.test',
+        }),
+      ],
       controllers: [SummaryController],
       providers: [
         {
@@ -67,6 +74,86 @@ describe('SummaryController (e2e)', () => {
     loggerSpy.clear();
     metricsSpy.clear();
     jest.clearAllMocks();
+  });
+
+  describe('Authentication', () => {
+    it('should deny access without authorization header', async () => {
+      // Create a temporary app without auth guard override to test real authentication
+      const moduleFixture: TestingModule = await Test.createTestingModule({
+        imports: [
+          ConfigModule.forRoot({
+            isGlobal: true,
+            envFilePath: '.env.test',
+          }),
+        ],
+        controllers: [SummaryController],
+        providers: [
+          {
+            provide: 'GetMonthlySummaryUseCase',
+            useValue: mockGetMonthlySummaryUseCase,
+          },
+          {
+            provide: 'Logger',
+            useValue: loggerSpy,
+          },
+          {
+            provide: 'Metrics',
+            useValue: metricsSpy,
+          },
+        ],
+      }).compile();
+
+      const unguardedApp = moduleFixture.createNestApplication();
+      await unguardedApp.init();
+
+      const response = await request(unguardedApp.getHttpServer()).get(
+        '/summary?month=2024-01',
+      );
+
+      expect(response.status).toBeGreaterThanOrEqual(401);
+      expect(mockGetMonthlySummaryUseCase.execute).not.toHaveBeenCalled();
+
+      await unguardedApp.close();
+    });
+
+    it('should deny access with invalid token', async () => {
+      // Create a temporary app without auth guard override to test real authentication
+      const moduleFixture: TestingModule = await Test.createTestingModule({
+        imports: [
+          ConfigModule.forRoot({
+            isGlobal: true,
+            envFilePath: '.env.test',
+          }),
+        ],
+        controllers: [SummaryController],
+        providers: [
+          {
+            provide: 'GetMonthlySummaryUseCase',
+            useValue: mockGetMonthlySummaryUseCase,
+          },
+          {
+            provide: 'Logger',
+            useValue: loggerSpy,
+          },
+          {
+            provide: 'Metrics',
+            useValue: metricsSpy,
+          },
+        ],
+      }).compile();
+
+      const unguardedApp = moduleFixture.createNestApplication();
+      await unguardedApp.init();
+
+      const response = await request(unguardedApp.getHttpServer())
+        .get('/summary?month=2024-01')
+        .set('Authorization', 'Bearer invalid-token');
+
+      expect(response.status).toBeGreaterThanOrEqual(401);
+      expect(mockGetMonthlySummaryUseCase.execute).not.toHaveBeenCalled();
+
+      await unguardedApp.close();
+    });
   });
 
   describe('GET /summary', () => {

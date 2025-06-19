@@ -1,5 +1,6 @@
 export * from './auth-response.dto';
 export * from './cash-flow-forecast-response.dto';
+export * from './category-list-response.dto';
 export * from './category-response.dto';
 export * from './create-category.dto';
 export * from './create-entry.dto';

@@ -36,7 +36,10 @@ export const mockDefaultCategory: Category = {
  */
 export class MockCategoryFactory {
   static create(overrides: Partial<Category> = {}): Category {
-    return { ...mockCategory, ...overrides };
+    const uniqueId =
+      overrides.id ||
+      `a1b2c3d4-e5f6-7890-abcd-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+    return { ...mockCategory, id: uniqueId, ...overrides };
   }
 
   static createMany(
@@ -74,9 +77,9 @@ export class MockCategoryFactory {
     });
   }
 
-  static createWithStats(): CategoryWithStats {
+  static createWithStats(overrides: Partial<Category> = {}): CategoryWithStats {
     return {
-      ...this.create(),
+      ...this.create(overrides),
       entriesCount: 12,
       totalAmount: 60000,
       lastUsed: new Date('2025-06-01T00:00:00Z'),

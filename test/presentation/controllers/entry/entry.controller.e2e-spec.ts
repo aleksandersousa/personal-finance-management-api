@@ -1,7 +1,12 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication } from '@nestjs/common';
 import * as request from 'supertest';
+import { ConfigModule } from '@nestjs/config';
 import { EntryController } from '@presentation/controllers/entry.controller';
+import { AddEntryUseCase } from '@domain/usecases/add-entry.usecase';
+import { DeleteEntryUseCase } from '@domain/usecases/delete-entry.usecase';
+import { ListEntriesByMonthUseCase } from '@domain/usecases/list-entries-by-month.usecase';
+import { UpdateEntryUseCase } from '@domain/usecases/update-entry.usecase';
 import { LoggerSpy } from '../../../infra/mocks/logging/logger.spy';
 import { MetricsSpy } from '../../../infra/mocks/metrics/metrics.spy';
 import { JwtAuthGuard } from '@presentation/guards/jwt-auth.guard';
@@ -11,89 +16,34 @@ describe('EntryController (e2e)', () => {
   let authToken: string;
   let loggerSpy: LoggerSpy;
   let metricsSpy: MetricsSpy;
-  let testUserId: string;
-  let testCategoryId: string;
-  let mockAddEntryUseCase: any;
-  let mockListEntriesUseCase: any;
-  let mockUpdateEntryUseCase: any;
-  let mockDeleteEntryUseCase: any;
+  let mockAddEntryUseCase: jest.Mocked<AddEntryUseCase>;
+  let mockDeleteEntryUseCase: jest.Mocked<DeleteEntryUseCase>;
+  let mockListEntriesByMonthUseCase: jest.Mocked<ListEntriesByMonthUseCase>;
+  let mockUpdateEntryUseCase: jest.Mocked<UpdateEntryUseCase>;
 
   beforeAll(async () => {
     loggerSpy = new LoggerSpy();
     metricsSpy = new MetricsSpy();
-    testUserId = 'test-user-id-' + Date.now();
-    testCategoryId = 'a1b2c3d4-e5f6-7890-abcd-ef1234567890'; // Valid UUID format
-
-    // Mock use cases
     mockAddEntryUseCase = {
-      execute: jest.fn().mockResolvedValue({
-        id: 'test-entry-id',
-        amount: 5000.0,
-        description: 'Test Entry',
-        type: 'INCOME',
-        isFixed: true,
-        categoryId: testCategoryId,
-        userId: testUserId,
-        date: new Date('2025-06-01'),
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      }),
+      execute: jest.fn(),
     };
-
-    mockListEntriesUseCase = {
-      execute: jest.fn().mockResolvedValue({
-        data: [
-          {
-            id: 'test-entry-1',
-            amount: 5000.0,
-            description: 'Test Income Entry',
-            type: 'INCOME',
-            isFixed: true,
-            categoryId: testCategoryId,
-            userId: testUserId,
-            date: new Date('2025-06-01'),
-            createdAt: new Date(),
-            updatedAt: new Date(),
-          },
-        ],
-        pagination: {
-          page: 1,
-          limit: 20,
-          total: 1,
-          totalPages: 1,
-          hasNext: false,
-          hasPrev: false,
-        },
-        summary: {
-          totalIncome: 5000.0,
-          totalExpenses: 0,
-          balance: 5000.0,
-          entriesCount: 1,
-        },
-      }),
-    };
-
-    mockUpdateEntryUseCase = {
-      execute: jest.fn().mockResolvedValue({
-        id: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890',
-        description: 'Updated Test Entry',
-        amount: 15000,
-        categoryId: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890',
-        type: 'INCOME',
-        isFixed: true,
-        userId: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890',
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      }),
-    };
-
     mockDeleteEntryUseCase = {
-      execute: jest.fn().mockResolvedValue({
-        deletedAt: new Date(),
-      }),
+      execute: jest.fn(),
+    };
+    mockListEntriesByMonthUseCase = {
+      execute: jest.fn(),
+    };
+    mockUpdateEntryUseCase = {
+      execute: jest.fn(),
     };
 
     const moduleFixture: TestingModule = await Test.createTestingModule({
+      imports: [
+        ConfigModule.forRoot({
+          isGlobal: true,
+          envFilePath: '.env.test',
+        }),
+      ],
       controllers: [EntryController],
       providers: [
         {
@@ -101,12 +51,12 @@ describe('EntryController (e2e)', () => {
           useValue: mockAddEntryUseCase,
         },
         {
-          provide: 'ListEntriesByMonthUseCase',
-          useValue: mockListEntriesUseCase,
-        },
-        {
           provide: 'DeleteEntryUseCase',
           useValue: mockDeleteEntryUseCase,
+        },
+        {
+          provide: 'ListEntriesByMonthUseCase',
+          useValue: mockListEntriesByMonthUseCase,
         },
         {
           provide: 'UpdateEntryUseCase',
@@ -124,24 +74,20 @@ describe('EntryController (e2e)', () => {
     })
       .overrideGuard(JwtAuthGuard)
       .useValue({
-        canActivate: (context: any) => {
+        canActivate: jest.fn().mockImplementation(context => {
           const request = context.switchToHttp().getRequest();
           request.user = {
-            id: testUserId,
+            id: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890',
             email: 'test@example.com',
           };
           return true;
-        },
+        }),
       })
       .compile();
 
     app = moduleFixture.createNestApplication();
-    // Disable validation pipe for E2E test simplicity
-    // app.useGlobalPipes(new ValidationPipe({ transform: true, whitelist: true }));
-
     await app.init();
-
-    authToken = 'test-jwt-token'; // Mock token since we're bypassing auth
+    authToken = 'test-jwt-token';
   });
 
   afterAll(async () => {
@@ -154,13 +100,134 @@ describe('EntryController (e2e)', () => {
     jest.clearAllMocks();
   });
 
+  describe('Authentication', () => {
+    it('should deny access without authorization header', async () => {
+      // Create a temporary app without auth guard override to test real authentication
+      const moduleFixture: TestingModule = await Test.createTestingModule({
+        imports: [
+          ConfigModule.forRoot({
+            isGlobal: true,
+            envFilePath: '.env.test',
+          }),
+        ],
+        controllers: [EntryController],
+        providers: [
+          {
+            provide: 'AddEntryUseCase',
+            useValue: mockAddEntryUseCase,
+          },
+          {
+            provide: 'DeleteEntryUseCase',
+            useValue: mockDeleteEntryUseCase,
+          },
+          {
+            provide: 'ListEntriesByMonthUseCase',
+            useValue: mockListEntriesByMonthUseCase,
+          },
+          {
+            provide: 'UpdateEntryUseCase',
+            useValue: mockUpdateEntryUseCase,
+          },
+          {
+            provide: 'Logger',
+            useValue: loggerSpy,
+          },
+          {
+            provide: 'Metrics',
+            useValue: metricsSpy,
+          },
+        ],
+      }).compile();
+
+      const unguardedApp = moduleFixture.createNestApplication();
+      await unguardedApp.init();
+
+      const createEntryData = {
+        amount: 1500.0,
+        description: 'Test Entry',
+        categoryId: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890',
+        date: '2024-01-15',
+        type: 'EXPENSE',
+      };
+
+      const response = await request(unguardedApp.getHttpServer())
+        .post('/entries')
+        .send(createEntryData);
+
+      expect(response.status).toBeGreaterThanOrEqual(401);
+      expect(mockAddEntryUseCase.execute).not.toHaveBeenCalled();
+
+      await unguardedApp.close();
+    });
+
+    it('should deny access with invalid token', async () => {
+      // Create a temporary app without auth guard override to test real authentication
+      const moduleFixture: TestingModule = await Test.createTestingModule({
+        imports: [
+          ConfigModule.forRoot({
+            isGlobal: true,
+            envFilePath: '.env.test',
+          }),
+        ],
+        controllers: [EntryController],
+        providers: [
+          {
+            provide: 'AddEntryUseCase',
+            useValue: mockAddEntryUseCase,
+          },
+          {
+            provide: 'DeleteEntryUseCase',
+            useValue: mockDeleteEntryUseCase,
+          },
+          {
+            provide: 'ListEntriesByMonthUseCase',
+            useValue: mockListEntriesByMonthUseCase,
+          },
+          {
+            provide: 'UpdateEntryUseCase',
+            useValue: mockUpdateEntryUseCase,
+          },
+          {
+            provide: 'Logger',
+            useValue: loggerSpy,
+          },
+          {
+            provide: 'Metrics',
+            useValue: metricsSpy,
+          },
+        ],
+      }).compile();
+
+      const unguardedApp = moduleFixture.createNestApplication();
+      await unguardedApp.init();
+
+      const createEntryData = {
+        amount: 1500.0,
+        description: 'Test Entry',
+        categoryId: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890',
+        date: '2024-01-15',
+        type: 'EXPENSE',
+      };
+
+      const response = await request(unguardedApp.getHttpServer())
+        .post('/entries')
+        .set('Authorization', 'Bearer invalid-token')
+        .send(createEntryData);
+
+      expect(response.status).toBeGreaterThanOrEqual(401);
+      expect(mockAddEntryUseCase.execute).not.toHaveBeenCalled();
+
+      await unguardedApp.close();
+    });
+  });
+
   describe('POST /entries', () => {
     it('should create entry successfully', async () => {
       // Arrange - Valid data that should pass
       const createEntryData = {
         description: 'Monthly Salary',
         amount: 5000.0,
-        categoryId: testCategoryId,
+        categoryId: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890',
         type: 'INCOME',
         isFixed: true,
         date: '2025-06-01T00:00:00Z',
@@ -181,7 +248,7 @@ describe('EntryController (e2e)', () => {
           expect.objectContaining({
             description: 'Monthly Salary',
             amount: 5000.0,
-            categoryId: testCategoryId,
+            categoryId: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890',
             type: 'INCOME',
             isFixed: true,
           }),
@@ -219,9 +286,9 @@ describe('EntryController (e2e)', () => {
       // Assert
       expect([200, 400]).toContain(response.status); // Allow for validation issues
       if (response.status === 200) {
-        expect(mockListEntriesUseCase.execute).toHaveBeenCalledWith(
+        expect(mockListEntriesByMonthUseCase.execute).toHaveBeenCalledWith(
           expect.objectContaining({
-            userId: testUserId,
+            userId: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890',
             year: 2025,
             month: 6,
           }),
@@ -238,9 +305,9 @@ describe('EntryController (e2e)', () => {
       // Assert
       expect([200, 400]).toContain(response.status);
       if (response.status === 200) {
-        expect(mockListEntriesUseCase.execute).toHaveBeenCalledWith(
+        expect(mockListEntriesByMonthUseCase.execute).toHaveBeenCalledWith(
           expect.objectContaining({
-            userId: testUserId,
+            userId: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890',
             year: 2025,
             month: 6,
             page: 1,
@@ -262,7 +329,7 @@ describe('EntryController (e2e)', () => {
           .send({
             description: 'Test Entry',
             amount: 100.0,
-            categoryId: testCategoryId,
+            categoryId: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890',
             type: 'INCOME',
             isFixed: false,
             date: '2025-06-01T00:00:00Z',
@@ -282,7 +349,7 @@ describe('EntryController (e2e)', () => {
       // Verify that at least some use cases were called
       const totalCalls =
         mockAddEntryUseCase.execute.mock.calls.length +
-        mockListEntriesUseCase.execute.mock.calls.length;
+        mockListEntriesByMonthUseCase.execute.mock.calls.length;
       expect(totalCalls).toBeGreaterThanOrEqual(0);
     });
   });
@@ -295,9 +362,9 @@ describe('EntryController (e2e)', () => {
         description: 'Updated Test Entry',
         amount: 15000,
         categoryId: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890',
-        type: 'INCOME',
+        type: 'INCOME' as const,
         isFixed: true,
-        date: '2025-06-15T00:00:00Z',
+        date: new Date('2025-06-15T00:00:00Z'),
       };
 
       mockUpdateEntryUseCase.execute.mockResolvedValue({

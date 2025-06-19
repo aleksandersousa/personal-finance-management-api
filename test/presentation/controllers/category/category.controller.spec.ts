@@ -1,21 +1,25 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { CategoryController } from '../../../../src/presentation/controllers/category.controller';
 import { AddCategoryUseCaseMockFactory } from '../../../domain/mocks/usecases/add-category.mock';
+import { ListCategoriesUseCaseMockFactory } from '../../../domain/mocks/usecases/list-categories.mock';
 import { LoggerSpy } from '../../../infra/mocks/logging/logger.spy';
 import { MetricsSpy } from '../../../infra/mocks/metrics/metrics.spy';
 import { RequestMockFactory } from '../../../presentation/mocks/controllers/request.mock';
 import { CategoryRequestMockFactory } from '../../../presentation/mocks/controllers/category-request.mock';
 import { MockCategoryFactory } from '../../../domain/mocks/models/category.mock';
 import { AddCategoryUseCase } from '../../../../src/domain/usecases/add-category.usecase';
+import { ListCategoriesUseCase } from '../../../../src/domain/usecases/list-categories.usecase';
 
 describe('CategoryController', () => {
   let controller: CategoryController;
   let addCategoryUseCase: jest.Mocked<AddCategoryUseCase>;
+  let listCategoriesUseCase: jest.Mocked<ListCategoriesUseCase>;
   let loggerSpy: LoggerSpy;
   let metricsSpy: MetricsSpy;
 
   beforeEach(async () => {
     addCategoryUseCase = AddCategoryUseCaseMockFactory.createSuccess();
+    listCategoriesUseCase = ListCategoriesUseCaseMockFactory.createSuccess();
     loggerSpy = new LoggerSpy();
     metricsSpy = new MetricsSpy();
 
@@ -23,6 +27,7 @@ describe('CategoryController', () => {
       controllers: [CategoryController],
       providers: [
         { provide: 'AddCategoryUseCase', useValue: addCategoryUseCase },
+        { provide: 'ListCategoriesUseCase', useValue: listCategoriesUseCase },
         { provide: 'Logger', useValue: loggerSpy },
         { provide: 'Metrics', useValue: metricsSpy },
       ],

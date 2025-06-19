@@ -1,6 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication } from '@nestjs/common';
 import * as request from 'supertest';
+import { ConfigModule } from '@nestjs/config';
 import { ForecastController } from '../../../../src/presentation/controllers/forecast.controller';
 import { PredictCashFlowUseCase } from '../../../../src/domain/usecases/predict-cash-flow.usecase';
 import { JwtAuthGuard } from '../../../../src/presentation/guards/jwt-auth.guard';
@@ -9,21 +10,41 @@ import {
   MockCashFlowForecastFactory,
   mockCashFlowForecast,
 } from '../../../domain/mocks/usecases/predict-cash-flow.mock';
+import { LoggerSpy } from '../../../infra/mocks/logging/logger.spy';
+import { MetricsSpy } from '../../../infra/mocks/metrics/metrics.spy';
 
 describe('ForecastController (e2e)', () => {
   let app: INestApplication;
   let authToken: string;
+  let loggerSpy: LoggerSpy;
+  let metricsSpy: MetricsSpy;
   let mockPredictCashFlowUseCase: jest.Mocked<PredictCashFlowUseCase>;
 
   beforeAll(async () => {
+    loggerSpy = new LoggerSpy();
+    metricsSpy = new MetricsSpy();
     mockPredictCashFlowUseCase = PredictCashFlowUseCaseMockFactory.createSpy();
 
     const moduleFixture: TestingModule = await Test.createTestingModule({
+      imports: [
+        ConfigModule.forRoot({
+          isGlobal: true,
+          envFilePath: '.env.test',
+        }),
+      ],
       controllers: [ForecastController],
       providers: [
         {
-          provide: 'PredictCashFlowUseCase', // ✅ String token para DI
+          provide: 'PredictCashFlowUseCase',
           useValue: mockPredictCashFlowUseCase,
+        },
+        {
+          provide: 'Logger',
+          useValue: loggerSpy,
+        },
+        {
+          provide: 'Metrics',
+          useValue: metricsSpy,
         },
       ],
     })
@@ -53,8 +74,90 @@ describe('ForecastController (e2e)', () => {
   });
 
   beforeEach(async () => {
+    loggerSpy.clear();
+    metricsSpy.clear();
     jest.clearAllMocks();
     mockPredictCashFlowUseCase.execute.mockResolvedValue(mockCashFlowForecast);
+  });
+
+  describe('Authentication', () => {
+    it('should deny access without authorization header', async () => {
+      // Create a temporary app without auth guard override to test real authentication
+      const moduleFixture: TestingModule = await Test.createTestingModule({
+        imports: [
+          ConfigModule.forRoot({
+            isGlobal: true,
+            envFilePath: '.env.test',
+          }),
+        ],
+        controllers: [ForecastController],
+        providers: [
+          {
+            provide: 'PredictCashFlowUseCase',
+            useValue: mockPredictCashFlowUseCase,
+          },
+          {
+            provide: 'Logger',
+            useValue: loggerSpy,
+          },
+          {
+            provide: 'Metrics',
+            useValue: metricsSpy,
+          },
+        ],
+      }).compile();
+
+      const unguardedApp = moduleFixture.createNestApplication();
+      await unguardedApp.init();
+
+      const response = await request(unguardedApp.getHttpServer()).get(
+        '/forecast?months=3',
+      );
+
+      expect(response.status).toBeGreaterThanOrEqual(401);
+      expect(mockPredictCashFlowUseCase.execute).not.toHaveBeenCalled();
+
+      await unguardedApp.close();
+    });
+
+    it('should deny access with invalid token', async () => {
+      // Create a temporary app without auth guard override to test real authentication
+      const moduleFixture: TestingModule = await Test.createTestingModule({
+        imports: [
+          ConfigModule.forRoot({
+            isGlobal: true,
+            envFilePath: '.env.test',
+          }),
+        ],
+        controllers: [ForecastController],
+        providers: [
+          {
+            provide: 'PredictCashFlowUseCase',
+            useValue: mockPredictCashFlowUseCase,
+          },
+          {
+            provide: 'Logger',
+            useValue: loggerSpy,
+          },
+          {
+            provide: 'Metrics',
+            useValue: metricsSpy,
+          },
+        ],
+      }).compile();
+
+      const unguardedApp = moduleFixture.createNestApplication();
+      await unguardedApp.init();
+
+      const response = await request(unguardedApp.getHttpServer())
+        .get('/forecast?months=3')
+        .set('Authorization', 'Bearer invalid-token');
+
+      expect(response.status).toBeGreaterThanOrEqual(401);
+      expect(mockPredictCashFlowUseCase.execute).not.toHaveBeenCalled();
+
+      await unguardedApp.close();
+    });
   });
 
   describe('GET /forecast', () => {

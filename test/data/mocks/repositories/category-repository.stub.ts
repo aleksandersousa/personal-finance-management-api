@@ -96,7 +96,9 @@ export class CategoryRepositoryStub implements CategoryRepository {
     );
 
     if (filters.type && filters.type !== 'all') {
-      filtered = filtered.filter(c => c.type === filters.type);
+      filtered = filtered.filter(
+        c => c.type === (filters.type as CategoryType),
+      );
     }
 
     return filtered.map(category => ({

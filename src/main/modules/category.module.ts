@@ -2,7 +2,10 @@ import { Module } from '@nestjs/common';
 import { TypeOrmModule, getRepositoryToken } from '@nestjs/typeorm';
 import { CategoryEntity } from '@infra/db/typeorm/entities';
 import { CategoryController } from '@presentation/controllers';
-import { makeAddCategoryFactory } from '@main/factories/usecases/categories';
+import {
+  makeAddCategoryFactory,
+  makeListCategoriesFactory,
+} from '@main/factories/usecases/categories';
 import { makeCategoryRepository } from '@/main/factories/repositories';
 import { AuthModule } from './auth.module';
 import { ObservabilityModule } from './observability.module';
@@ -25,7 +28,12 @@ import { ObservabilityModule } from './observability.module';
       useFactory: makeAddCategoryFactory,
       inject: ['CategoryRepository'],
     },
+    {
+      provide: 'ListCategoriesUseCase',
+      useFactory: makeListCategoriesFactory,
+      inject: ['CategoryRepository'],
+    },
   ],
-  exports: ['AddCategoryUseCase'],
+  exports: ['AddCategoryUseCase', 'ListCategoriesUseCase'],
 })
 export class CategoryModule {}
