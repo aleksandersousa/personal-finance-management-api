@@ -50,7 +50,7 @@ Durante a implementação e testes, foram identificados e corrigidos diversos pr
 - **`database-requirements.md`** - Configurações de banco
 - **`docker-requirements.md`** - Configurações Docker
 - **`git-workflow-requirements.md`** - Workflow Git
-- **`observability-requirements.md`** - Observabilidade
+- **`observability-implementation-guidelines.md`** - Implementação de observabilidade
 - **`deploy-ci-cd-guidelines.md`** - Deploy e CI/CD
 
 ### Workflows (`/workflows/`)
@@ -61,7 +61,7 @@ Durante a implementação e testes, foram identificados e corrigidos diversos pr
 ### Específicos do Projeto (`/financial-project-specifics/`)
 
 - **`usecases-and-tasks-requirements.md`** - Use cases específicos
-- **`mvp-requirements.md`** - Requisitos MVP
+- **`README.md`** - Inclui requisitos MVP consolidados
 
 ## 🔄 Status de Implementação
 

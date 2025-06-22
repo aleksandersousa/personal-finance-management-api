@@ -22,8 +22,7 @@ Esta pasta contém todas as guidelines genéricas reutilizáveis para desenvolvi
 
 ### 📊 Observability & Monitoring
 
-- **[`observability-requirements.md`](./observability-requirements.md)** - Conceitos gerais e originais
-- **[`observability-implementation-guidelines.md`](./observability-implementation-guidelines.md)** - Implementação prática completa
+- **[`observability-implementation-guidelines.md`](./observability-implementation-guidelines.md)** - Implementação completa de observabilidade
 
 ### 🔄 Development Process
 
@@ -79,23 +78,22 @@ Patterns support long-term project maintenance
 
 ## 📋 Quick Reference
 
-| Guideline                      | Primary Focus                | Key Technologies         |
-| ------------------------------ | ---------------------------- | ------------------------ |
-| API Requirements               | REST patterns, documentation | NestJS, Swagger, OpenAPI |
-| Database Requirements          | Schema design, performance   | TypeORM, PostgreSQL      |
-| Docker Requirements            | Containerization             | Docker, Docker Compose   |
-| Testing Requirements           | Quality assurance            | Jest, Supertest          |
-| CI/CD Guidelines               | Deployment automation        | GitHub Actions, Docker   |
-| Git Workflow                   | Version control              | Git, GitHub              |
-| Observability (Original)       | Monitoring concepts          | Prometheus, Grafana      |
-| Observability (Implementation) | Practical implementation     | Winston, Metrics         |
+| Guideline                    | Primary Focus                | Key Technologies             |
+| ---------------------------- | ---------------------------- | ---------------------------- |
+| API Requirements             | REST patterns, documentation | NestJS, Swagger, OpenAPI     |
+| Database Requirements        | Schema design, performance   | TypeORM, PostgreSQL          |
+| Docker Requirements          | Containerization             | Docker, Docker Compose       |
+| Testing Requirements         | Quality assurance            | Jest, Supertest              |
+| CI/CD Guidelines             | Deployment automation        | GitHub Actions, Docker       |
+| Git Workflow                 | Version control              | Git, GitHub                  |
+| Observability Implementation | Complete observability setup | Prometheus, Grafana, Winston |
 
 ## 🚀 Getting Started
 
 1. **Start with**: `api-requirements.md` for overall API structure
 2. **Then read**: `database-requirements.md` for data layer
 3. **Follow with**: `docker-requirements.md` for containerization
-4. **Implement**: `observability-implementation-guidelines.md` for monitoring
+4. **Implement**: `observability-implementation-guidelines.md` for complete monitoring
 5. **Setup**: `testing-requirements.md` for quality assurance
 6. **Deploy**: `deploy-ci-cd-guidelines.md` for automation
 
