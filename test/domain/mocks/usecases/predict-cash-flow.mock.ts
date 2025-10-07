@@ -39,9 +39,9 @@ export const mockCashFlowForecast: CashFlowForecast = {
     trend: 'positive',
     riskLevel: 'low',
     recommendations: [
-      'Your fixed income covers all fixed expenses',
-      'Consider increasing savings rate',
-      'Emergency fund looks stable',
+      'Sua renda fixa cobre todas as despesas fixas',
+      'Considere aumentar a taxa de poupança',
+      'Fundo de emergência parece estável',
     ],
   },
 };
@@ -137,8 +137,8 @@ export class MockCashFlowForecastFactory {
         trend: 'negative',
         riskLevel: 'high',
         recommendations: [
-          'Consider reducing expenses or increasing income',
-          'Emergency fund is at risk',
+          'Considere reduzir despesas ou aumentar a renda',
+          'Fundo de emergência está em risco',
         ],
       },
     });

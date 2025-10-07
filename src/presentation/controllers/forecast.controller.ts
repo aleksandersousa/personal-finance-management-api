@@ -101,9 +101,9 @@ export class ForecastController {
           trend: 'positive',
           riskLevel: 'low',
           recommendations: [
-            'Your fixed income covers all fixed expenses',
-            'Consider increasing savings rate',
-            'Emergency fund looks stable',
+            'Sua renda fixa cobre todas as despesas fixas',
+            'Considere aumentar a taxa de poupança',
+            'Fundo de emergência parece estável',
           ],
         },
       },

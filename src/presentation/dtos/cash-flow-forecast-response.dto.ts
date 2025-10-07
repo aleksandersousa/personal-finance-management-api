@@ -110,9 +110,9 @@ export class ForecastInsights {
     description: 'AI-generated financial recommendations',
     type: [String],
     example: [
-      'Your fixed income covers all fixed expenses',
-      'Consider increasing savings rate',
-      'Emergency fund looks stable',
+      'Sua renda fixa cobre todas as despesas fixas',
+      'Considere aumentar a taxa de poupança',
+      'Fundo de emergência parece estável',
     ],
   })
   recommendations: string[];

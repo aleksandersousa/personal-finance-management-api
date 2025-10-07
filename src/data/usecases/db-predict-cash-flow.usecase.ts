@@ -270,25 +270,29 @@ export class DbPredictCashFlowUseCase implements PredictCashFlowUseCase {
     const hasExpenses = (fixedSummary.fixedExpenses || 0) > 0;
 
     if (hasIncome && hasExpenses && netFlow > 0) {
-      recommendations.push('Your fixed income covers all fixed expenses');
+      recommendations.push('Sua renda fixa cobre todas as despesas fixas');
     }
 
     if (trend === 'positive') {
-      recommendations.push('Consider increasing savings rate');
+      recommendations.push('Considere aumentar a taxa de poupança');
     }
 
     if (riskLevel === 'low') {
-      recommendations.push('Emergency fund looks stable');
+      recommendations.push('Fundo de emergência parece estável');
     } else if (riskLevel === 'high') {
-      recommendations.push('Consider reducing expenses or increasing income');
+      recommendations.push('Considere reduzir despesas ou aumentar a renda');
     }
 
     if (!hasIncome) {
-      recommendations.push('Add fixed income sources for better prediction');
+      recommendations.push(
+        'Adicione fontes de renda fixa para melhor previsão',
+      );
     }
 
     if (!hasExpenses) {
-      recommendations.push('Add fixed expenses for more accurate forecasting');
+      recommendations.push(
+        'Adicione despesas fixas para previsão mais precisa',
+      );
     }
 
     return recommendations;

@@ -202,10 +202,10 @@ describe('DbPredictCashFlowUseCase', () => {
 
       // Assert
       expect(result.insights.recommendations).toContain(
-        'Your fixed income covers all fixed expenses',
+        'Sua renda fixa cobre todas as despesas fixas',
       );
       expect(result.insights.recommendations).toContain(
-        'Consider increasing savings rate',
+        'Considere aumentar a taxa de poupança',
       );
     });
 
@@ -355,7 +355,7 @@ describe('DbPredictCashFlowUseCase', () => {
       expect(result.insights.trend).toBe('negative');
       expect(result.insights.riskLevel).toBe('high');
       expect(result.insights.recommendations).toContain(
-        'Consider reducing expenses or increasing income',
+        'Considere reduzir despesas ou aumentar a renda',
       );
     });
 
@@ -378,7 +378,7 @@ describe('DbPredictCashFlowUseCase', () => {
 
       // Assert
       expect(result.insights.recommendations).toContain(
-        'Add fixed income sources for better prediction',
+        'Adicione fontes de renda fixa para melhor previsão',
       );
     });
 
@@ -401,7 +401,7 @@ describe('DbPredictCashFlowUseCase', () => {
 
       // Assert
       expect(result.insights.recommendations).toContain(
-        'Add fixed expenses for more accurate forecasting',
+        'Adicione despesas fixas para previsão mais precisa',
       );
     });
 
@@ -517,7 +517,7 @@ describe('DbPredictCashFlowUseCase', () => {
       expect(result.insights.riskLevel).toBe('high');
       expect(result.monthlyProjections[0].netFlow).toBeLessThan(0);
       expect(result.insights.recommendations).toContain(
-        'Consider reducing expenses or increasing income',
+        'Considere reduzir despesas ou aumentar a renda',
       );
     });
 
@@ -835,10 +835,10 @@ describe('DbPredictCashFlowUseCase', () => {
 
       // Assert
       expect(recommendations).toContain(
-        'Add fixed income sources for better prediction',
+        'Adicione fontes de renda fixa para melhor previsão',
       );
       expect(recommendations).toContain(
-        'Consider reducing expenses or increasing income',
+        'Considere reduzir despesas ou aumentar a renda',
       );
     });
 
@@ -863,10 +863,12 @@ describe('DbPredictCashFlowUseCase', () => {
 
       // Assert
       expect(recommendations).toContain(
-        'Add fixed expenses for more accurate forecasting',
+        'Adicione despesas fixas para previsão mais precisa',
       );
-      expect(recommendations).toContain('Consider increasing savings rate');
-      expect(recommendations).toContain('Emergency fund looks stable');
+      expect(recommendations).toContain(
+        'Considere aumentar a taxa de poupança',
+      );
+      expect(recommendations).toContain('Fundo de emergência parece estável');
     });
   });
 });
