@@ -32,7 +32,7 @@
     "docker:dev:logs": "docker-compose -f .docker/docker-compose.dev.yml --env-file .env logs -f",
     "docker:dev:down": "docker-compose -f .docker/docker-compose.dev.yml --env-file .env down",
     "docker:dev:clean": "docker-compose -f .docker/docker-compose.dev.yml --env-file .env down -v --remove-orphans",
-    "docker:db:dev": "docker-compose -f .docker/docker-compose.dev.yml --env-file .env up db",
+    "docker:db:dev": "docker-compose -f .docker/docker-compose.dev.yml --env-file .env up db -d",
     "docker:db:logs:dev": "docker-compose -f .docker/docker-compose.dev.yml --env-file .env logs -f db",
     "ci:setup": "echo '🚀 Setting up CI/CD...' && echo '✅ GitHub Actions workflows configured' && echo '✅ Deploy scripts ready' && echo '✅ Monitoring scripts ready' && echo '📚 Read docs/CI-CD-SETUP.md for complete guide'",
     "ci:validate": "echo '🔍 Validating CI/CD setup...' && ls -la .github/workflows/ && ls -la scripts/ && echo '✅ CI/CD setup validation complete'",
