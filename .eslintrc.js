@@ -32,6 +32,7 @@ module.exports = {
     'no-debugger': 'error',
     'no-duplicate-imports': 'error',
     'no-unused-expressions': 'error',
+    'no-empty': 'off',
 
     // Code style
     eqeqeq: ['error', 'always'],

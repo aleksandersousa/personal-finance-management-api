@@ -40,11 +40,7 @@ import { JwtAuthGuard } from '../guards/jwt-auth.guard';
 import { User } from '../decorators/user.decorator';
 import { Logger } from '@data/protocols/logger';
 import { Metrics } from '@data/protocols/metrics';
-
-interface UserPayload {
-  id: string;
-  email: string;
-}
+import { UserPayload } from '@domain/models/user.model';
 
 @ApiTags('entries')
 @Controller('entries')

@@ -7,6 +7,7 @@ import { AuthModule } from './auth.module';
 import { CategoryModule } from './category.module';
 import { ForecastModule } from './forecast.module';
 import { SummaryModule } from './summary.module';
+import { SqlAgentModule } from './sql-agent.module';
 import { ObservabilityModule } from './observability.module';
 import { HealthController } from '@presentation/controllers/health.controller';
 import { MetricsController } from '@presentation/controllers/metrics.controller';
@@ -43,6 +44,7 @@ import { typeOrmConfig } from '@infra/db/typeorm/config/data-source';
     CategoryModule,
     ForecastModule,
     SummaryModule,
+    SqlAgentModule,
   ],
   controllers: [HealthController, MetricsController],
   providers: [],

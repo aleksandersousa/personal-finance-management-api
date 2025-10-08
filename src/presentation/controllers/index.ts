@@ -5,3 +5,4 @@ export * from './forecast.controller';
 export * from './health.controller';
 export * from './metrics.controller';
 export * from './summary.controller';
+export * from './sql-agent.controller';
