@@ -117,19 +117,7 @@ export class EntryController {
       // Record metrics
       this.metrics.recordHttpRequest('POST', '/entries', 201, duration);
 
-      return {
-        id: entry.id,
-        amount: entry.amount,
-        description: entry.description,
-        type: entry.type,
-        isFixed: entry.isFixed,
-        categoryId: entry.categoryId,
-        categoryName: 'Category Name', // Would come from category service
-        userId: entry.userId,
-        date: entry.date,
-        createdAt: entry.createdAt,
-        updatedAt: entry.updatedAt,
-      };
+      return entry;
     } catch (error) {
       // Log error
       this.logger.error(
@@ -274,7 +262,6 @@ export class EntryController {
 
       const duration = Date.now() - startTime;
 
-      // Log business event
       this.logger.logBusinessEvent({
         event: 'entry_api_list_success',
         userId: user.id,
@@ -287,24 +274,10 @@ export class EntryController {
         },
       });
 
-      // Record metrics
       this.metrics.recordHttpRequest('GET', '/entries', 200, duration);
 
-      // Map to response DTO format - data is already processed by use case
       return {
-        data: result.data.map(entry => ({
-          id: entry.id,
-          amount: entry.amount,
-          description: entry.description,
-          type: entry.type,
-          isFixed: entry.isFixed,
-          categoryId: entry.categoryId,
-          categoryName: 'Category Name', // TODO: This should come from category service
-          userId: entry.userId,
-          date: entry.date,
-          createdAt: entry.createdAt,
-          updatedAt: entry.updatedAt,
-        })),
+        data: result.data,
         pagination: result.pagination,
         summary: result.summary,
       };

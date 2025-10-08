@@ -53,14 +53,22 @@ export class TypeormCategoryRepository implements CategoryRepository {
         },
       });
 
-      this.metrics.recordTransaction('category_create', 'success');
+      if (this.metrics) {
+        this.metrics.recordTransaction('category_create', 'success');
+      }
       return this.mapToModel(savedCategory);
     } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
+      const errorStack = error instanceof Error ? error.stack : undefined;
+
       this.logger.error(
-        `Failed to create category: ${error.message}`,
-        error.stack,
+        `Failed to create category: ${errorMessage}`,
+        errorStack,
       );
-      this.metrics.recordApiError('category_repository_create', error.message);
+      if (this.metrics) {
+        this.metrics.recordApiError('category_repository_create', errorMessage);
+      }
       throw error;
     }
   }
@@ -71,17 +79,25 @@ export class TypeormCategoryRepository implements CategoryRepository {
         where: { id },
       });
 
-      this.metrics.recordTransaction('category_find_by_id', 'success');
+      if (this.metrics) {
+        this.metrics.recordTransaction('category_find_by_id', 'success');
+      }
       return category ? this.mapToModel(category) : null;
     } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
+      const errorStack = error instanceof Error ? error.stack : undefined;
+
       this.logger.error(
-        `Failed to find category by id: ${error.message}`,
-        error.stack,
+        `Failed to find category by id: ${errorMessage}`,
+        errorStack,
       );
-      this.metrics.recordApiError(
-        'category_repository_find_by_id',
-        error.message,
-      );
+      if (this.metrics) {
+        this.metrics.recordApiError(
+          'category_repository_find_by_id',
+          errorMessage,
+        );
+      }
       throw error;
     }
   }
@@ -93,17 +109,25 @@ export class TypeormCategoryRepository implements CategoryRepository {
         order: { name: 'ASC' },
       });
 
-      this.metrics.recordTransaction('category_find_by_user_id', 'success');
+      if (this.metrics) {
+        this.metrics.recordTransaction('category_find_by_user_id', 'success');
+      }
       return categories.map(this.mapToModel);
     } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
+      const errorStack = error instanceof Error ? error.stack : undefined;
+
       this.logger.error(
-        `Failed to find categories by userId: ${error.message}`,
-        error.stack,
+        `Failed to find categories by userId: ${errorMessage}`,
+        errorStack,
       );
-      this.metrics.recordApiError(
-        'category_repository_find_by_user_id',
-        error.message,
-      );
+      if (this.metrics) {
+        this.metrics.recordApiError(
+          'category_repository_find_by_user_id',
+          errorMessage,
+        );
+      }
       throw error;
     }
   }
@@ -118,20 +142,28 @@ export class TypeormCategoryRepository implements CategoryRepository {
         order: { name: 'ASC' },
       });
 
-      this.metrics.recordTransaction(
-        'category_find_by_user_id_and_type',
-        'success',
-      );
+      if (this.metrics) {
+        this.metrics.recordTransaction(
+          'category_find_by_user_id_and_type',
+          'success',
+        );
+      }
       return categories.map(this.mapToModel);
     } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
+      const errorStack = error instanceof Error ? error.stack : undefined;
+
       this.logger.error(
-        `Failed to find categories by userId and type: ${error.message}`,
-        error.stack,
+        `Failed to find categories by userId and type: ${errorMessage}`,
+        errorStack,
       );
-      this.metrics.recordApiError(
-        'category_repository_find_by_user_id_and_type',
-        error.message,
-      );
+      if (this.metrics) {
+        this.metrics.recordApiError(
+          'category_repository_find_by_user_id_and_type',
+          errorMessage,
+        );
+      }
       throw error;
     }
   }
@@ -145,20 +177,28 @@ export class TypeormCategoryRepository implements CategoryRepository {
         where: { userId, name },
       });
 
-      this.metrics.recordTransaction(
-        'category_find_by_user_id_and_name',
-        'success',
-      );
+      if (this.metrics) {
+        this.metrics.recordTransaction(
+          'category_find_by_user_id_and_name',
+          'success',
+        );
+      }
       return category ? this.mapToModel(category) : null;
     } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
+      const errorStack = error instanceof Error ? error.stack : undefined;
+
       this.logger.error(
-        `Failed to find category by userId and name: ${error.message}`,
-        error.stack,
+        `Failed to find category by userId and name: ${errorMessage}`,
+        errorStack,
       );
-      this.metrics.recordApiError(
-        'category_repository_find_by_user_id_and_name',
-        error.message,
-      );
+      if (this.metrics) {
+        this.metrics.recordApiError(
+          'category_repository_find_by_user_id_and_name',
+          errorMessage,
+        );
+      }
       throw error;
     }
   }
@@ -203,7 +243,9 @@ export class TypeormCategoryRepository implements CategoryRepository {
         },
       });
 
-      this.metrics.recordTransaction('category_find_with_filters', 'success');
+      if (this.metrics) {
+        this.metrics.recordTransaction('category_find_with_filters', 'success');
+      }
 
       return categories.entities.map((category, index) => {
         const mapped = this.mapToModel(category);
@@ -219,14 +261,20 @@ export class TypeormCategoryRepository implements CategoryRepository {
         return mapped;
       });
     } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
+      const errorStack = error instanceof Error ? error.stack : undefined;
+
       this.logger.error(
-        `Failed to find categories with filters: ${error.message}`,
-        error.stack,
+        `Failed to find categories with filters: ${errorMessage}`,
+        errorStack,
       );
-      this.metrics.recordApiError(
-        'category_repository_find_with_filters',
-        error.message,
-      );
+      if (this.metrics) {
+        this.metrics.recordApiError(
+          'category_repository_find_with_filters',
+          errorMessage,
+        );
+      }
       throw error;
     }
   }
@@ -276,14 +324,22 @@ export class TypeormCategoryRepository implements CategoryRepository {
         },
       });
 
-      this.metrics.recordTransaction('category_update', 'success');
+      if (this.metrics) {
+        this.metrics.recordTransaction('category_update', 'success');
+      }
       return this.mapToModel(updatedCategory);
     } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
+      const errorStack = error instanceof Error ? error.stack : undefined;
+
       this.logger.error(
-        `Failed to update category: ${error.message}`,
-        error.stack,
+        `Failed to update category: ${errorMessage}`,
+        errorStack,
       );
-      this.metrics.recordApiError('category_repository_update', error.message);
+      if (this.metrics) {
+        this.metrics.recordApiError('category_repository_update', errorMessage);
+      }
       throw error;
     }
   }
@@ -316,13 +372,21 @@ export class TypeormCategoryRepository implements CategoryRepository {
         },
       });
 
-      this.metrics.recordTransaction('category_delete', 'success');
+      if (this.metrics) {
+        this.metrics.recordTransaction('category_delete', 'success');
+      }
     } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
+      const errorStack = error instanceof Error ? error.stack : undefined;
+
       this.logger.error(
-        `Failed to delete category: ${error.message}`,
-        error.stack,
+        `Failed to delete category: ${errorMessage}`,
+        errorStack,
       );
-      this.metrics.recordApiError('category_repository_delete', error.message);
+      if (this.metrics) {
+        this.metrics.recordApiError('category_repository_delete', errorMessage);
+      }
       throw error;
     }
   }
@@ -340,16 +404,24 @@ export class TypeormCategoryRepository implements CategoryRepository {
         entityId: id,
       });
 
-      this.metrics.recordTransaction('category_soft_delete', 'success');
+      if (this.metrics) {
+        this.metrics.recordTransaction('category_soft_delete', 'success');
+      }
     } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
+      const errorStack = error instanceof Error ? error.stack : undefined;
+
       this.logger.error(
-        `Failed to soft delete category: ${error.message}`,
-        error.stack,
+        `Failed to soft delete category: ${errorMessage}`,
+        errorStack,
       );
-      this.metrics.recordApiError(
-        'category_repository_soft_delete',
-        error.message,
-      );
+      if (this.metrics) {
+        this.metrics.recordApiError(
+          'category_repository_soft_delete',
+          errorMessage,
+        );
+      }
       throw error;
     }
   }
@@ -363,20 +435,28 @@ export class TypeormCategoryRepository implements CategoryRepository {
         .andWhere('entry.id IS NOT NULL')
         .getCount();
 
-      this.metrics.recordTransaction(
-        'category_has_entries_associated',
-        'success',
-      );
+      if (this.metrics) {
+        this.metrics.recordTransaction(
+          'category_has_entries_associated',
+          'success',
+        );
+      }
       return count > 0;
     } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
+      const errorStack = error instanceof Error ? error.stack : undefined;
+
       this.logger.error(
-        `Failed to check entries association: ${error.message}`,
-        error.stack,
+        `Failed to check entries association: ${errorMessage}`,
+        errorStack,
       );
-      this.metrics.recordApiError(
-        'category_repository_has_entries_associated',
-        error.message,
-      );
+      if (this.metrics) {
+        this.metrics.recordApiError(
+          'category_repository_has_entries_associated',
+          errorMessage,
+        );
+      }
       throw error;
     }
   }

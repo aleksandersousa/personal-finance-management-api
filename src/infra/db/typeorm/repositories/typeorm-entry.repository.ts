@@ -160,8 +160,10 @@ export class TypeormEntryRepository implements EntryRepository {
 
     const summaryResult = await summaryQuery.getRawOne();
 
+    const data = entries.map(this.mapToModel);
+
     return {
-      data: entries.map(this.mapToModel),
+      data,
       total,
       totalIncome: parseFloat(summaryResult?.totalIncome || '0'),
       totalExpenses: parseFloat(summaryResult?.totalExpenses || '0'),
@@ -546,6 +548,7 @@ export class TypeormEntryRepository implements EntryRepository {
       type: entity.type,
       isFixed: entity.isFixed,
       categoryId: entity.categoryId,
+      categoryName: entity.category?.name,
       createdAt: entity.createdAt,
       updatedAt: entity.updatedAt,
       deletedAt: entity.deletedAt,
