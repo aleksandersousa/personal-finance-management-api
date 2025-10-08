@@ -28,7 +28,7 @@ describe('OllamaSqlGeneratorProvider', () => {
       'http://x/api/chat',
       expect.objectContaining({ method: 'POST' }),
     );
-    expect(result).toEqual({ rawSql: 'SELECT * FROM a;' });
+    expect(result).toEqual({ rawSql: 'SELECT * FROM a' });
   });
 
   it('should support extracting SQL from generic ``` fences', async () => {
@@ -47,7 +47,7 @@ describe('OllamaSqlGeneratorProvider', () => {
       question: { userId: 'u', question: 'q' },
     });
 
-    expect(result).toEqual({ rawSql: 'SELECT 1;' });
+    expect(result).toEqual({ rawSql: 'SELECT 1' });
   });
 
   it('should use json.content when message is absent', async () => {
@@ -66,7 +66,7 @@ describe('OllamaSqlGeneratorProvider', () => {
       question: { userId: 'u', question: 'q' },
     });
 
-    expect(result).toEqual({ rawSql: 'SELECT 2;' });
+    expect(result).toEqual({ rawSql: 'SELECT 2' });
   });
 
   it('should throw on non-ok response', async () => {

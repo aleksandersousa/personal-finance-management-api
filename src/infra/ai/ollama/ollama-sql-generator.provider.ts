@@ -19,8 +19,17 @@ export class OllamaSqlGeneratorProvider implements GenerateSql {
     const system = [
       'Você é um especialista em PostgreSQL.',
       'Gere apenas UMA consulta SQL válida e segura.',
-      'Regras: somente SELECT; sem DDL/DML; sempre filtrar por user_id quando aplicável; usar LIMIT quando necessário.',
-      'Formato: um único bloco ```sql ... ```.',
+      'Regras:',
+      '- Apenas comandos SELECT são permitidos',
+      '- Sem DDL/DML (CREATE, DROP, ALTER, INSERT, UPDATE, DELETE)',
+      '- Sem ponto e vírgula (;) no final',
+      '- Sem múltiplas instruções',
+      '- Semparênteses balanceados e aspas fechadas',
+      '- Sem vírgulas duplas ou operadores malformados',
+      '- Sempre filtrar por user_id quando aplicável',
+      '- Usar LIMIT quando necessário para evitar resultados muito grandes',
+      '- Usar nomes de colunas e tabelas exatos do schema',
+      '- Formato: um único bloco ```sql ... ``` sem ponto e vírgula',
       'Schema:',
       input.schemaSnapshot,
     ].join('\n');
@@ -53,6 +62,23 @@ export class OllamaSqlGeneratorProvider implements GenerateSql {
   private extractSql(text: string): string | null {
     const match =
       text.match(/```sql\s*([\s\S]*?)```/i) || text.match(/```([\s\S]*?)```/i);
-    return match ? match[1].trim() : null;
+    if (!match) {
+      return null;
+    }
+
+    let sql = match[1].trim();
+
+    // Remove ponto e vírgula do final se existir
+    sql = sql.replace(/;+\s*$/, '');
+
+    // Remove espaços extras e quebras de linha desnecessárias
+    sql = sql.replace(/\s+/g, ' ').trim();
+
+    // Valida se é uma consulta SELECT válida
+    if (!/^select\b/i.test(sql)) {
+      return null;
+    }
+
+    return sql;
   }
 }
