@@ -1,10 +1,11 @@
-import { Category } from '@domain/models/category.model';
+import { Category, type CategoryType } from '@domain/models/category.model';
 
 export interface UpdateCategoryRequest {
   id: string;
   userId: string;
   name?: string;
   description?: string;
+  type?: CategoryType;
   color?: string;
   icon?: string;
 }

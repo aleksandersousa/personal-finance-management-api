@@ -84,7 +84,10 @@ export class DbUpdateCategoryUseCase implements UpdateCategoryUseCase {
       updateData.icon = request.icon;
     }
 
-    // Update category
+    if (request.type !== undefined) {
+      updateData.type = request.type;
+    }
+
     const updatedCategory = await this.categoryRepository.update(
       request.id,
       updateData,

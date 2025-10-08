@@ -1,3 +1,4 @@
+import { CategoryType } from '@/domain/models/category.model';
 import { ApiProperty } from '@nestjs/swagger';
 import {
   IsString,
@@ -5,6 +6,7 @@ import {
   MaxLength,
   IsNotEmpty,
   Matches,
+  IsEnum,
 } from 'class-validator';
 
 export class UpdateCategoryDto {
@@ -56,4 +58,13 @@ export class UpdateCategoryDto {
   @IsString()
   @MaxLength(50, { message: 'Icon must be 50 characters or less' })
   icon?: string;
+
+  @IsEnum(CategoryType)
+  @ApiProperty({
+    description: 'Category type',
+    enum: CategoryType,
+    example: CategoryType.INCOME,
+  })
+  @IsOptional()
+  type?: CategoryType;
 }
