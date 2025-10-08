@@ -85,7 +85,11 @@ export class FinancialMetricsService implements Metrics {
   }
 
   recordTransaction(type: string, status: string) {
-    this.financialTransactionsTotal.inc({ type, status });
+    try {
+      this.financialTransactionsTotal.inc({ type, status });
+    } catch (error) {
+      console.error('Error recording transaction metric:', error);
+    }
   }
 
   recordApiError(endpoint: string, errorType: string) {
