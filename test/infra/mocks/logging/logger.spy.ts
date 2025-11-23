@@ -6,7 +6,7 @@ import {
   BusinessEvent,
   PerformanceEvent,
   SecurityEvent,
-} from '../../../../src/infra/logging/context-aware-logger.service';
+} from '@data/protocols/logger';
 
 export class LoggerSpy {
   public loggedEvents: any[] = [];
@@ -66,10 +66,7 @@ export class LoggerSpy {
   }
 
   logSecurityEvent(event: SecurityEvent): void {
-    this.loggedSecurityEvents.push({
-      ...event,
-      timestamp: new Date(),
-    });
+    this.loggedSecurityEvents.push(event);
   }
 
   logPerformanceEvent(event: PerformanceEvent): void {

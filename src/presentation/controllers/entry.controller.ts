@@ -2,12 +2,15 @@ import {
   BadRequestException,
   Body,
   Controller,
+  Delete,
   Get,
   HttpCode,
   HttpStatus,
   Inject,
   NotFoundException,
+  Param,
   Post,
+  Put,
   Query,
   UseGuards,
   ValidationPipe,
@@ -18,23 +21,26 @@ import {
   ApiBody,
   ApiNotFoundResponse,
   ApiOperation,
+  ApiParam,
   ApiQuery,
   ApiResponse,
   ApiTags,
   ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
-import { DbAddEntryUseCase } from '@data/usecases/db-add-entry.usecase';
-import { DbListEntriesByMonthUseCase } from '@data/usecases/db-list-entries-by-month.usecase';
+import { AddEntryUseCase } from '@domain/usecases/add-entry.usecase';
+import { ListEntriesByMonthUseCase } from '@domain/usecases/list-entries-by-month.usecase';
+import { DeleteEntryUseCase } from '@domain/usecases/delete-entry.usecase';
+import { UpdateEntryUseCase } from '@domain/usecases/update-entry.usecase';
 import { CreateEntryDto } from '../dtos/create-entry.dto';
+import { UpdateEntryDto } from '../dtos/update-entry.dto';
 import { EntryResponseDto } from '../dtos/entry-response.dto';
 import { EntryListResponseDto } from '../dtos/entry-list-response.dto';
+import { DeleteEntryResponseDto } from '../dtos/delete-entry-response.dto';
 import { JwtAuthGuard } from '../guards/jwt-auth.guard';
 import { User } from '../decorators/user.decorator';
-
-interface UserPayload {
-  id: string;
-  email: string;
-}
+import { Logger } from '@data/protocols/logger';
+import { Metrics } from '@data/protocols/metrics';
+import { UserPayload } from '@domain/models/user.model';
 
 @ApiTags('entries')
 @Controller('entries')
@@ -42,9 +48,18 @@ interface UserPayload {
 @UseGuards(JwtAuthGuard)
 export class EntryController {
   constructor(
-    private readonly addEntryUseCase: DbAddEntryUseCase,
+    @Inject('AddEntryUseCase')
+    private readonly addEntryUseCase: AddEntryUseCase,
     @Inject('ListEntriesByMonthUseCase')
-    private readonly listEntriesByMonthUseCase: DbListEntriesByMonthUseCase,
+    private readonly listEntriesByMonthUseCase: ListEntriesByMonthUseCase,
+    @Inject('DeleteEntryUseCase')
+    private readonly deleteEntryUseCase: DeleteEntryUseCase,
+    @Inject('UpdateEntryUseCase')
+    private readonly updateEntryUseCase: UpdateEntryUseCase,
+    @Inject('Logger')
+    private readonly logger: Logger,
+    @Inject('Metrics')
+    private readonly metrics: Metrics,
   ) {}
 
   @Post()
@@ -67,6 +82,8 @@ export class EntryController {
     @Body(ValidationPipe) createEntryDto: CreateEntryDto,
     @User() user: UserPayload,
   ): Promise<EntryResponseDto> {
+    const startTime = Date.now();
+
     try {
       const entry = await this.addEntryUseCase.execute({
         userId: user.id,
@@ -78,20 +95,35 @@ export class EntryController {
         categoryId: createEntryDto.categoryId,
       });
 
-      return {
-        id: entry.id,
-        amount: entry.amount,
-        description: entry.description,
-        type: entry.type,
-        isFixed: entry.isFixed,
-        categoryId: entry.categoryId,
-        categoryName: 'Category Name', // Would come from category service
-        userId: entry.userId,
-        date: entry.date,
-        createdAt: entry.createdAt,
-        updatedAt: entry.updatedAt,
-      };
+      const duration = Date.now() - startTime;
+
+      // Log business event
+      this.logger.logBusinessEvent({
+        event: 'entry_api_create_success',
+        entityId: entry.id,
+        userId: user.id,
+        duration,
+        metadata: {
+          type: entry.type,
+          amount: entry.amount,
+          isFixed: entry.isFixed,
+        },
+      });
+
+      // Record metrics
+      this.metrics.recordHttpRequest('POST', '/entries', 201, duration);
+
+      return entry;
     } catch (error) {
+      // Log error
+      this.logger.error(
+        `Failed to create entry for user ${user.id}`,
+        error.stack,
+      );
+
+      // Record error metrics
+      this.metrics.recordApiError('entry_create', error.message);
+
       if (this.isNotFoundError(error.message)) {
         throw new NotFoundException('Category not found');
       }
@@ -167,6 +199,8 @@ export class EntryController {
     @Query('category') category: string = 'all',
     @User() user: UserPayload,
   ): Promise<EntryListResponseDto> {
+    const startTime = Date.now();
+
     try {
       // Validate month format
       if (!month || !/^\d{4}-\d{2}$/.test(month)) {
@@ -210,7 +244,6 @@ export class EntryController {
         );
       }
 
-      // Execute use case with all parameters - filtering and pagination now done at database level
       const result = await this.listEntriesByMonthUseCase.execute({
         userId: user.id,
         year,
@@ -223,29 +256,209 @@ export class EntryController {
         categoryId: category !== 'all' ? category : undefined,
       });
 
-      // Map to response DTO format - data is already processed by use case
+      const duration = Date.now() - startTime;
+
+      this.logger.logBusinessEvent({
+        event: 'entry_api_list_success',
+        userId: user.id,
+        duration,
+        metadata: {
+          month,
+          page: pageNum,
+          limit: limitNum,
+          totalResults: result.data.length,
+        },
+      });
+
+      this.metrics.recordHttpRequest('GET', '/entries', 200, duration);
+
       return {
-        data: result.data.map(entry => ({
-          id: entry.id,
-          amount: entry.amount,
-          description: entry.description,
-          type: entry.type,
-          isFixed: entry.isFixed,
-          categoryId: entry.categoryId,
-          categoryName: 'Category Name', // TODO: This should come from category service
-          userId: entry.userId,
-          date: entry.date,
-          createdAt: entry.createdAt,
-          updatedAt: entry.updatedAt,
-        })),
+        data: result.data,
         pagination: result.pagination,
         summary: result.summary,
       };
     } catch (error) {
+      // Log error
+      this.logger.error(
+        `Failed to list entries for user ${user.id}`,
+        error.stack,
+      );
+
+      // Record error metrics
+      this.metrics.recordApiError('entry_list', error.message);
+
       if (this.isClientError(error.message)) {
         throw new BadRequestException(error.message);
       }
       throw new BadRequestException('Failed to retrieve entries');
+    }
+  }
+
+  @Put(':id')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Update an existing financial entry',
+    description:
+      'Updates an existing financial entry for the authenticated user. Implements UC-06 (Update Entry). Users can only update their own entries.',
+  })
+  @ApiParam({
+    name: 'id',
+    description: 'Entry ID to update',
+    example: '123e4567-e89b-12d3-a456-426614174000',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Entry updated successfully',
+    type: EntryResponseDto,
+  })
+  @ApiBadRequestResponse({ description: 'Validation failed or invalid data' })
+  @ApiUnauthorizedResponse({ description: 'Invalid or missing JWT token' })
+  @ApiNotFoundResponse({ description: 'Entry or category not found' })
+  @ApiBody({ type: UpdateEntryDto })
+  async update(
+    @Param('id') id: string,
+    @Body(ValidationPipe) updateEntryDto: UpdateEntryDto,
+    @User() user: UserPayload,
+  ): Promise<EntryResponseDto> {
+    const startTime = Date.now();
+
+    try {
+      const entry = await this.updateEntryUseCase.execute({
+        id,
+        userId: user.id,
+        description: updateEntryDto.description,
+        amount: updateEntryDto.amount,
+        date: new Date(updateEntryDto.date),
+        type: updateEntryDto.type,
+        isFixed: updateEntryDto.isFixed,
+        categoryId: updateEntryDto.categoryId,
+      });
+
+      const duration = Date.now() - startTime;
+
+      // Log business event
+      this.logger.logBusinessEvent({
+        event: 'entry_api_update_success',
+        entityId: entry.id,
+        userId: user.id,
+        duration,
+        metadata: {
+          type: entry.type,
+          amount: entry.amount,
+          isFixed: entry.isFixed,
+        },
+      });
+
+      // Record metrics
+      this.metrics.recordHttpRequest('PUT', '/entries/:id', 200, duration);
+
+      return {
+        id: entry.id,
+        amount: entry.amount,
+        description: entry.description,
+        type: entry.type,
+        isFixed: entry.isFixed,
+        categoryId: entry.categoryId,
+        categoryName: 'Category Name', // Would come from category service
+        userId: entry.userId,
+        date: entry.date,
+        createdAt: entry.createdAt,
+        updatedAt: entry.updatedAt,
+      };
+    } catch (error) {
+      // Log error
+      this.logger.error(
+        `Failed to update entry ${id} for user ${user.id}`,
+        error.stack,
+      );
+
+      // Record error metrics
+      this.metrics.recordApiError('entry_update', error.message);
+
+      if (this.isUnauthorizedError(error.message)) {
+        throw new NotFoundException('Entry not found or access denied');
+      }
+      if (this.isNotFoundError(error.message)) {
+        throw new NotFoundException(error.message);
+      }
+      if (this.isClientError(error.message)) {
+        throw new BadRequestException(error.message);
+      }
+      throw new BadRequestException('Failed to update entry');
+    }
+  }
+
+  @Delete(':id')
+  @ApiOperation({
+    summary: 'Delete a financial entry',
+    description:
+      'Deletes a financial entry for the authenticated user. Implements UC-07 (Delete Entry).',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Entry deleted successfully',
+    type: DeleteEntryResponseDto,
+  })
+  @ApiBadRequestResponse({ description: 'Invalid entry ID' })
+  @ApiUnauthorizedResponse({ description: 'Invalid or missing JWT token' })
+  @ApiNotFoundResponse({ description: 'Entry not found' })
+  @ApiParam({
+    name: 'id',
+    required: true,
+    description: 'Entry ID',
+  })
+  async delete(
+    @Param('id') id: string,
+    @User() user: UserPayload,
+  ): Promise<DeleteEntryResponseDto> {
+    const startTime = Date.now();
+
+    try {
+      const result = await this.deleteEntryUseCase.execute({
+        userId: user.id,
+        entryId: id,
+      });
+
+      const duration = Date.now() - startTime;
+
+      this.logger.logBusinessEvent({
+        event: 'entry_api_delete_success',
+        entityId: id,
+        userId: user.id,
+        duration,
+        deletedAt: result.deletedAt.toISOString(),
+      });
+
+      this.metrics.recordTransaction('delete', 'success');
+
+      return {
+        deletedAt: result.deletedAt,
+      };
+    } catch (error) {
+      const duration = Date.now() - startTime;
+
+      this.logger.logSecurityEvent({
+        event: 'entry_api_delete_failed',
+        severity: 'medium',
+        message: error.message,
+        userId: user.id,
+        entityId: id,
+        error: error.message,
+        endpoint: `DELETE /entries/${id}`,
+        details: {
+          duration,
+        },
+      });
+
+      this.metrics.recordTransaction('delete', 'error');
+
+      if (this.isNotFoundError(error.message)) {
+        throw new NotFoundException(error.message);
+      }
+      if (this.isClientError(error.message)) {
+        throw new BadRequestException(error.message);
+      }
+      throw new BadRequestException('Failed to delete entry');
     }
   }
 
@@ -259,7 +472,6 @@ export class EntryController {
       'already exists',
       'not found',
       'unauthorized',
-      'forbidden',
     ];
     return clientErrorPatterns.some(pattern =>
       message.toLowerCase().includes(pattern),
@@ -268,5 +480,9 @@ export class EntryController {
 
   private isNotFoundError(message: string): boolean {
     return message.toLowerCase().includes('not found');
+  }
+
+  private isUnauthorizedError(message: string): boolean {
+    return message.toLowerCase().includes('unauthorized');
   }
 }

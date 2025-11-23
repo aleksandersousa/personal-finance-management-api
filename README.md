@@ -103,17 +103,78 @@ Após iniciar a aplicação, acesse:
 - **Swagger UI**: http://localhost:3000/api/v1/docs
 - **API Base URL**: http://localhost:3000/api/v1
 
-## 🧪 Testes
+## 🧪 Testes e Quality Gates
+
+### 🚀 CRITICAL: Test Execution Guidelines
+
+**⚠️ OBRIGATÓRIO após qualquer implementação:**
+
+```bash
+# 1. Execute TODOS os testes
+yarn test              # Testes unitários
+yarn test:e2e          # Testes E2E
+yarn test:coverage     # Verificar 100% coverage
+
+# 2. Verificar build
+yarn build             # Sem erros de compilação
+yarn lint              # Code quality
+
+# 3. NUNCA faça commit sem 100% de coverage e todos os testes passando!
+```
+
+### 🔒 Quality Gates (Husky Setup)
+
+O projeto utiliza **Husky** para garantir qualidade do código:
+
+- **Pre-commit**: Executa linting, todos os testes e verifica coverage 100%
+- **Pre-push**: Verificação final com thresholds rigorosos
+- **Commit-msg**: Enforça conventional commits
+
+**Para configurar:**
+
+```bash
+# Ver instruções completas
+cat HUSKY_SETUP.md
+
+# Setup rápido
+yarn add -D husky lint-staged @commitlint/cli @commitlint/config-conventional
+npx husky install
+```
+
+### 📊 Coverage Requirements
+
+- **Minimum Coverage**: **100%** (sem exceções)
+- **Branches**: 100%
+- **Functions**: 100%
+- **Lines**: 100%
+- **Statements**: 100%
+
+### 🚫 Bloqueios Automáticos
+
+**Commit/Push BLOQUEADO se:**
+
+- ❌ Qualquer teste falhar
+- ❌ Coverage < 100%
+- ❌ Build falhar
+- ❌ Linting falhar
+
+### 📋 Comandos de Teste
 
 ```bash
 # Testes unitários
-npm run test
+yarn test
 
 # Testes E2E
-npm run test:e2e
+yarn test:e2e
 
-# Coverage
-npm run test:cov
+# Todos os testes
+yarn test:all
+
+# Coverage com thresholds
+yarn test:coverage
+
+# Verificação completa
+yarn quality:check
 ```
 
 ## 🔑 Autenticação
@@ -293,6 +354,26 @@ yarn docker:prod:clean   # Limpa completamente ambiente de produção
 
 docker-compose -f docker-compose.prod.yml up -d
 
+## 🧪 Testes
+
+Este projeto mantém 100% de cobertura de testes. Para mais informações sobre as práticas de teste, configurações e arquivos excluídos da cobertura, consulte:
+
+📋 **[Testing Guidelines](requirements/guidelines/testing-requirements.md)** - Diretrizes completas de teste
+
+### Comandos de Teste
+
+```bash
+# Executar todos os testes
+yarn test
+
+# Executar testes com cobertura
+yarn test:cov
+
+# Executar testes E2E
+yarn test:e2e
+
+# Executar testes em modo watch
+yarn test:watch
 ```
 
 ## 🤝 Contribuição
@@ -302,6 +383,13 @@ docker-compose -f docker-compose.prod.yml up -d
 3. Commit suas mudanças (`git commit -m 'Adiciona nova feature'`)
 4. Push para a branch (`git push origin feature/nova-feature`)
 5. Abra um Pull Request
+
+### Diretrizes para Contributors
+
+- Mantenha 100% de cobertura de testes
+- Siga as [Testing Guidelines](requirements/guidelines/testing-requirements.md)
+- Execute `yarn lint` antes de commitar
+- Adicione documentação adequada para novas features
 
 ## 📄 Licença
 
@@ -321,9 +409,10 @@ Este projeto está licenciado sob a Licença MIT - veja o arquivo [LICENSE](LICE
 - [ ] Story 11: Refresh session
 - [ ] Story 12: Manage recurring entries
 
----
-
 ## 📞 Suporte
 
 Para dúvidas, problemas ou sugestões, abra uma issue no repositório.
+
+```
+
 ```

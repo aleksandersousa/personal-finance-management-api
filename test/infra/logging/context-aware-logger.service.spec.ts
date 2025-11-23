@@ -163,6 +163,7 @@ describe('ContextAwareLoggerService', () => {
       const event = {
         event: 'failed_login',
         severity: 'medium' as const,
+        message: 'Login attempt failed',
         traceId: 'trace-123',
         clientIp: '192.168.1.1',
         userAgent: 'Mozilla/5.0',
@@ -181,6 +182,7 @@ describe('ContextAwareLoggerService', () => {
       const event = {
         event: 'unauthorized_access',
         severity: 'critical' as const,
+        message: 'Unauthorized access attempt detected',
       };
 
       service.logSecurityEvent(event);

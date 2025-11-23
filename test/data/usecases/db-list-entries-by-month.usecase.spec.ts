@@ -16,8 +16,13 @@ describe('DbListEntriesByMonthUseCase', () => {
       findByUserId: jest.fn(),
       findByUserIdAndMonth: jest.fn(),
       findByUserIdAndMonthWithFilters: jest.fn(),
+      getMonthlySummaryStats: jest.fn(),
+      getCategorySummaryForMonth: jest.fn(),
+      getFixedEntriesSummary: jest.fn(),
+      getCurrentBalance: jest.fn(),
       update: jest.fn(),
       delete: jest.fn(),
+      softDelete: jest.fn(),
     };
 
     mockUserRepository = {
@@ -259,6 +264,160 @@ describe('DbListEntriesByMonthUseCase', () => {
 
       await expect(sut.execute(request)).rejects.toThrow('User not found');
       expect(mockUserRepository.findById).toHaveBeenCalledWith('user-123');
+    });
+
+    it('should apply minimum and maximum limits to pagination', async () => {
+      const requestWithLargePage = {
+        userId: 'user-123',
+        year: 2025,
+        month: 1,
+        page: 0, // Should be adjusted to minimum 1
+        limit: 150, // Should be adjusted to maximum 100
+      };
+
+      mockUserRepository.findById.mockResolvedValue(mockUser);
+      mockEntryRepository.findByUserIdAndMonthWithFilters.mockResolvedValue(
+        mockRepositoryResult,
+      );
+
+      await sut.execute(requestWithLargePage);
+
+      expect(
+        mockEntryRepository.findByUserIdAndMonthWithFilters,
+      ).toHaveBeenCalledWith({
+        userId: 'user-123',
+        year: 2025,
+        month: 1,
+        page: 1, // Adjusted to minimum
+        limit: 100, // Adjusted to maximum
+        sort: 'date',
+        order: 'desc',
+        type: 'all',
+        categoryId: undefined,
+      });
+    });
+
+    it('should default invalid sort field to date', async () => {
+      const request = {
+        userId: 'user-123',
+        year: 2025,
+        month: 1,
+        sort: 'invalid-field',
+      };
+
+      mockUserRepository.findById.mockResolvedValue(mockUser);
+      mockEntryRepository.findByUserIdAndMonthWithFilters.mockResolvedValue(
+        mockRepositoryResult,
+      );
+
+      await sut.execute(request);
+
+      expect(
+        mockEntryRepository.findByUserIdAndMonthWithFilters,
+      ).toHaveBeenCalledWith({
+        userId: 'user-123',
+        year: 2025,
+        month: 1,
+        page: 1,
+        limit: 20,
+        sort: 'date', // Should default to 'date'
+        order: 'desc',
+        type: 'all',
+        categoryId: undefined,
+      });
+    });
+
+    it('should default invalid order to desc', async () => {
+      const request = {
+        userId: 'user-123',
+        year: 2025,
+        month: 1,
+        order: 'invalid-order' as any,
+      };
+
+      mockUserRepository.findById.mockResolvedValue(mockUser);
+      mockEntryRepository.findByUserIdAndMonthWithFilters.mockResolvedValue(
+        mockRepositoryResult,
+      );
+
+      await sut.execute(request);
+
+      expect(
+        mockEntryRepository.findByUserIdAndMonthWithFilters,
+      ).toHaveBeenCalledWith({
+        userId: 'user-123',
+        year: 2025,
+        month: 1,
+        page: 1,
+        limit: 20,
+        sort: 'date',
+        order: 'desc', // Should default to 'desc'
+        type: 'all',
+        categoryId: undefined,
+      });
+    });
+
+    it('should default invalid type to all', async () => {
+      const request = {
+        userId: 'user-123',
+        year: 2025,
+        month: 1,
+        type: 'INVALID' as any,
+      };
+
+      mockUserRepository.findById.mockResolvedValue(mockUser);
+      mockEntryRepository.findByUserIdAndMonthWithFilters.mockResolvedValue(
+        mockRepositoryResult,
+      );
+
+      await sut.execute(request);
+
+      expect(
+        mockEntryRepository.findByUserIdAndMonthWithFilters,
+      ).toHaveBeenCalledWith({
+        userId: 'user-123',
+        year: 2025,
+        month: 1,
+        page: 1,
+        limit: 20,
+        sort: 'date',
+        order: 'desc',
+        type: 'all', // Should default to 'all'
+        categoryId: undefined,
+      });
+    });
+
+    it('should calculate pagination metadata correctly', async () => {
+      const request = {
+        userId: 'user-123',
+        year: 2025,
+        month: 1,
+        page: 2,
+        limit: 1,
+      };
+
+      const paginatedResult = {
+        data: [mockEntries[0]], // Only one entry for this page
+        total: 2, // Total of 2 entries
+        totalIncome: 5000,
+        totalExpenses: 0,
+      };
+
+      mockUserRepository.findById.mockResolvedValue(mockUser);
+      mockEntryRepository.findByUserIdAndMonthWithFilters.mockResolvedValue(
+        paginatedResult,
+      );
+
+      const result = await sut.execute(request);
+
+      expect(result.pagination).toEqual({
+        page: 2,
+        limit: 1,
+        total: 2,
+        totalPages: 2,
+        hasNext: false, // Page 2 is the last page
+        hasPrev: true, // There's a previous page
+      });
     });
   });
 });

@@ -9,6 +9,8 @@ export interface EntryModel {
   type: EntryType;
   isFixed: boolean;
   categoryId?: string | null;
+  categoryName?: string | null;
   createdAt: Date;
   updatedAt: Date;
+  deletedAt?: Date | null;
 }

@@ -3,7 +3,7 @@ services:
   api:
     build:
       context: ..
-      dockerfile: .docker/Dockerfile.dev
+      dockerfile: .docker/Dockerfile
     container_name: financial-api
     restart: unless-stopped
     ports:

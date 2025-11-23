@@ -1,19 +1,21 @@
-import { CategoryModel, CategoryType } from '@domain/models/category.model';
-
-export interface CreateCategoryData {
-  name: string;
-  type: CategoryType;
-  userId: string;
-}
+import {
+  Category,
+  CategoryType,
+  CategoryCreateData,
+  CategoryUpdateData,
+  CategoryListFilters,
+  CategoryWithStats,
+} from '@domain/models/category.model';
 
 export interface CategoryRepository {
-  create(data: CreateCategoryData): Promise<CategoryModel>;
-  findById(id: string): Promise<CategoryModel | null>;
-  findByUserId(userId: string): Promise<CategoryModel[]>;
-  findByUserIdAndType(
-    userId: string,
-    type: CategoryType,
-  ): Promise<CategoryModel[]>;
-  update(id: string, data: Partial<CreateCategoryData>): Promise<CategoryModel>;
+  create(data: CategoryCreateData): Promise<Category>;
+  findById(id: string): Promise<Category | null>;
+  findByUserId(userId: string): Promise<Category[]>;
+  findByUserIdAndType(userId: string, type: CategoryType): Promise<Category[]>;
+  findByUserIdAndName(userId: string, name: string): Promise<Category | null>;
+  findWithFilters(filters: CategoryListFilters): Promise<CategoryWithStats[]>;
+  update(id: string, data: CategoryUpdateData): Promise<Category>;
   delete(id: string): Promise<void>;
+  softDelete(id: string): Promise<void>;
+  hasEntriesAssociated(categoryId: string): Promise<boolean>;
 }

@@ -1,13 +1,22 @@
 import { EntryModel } from '@domain/models/entry.model';
 
 export interface CreateEntryData {
-  userId: string;
-  description: string;
   amount: number;
+  description: string;
   date: Date;
   type: 'INCOME' | 'EXPENSE';
   isFixed: boolean;
-  categoryId?: string;
+  categoryId: string | null;
+  userId: string;
+}
+
+export interface UpdateEntryData {
+  amount?: number;
+  description?: string;
+  date?: Date;
+  type?: 'INCOME' | 'EXPENSE';
+  isFixed?: boolean;
+  categoryId?: string | null;
 }
 
 export interface FindEntriesByMonthFilters {
@@ -29,6 +38,33 @@ export interface FindEntriesByMonthResult {
   totalExpenses: number;
 }
 
+export interface MonthlySummaryStats {
+  totalIncome: number;
+  totalExpenses: number;
+  fixedIncome: number;
+  dynamicIncome: number;
+  fixedExpenses: number;
+  dynamicExpenses: number;
+  totalEntries: number;
+  incomeEntries: number;
+  expenseEntries: number;
+}
+
+export interface CategorySummaryItem {
+  categoryId: string;
+  categoryName: string;
+  type: 'INCOME' | 'EXPENSE';
+  total: number;
+  count: number;
+}
+
+export interface FixedEntriesSummary {
+  fixedIncome: number;
+  fixedExpenses: number;
+  fixedNetFlow: number;
+  entriesCount: number;
+}
+
 export interface EntryRepository {
   create(data: CreateEntryData): Promise<EntryModel>;
   findById(id: string): Promise<EntryModel | null>;
@@ -41,6 +77,19 @@ export interface EntryRepository {
   findByUserIdAndMonthWithFilters(
     filters: FindEntriesByMonthFilters,
   ): Promise<FindEntriesByMonthResult>;
-  update(id: string, data: Partial<CreateEntryData>): Promise<EntryModel>;
+  getMonthlySummaryStats(
+    userId: string,
+    year: number,
+    month: number,
+  ): Promise<MonthlySummaryStats>;
+  getCategorySummaryForMonth(
+    userId: string,
+    year: number,
+    month: number,
+  ): Promise<CategorySummaryItem[]>;
+  getFixedEntriesSummary(userId: string): Promise<FixedEntriesSummary>;
+  getCurrentBalance(userId: string): Promise<number>;
+  update(id: string, data: UpdateEntryData): Promise<EntryModel>;
   delete(id: string): Promise<void>;
+  softDelete(id: string): Promise<Date>;
 }
