@@ -198,8 +198,7 @@ jobs:
             echo "DATABASE_URL=postgresql://app_user:${{ secrets.DB_PASSWORD }}@localhost:5432/financial_db" > .env
             echo "JWT_SECRET=${{ secrets.JWT_SECRET }}" >> .env
 
-            # Load .env and run migrations
-            export $(grep -v '^#' .env | xargs)
+            # Run migrations
             yarn migration:run
 
             # Start/Reload
