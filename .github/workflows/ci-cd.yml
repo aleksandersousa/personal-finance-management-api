@@ -79,7 +79,7 @@ jobs:
     name: 🧪 Test Suite
     runs-on: ubuntu-latest
     needs: [code-quality]
-    if: always() && (needs.code-quality.result == 'success' || github.event_name != 'pull_request')
+    if: always() && (needs.code-quality.result == 'success' || needs.code-quality.result == 'skipped')
 
     services:
       postgres:
@@ -119,7 +119,7 @@ jobs:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/financial_db_test
 
       - name: 📊 Run test coverage
-        run: yarn test:cov --passWithNoTests
+        run: yarn test:coverage --passWithNoTests
         env:
           NODE_ENV: test
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/financial_db_test
@@ -155,6 +155,11 @@ jobs:
   deploy:
     name: 🚀 Build & Deploy
     runs-on: ubuntu-latest
+    needs: [code-quality, test]
+    if: |
+      always() && 
+      (needs.code-quality.result == 'success' || needs.code-quality.result == 'skipped') &&
+      needs.test.result == 'success'
     steps:
       - name: 📥 Checkout code
         uses: actions/checkout@v4
@@ -171,9 +176,22 @@ jobs:
         run: |
           yarn install --frozen-lockfile
           yarn build
-          # Prepare production deps only
-          rm -rf node_modules
-          yarn install --production --frozen-lockfile
+
+      - name: 🧹 Clean Target Directory
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          script: |
+            # Remove all files and directories except .env
+            cd /var/www/financial-management/api/source
+            rm -rf * 2>/dev/null || true
+            for file in .*; do
+              if [ "$file" != "." ] && [ "$file" != ".." ] && [ "$file" != ".env" ]; then
+                rm -rf "$file" 2>/dev/null || true
+              fi
+            done
 
       - name: 🚚 Transfer Files
         uses: appleboy/scp-action@master
@@ -181,9 +199,20 @@ jobs:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USER }}
           key: ${{ secrets.VPS_SSH_KEY }}
-          source: 'api/dist,api/package.json,api/ecosystem.config.js,api/node_modules'
+          source: 'dist,package.json,yarn.lock,ecosystem.config.js'
           target: '/var/www/financial-management/api/source'
-          strip_components: 1
+          strip_components: 0
+          overwrite: true
+
+      - name: 📦 Install Dependencies on Server
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          script: |
+            cd /var/www/financial-management/api/source
+            yarn install --production --frozen-lockfile
 
       - name: 🚀 Reload App
         uses: appleboy/ssh-action@master
@@ -193,10 +222,6 @@ jobs:
           key: ${{ secrets.VPS_SSH_KEY }}
           script: |
             cd /var/www/financial-management/api/source
-
-            # Create .env file
-            echo "DATABASE_URL=postgresql://app_user:${{ secrets.DB_PASSWORD }}@localhost:5432/financial_db" > .env
-            echo "JWT_SECRET=${{ secrets.JWT_SECRET }}" >> .env
 
             # Run migrations
             yarn migration:run
