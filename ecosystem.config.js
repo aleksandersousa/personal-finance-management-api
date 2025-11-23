@@ -2,7 +2,7 @@ module.exports = {
   apps: [
     {
       name: 'financial-api',
-      cwd: '/var/www/api/source',
+      cwd: '/var/www/financial-management/api/source',
       script: 'dist/src/main.js',
       instances: 'max',
       exec_mode: 'cluster',
