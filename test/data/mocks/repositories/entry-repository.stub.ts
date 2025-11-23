@@ -3,6 +3,9 @@ import {
   EntryRepository,
   FindEntriesByMonthFilters,
   FindEntriesByMonthResult,
+  CategorySummaryItem,
+  FixedEntriesSummary,
+  MonthlySummaryStats,
 } from '@data/protocols/entry-repository';
 import { EntryModel } from '@domain/models/entry.model';
 import { IdGenerator } from '@data/protocols/id-generator';
@@ -193,6 +196,158 @@ export class EntryRepositoryStub implements EntryRepository {
     }
 
     this.entries.delete(id);
+  }
+
+  async softDelete(id: string): Promise<Date> {
+    if (this.shouldFail && this.errorToThrow) {
+      throw this.errorToThrow;
+    }
+
+    const entry = this.entries.get(id);
+    if (!entry) {
+      throw new Error('Entry not found');
+    }
+
+    const deletedAt = new Date();
+    const updatedEntry = { ...entry, deletedAt };
+    this.entries.set(id, updatedEntry);
+    return deletedAt;
+  }
+
+  async getMonthlySummaryStats(
+    userId: string,
+    year: number,
+    month: number,
+  ): Promise<MonthlySummaryStats> {
+    if (this.shouldFail && this.errorToThrow) {
+      throw this.errorToThrow;
+    }
+
+    const entriesForMonth = await this.findByUserIdAndMonth(
+      userId,
+      year,
+      month,
+    );
+
+    const totalIncome = entriesForMonth
+      .filter(entry => entry.type === 'INCOME')
+      .reduce((sum, entry) => sum + entry.amount, 0);
+
+    const totalExpenses = entriesForMonth
+      .filter(entry => entry.type === 'EXPENSE')
+      .reduce((sum, entry) => sum + entry.amount, 0);
+
+    const fixedIncome = entriesForMonth
+      .filter(entry => entry.type === 'INCOME' && entry.isFixed)
+      .reduce((sum, entry) => sum + entry.amount, 0);
+
+    const dynamicIncome = entriesForMonth
+      .filter(entry => entry.type === 'INCOME' && !entry.isFixed)
+      .reduce((sum, entry) => sum + entry.amount, 0);
+
+    const fixedExpenses = entriesForMonth
+      .filter(entry => entry.type === 'EXPENSE' && entry.isFixed)
+      .reduce((sum, entry) => sum + entry.amount, 0);
+
+    const dynamicExpenses = entriesForMonth
+      .filter(entry => entry.type === 'EXPENSE' && !entry.isFixed)
+      .reduce((sum, entry) => sum + entry.amount, 0);
+
+    return {
+      totalIncome,
+      totalExpenses,
+      fixedIncome,
+      dynamicIncome,
+      fixedExpenses,
+      dynamicExpenses,
+      totalEntries: entriesForMonth.length,
+      incomeEntries: entriesForMonth.filter(entry => entry.type === 'INCOME')
+        .length,
+      expenseEntries: entriesForMonth.filter(entry => entry.type === 'EXPENSE')
+        .length,
+    };
+  }
+
+  async getCategorySummaryForMonth(
+    userId: string,
+    year: number,
+    month: number,
+  ): Promise<CategorySummaryItem[]> {
+    if (this.shouldFail && this.errorToThrow) {
+      throw this.errorToThrow;
+    }
+
+    const entriesForMonth = await this.findByUserIdAndMonth(
+      userId,
+      year,
+      month,
+    );
+    const categorizedEntries = entriesForMonth.filter(
+      entry => entry.categoryId,
+    );
+
+    // Group by category and type
+    const categoryGroups = new Map<string, CategorySummaryItem>();
+
+    categorizedEntries.forEach(entry => {
+      const key = `${entry.categoryId}-${entry.type}`;
+      if (!categoryGroups.has(key)) {
+        categoryGroups.set(key, {
+          categoryId: entry.categoryId,
+          categoryName: 'Test Category',
+          type: entry.type,
+          total: 0,
+          count: 0,
+        });
+      }
+
+      const group = categoryGroups.get(key)!;
+      group.total += entry.amount;
+      group.count += 1;
+    });
+
+    return Array.from(categoryGroups.values());
+  }
+
+  async getFixedEntriesSummary(userId: string): Promise<FixedEntriesSummary> {
+    if (this.shouldFail && this.errorToThrow) {
+      throw this.errorToThrow;
+    }
+
+    const userEntries = await this.findByUserId(userId);
+    const fixedEntries = userEntries.filter(entry => entry.isFixed === true);
+
+    const fixedIncome = fixedEntries
+      .filter(entry => entry.type === 'INCOME')
+      .reduce((sum, entry) => sum + entry.amount, 0);
+
+    const fixedExpenses = fixedEntries
+      .filter(entry => entry.type === 'EXPENSE')
+      .reduce((sum, entry) => sum + entry.amount, 0);
+
+    return {
+      fixedIncome,
+      fixedExpenses,
+      fixedNetFlow: fixedIncome - fixedExpenses,
+      entriesCount: fixedEntries.length,
+    };
+  }
+
+  async getCurrentBalance(userId: string): Promise<number> {
+    if (this.shouldFail && this.errorToThrow) {
+      throw this.errorToThrow;
+    }
+
+    const userEntries = await this.findByUserId(userId);
+    const totalIncome = userEntries
+      .filter(entry => entry.type === 'INCOME')
+      .reduce((sum, entry) => sum + entry.amount, 0);
+
+    const totalExpenses = userEntries
+      .filter(entry => entry.type === 'EXPENSE')
+      .reduce((sum, entry) => sum + entry.amount, 0);
+
+    return totalIncome - totalExpenses;
   }
 
   // =================== Test Utility Methods ===================

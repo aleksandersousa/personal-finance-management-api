@@ -1,8 +1,9 @@
 import { Injectable } from '@nestjs/common';
 import { Counter, Gauge, Histogram, register } from 'prom-client';
+import { Metrics } from '@data/protocols/metrics';
 
 @Injectable()
-export class FinancialMetricsService {
+export class FinancialMetricsService implements Metrics {
   private readonly httpRequestsTotal: Counter<string>;
   private readonly httpRequestDuration: Histogram<string>;
   private readonly authEventsTotal: Counter<string>;
@@ -84,7 +85,11 @@ export class FinancialMetricsService {
   }
 
   recordTransaction(type: string, status: string) {
-    this.financialTransactionsTotal.inc({ type, status });
+    try {
+      this.financialTransactionsTotal.inc({ type, status });
+    } catch (error) {
+      console.error('Error recording transaction metric:', error);
+    }
   }
 
   recordApiError(endpoint: string, errorType: string) {

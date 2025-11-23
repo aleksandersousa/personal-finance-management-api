@@ -7,3 +7,8 @@ export interface UserModel {
   createdAt: Date;
   updatedAt: Date;
 }
+
+export interface UserPayload {
+  id: string;
+  email: string;
+}

@@ -1,11 +1,19 @@
 -- Arquivo de inicialização do banco de dados
 -- Este script é executado automaticamente pelo Docker
 
+CREATE SCHEMA IF NOT EXISTS financial;
+
+SET search_path TO financial, public;
+
+SET search_path TO public;
+
 -- Criar extensão para UUID
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
 -- Criar extensão para funções de criptografia
 CREATE EXTENSION IF NOT EXISTS "pgcrypto";
+
+SET search_path TO financial, public;
 
 -- Configurações de timezone
 SET timezone = 'UTC';

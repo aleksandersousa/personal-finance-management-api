@@ -6,6 +6,7 @@ import { IdGeneratorStub } from '../mocks/protocols/id-generator.stub';
 import { MockEntryFactory } from '../../domain/mocks/models/entry.mock';
 import { MockUserFactory } from '../../domain/mocks/models/user.mock';
 import { MockCategoryFactory } from '../../domain/mocks/models/category.mock';
+import { CategoryType } from '@domain/models/category.model';
 
 describe('DbAddEntryUseCase', () => {
   let sut: DbAddEntryUseCase;
@@ -45,7 +46,7 @@ describe('DbAddEntryUseCase', () => {
     const mockCategory = MockCategoryFactory.create({
       id: 'valid-category-id',
       name: 'Salary',
-      type: 'INCOME',
+      type: CategoryType.INCOME,
       userId: 'valid-user-id',
     });
 

@@ -1,20 +1,28 @@
 import { Repository } from 'typeorm';
-import { Injectable } from '@nestjs/common';
+import { Injectable, Inject } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import {
   CreateEntryData,
   EntryRepository,
   FindEntriesByMonthFilters,
   FindEntriesByMonthResult,
+  MonthlySummaryStats,
+  CategorySummaryItem,
+  FixedEntriesSummary,
 } from '@data/protocols/entry-repository';
 import { EntryModel } from '@domain/models/entry.model';
 import { EntryEntity } from '../entities/entry.entity';
+import type { Logger, Metrics } from '@/data/protocols';
 
 @Injectable()
 export class TypeormEntryRepository implements EntryRepository {
   constructor(
     @InjectRepository(EntryEntity)
     private readonly entryRepository: Repository<EntryEntity>,
+    @Inject('Logger')
+    private readonly logger: Logger,
+    @Inject('Metrics')
+    private readonly metrics: Metrics,
   ) {}
 
   async create(data: CreateEntryData): Promise<EntryModel> {
@@ -152,8 +160,10 @@ export class TypeormEntryRepository implements EntryRepository {
 
     const summaryResult = await summaryQuery.getRawOne();
 
+    const data = entries.map(this.mapToModel);
+
     return {
-      data: entries.map(this.mapToModel),
+      data,
       total,
       totalIncome: parseFloat(summaryResult?.totalIncome || '0'),
       totalExpenses: parseFloat(summaryResult?.totalExpenses || '0'),
@@ -164,44 +174,367 @@ export class TypeormEntryRepository implements EntryRepository {
     id: string,
     data: Partial<CreateEntryData>,
   ): Promise<EntryModel> {
-    const updateData: any = {};
-    if (data.userId) {
-      updateData.userId = data.userId;
-    }
-    if (data.description) {
-      updateData.description = data.description;
-    }
-    if (data.amount !== undefined) {
-      updateData.amount = data.amount;
-    }
-    if (data.date) {
-      updateData.date = data.date;
-    }
-    if (data.type) {
-      updateData.type = data.type;
-    }
-    if (data.isFixed !== undefined) {
-      updateData.isFixed = data.isFixed;
-    }
-    if (data.categoryId !== undefined) {
-      updateData.categoryId = data.categoryId;
-    }
+    const startTime = Date.now();
 
-    await this.entryRepository.update(id, updateData);
-    const updatedEntry = await this.entryRepository.findOne({
-      where: { id },
-      relations: ['user', 'category'],
-    });
-    if (!updatedEntry) {
-      throw new Error('Entry not found');
+    try {
+      const updateData: any = {};
+      if (data.userId) {
+        updateData.userId = data.userId;
+      }
+      if (data.description) {
+        updateData.description = data.description;
+      }
+      if (data.amount !== undefined) {
+        updateData.amount = data.amount;
+      }
+      if (data.date) {
+        updateData.date = data.date;
+      }
+      if (data.type) {
+        updateData.type = data.type;
+      }
+      if (data.isFixed !== undefined) {
+        updateData.isFixed = data.isFixed;
+      }
+      if (data.categoryId !== undefined) {
+        updateData.categoryId = data.categoryId;
+      }
+
+      await this.entryRepository.update(id, updateData);
+      const updatedEntry = await this.entryRepository.findOne({
+        where: { id },
+        relations: ['user', 'category'],
+      });
+
+      if (!updatedEntry) {
+        throw new Error('Entry not found');
+      }
+
+      const duration = Date.now() - startTime;
+
+      // Log business event
+      this.logger.logBusinessEvent({
+        event: 'entry_updated',
+        entityId: id,
+        userId: data.userId || 'unknown',
+        duration,
+        changes: Object.keys(updateData),
+      });
+
+      // Record metrics
+      this.metrics.recordTransaction('update', 'success');
+
+      return this.mapToModel(updatedEntry);
+    } catch (error) {
+      // Log error
+      this.logger.error(`Failed to update entry ${id}`, error.stack);
+
+      // Record error metrics
+      this.metrics.recordApiError('entry_repository_update', error.message);
+
+      throw error;
     }
-    return this.mapToModel(updatedEntry);
   }
 
   async delete(id: string): Promise<void> {
     const result = await this.entryRepository.delete(id);
     if (result.affected === 0) {
       throw new Error('Entry not found');
+    }
+  }
+
+  async softDelete(id: string): Promise<Date> {
+    try {
+      const deletedAt = new Date();
+      const result = await this.entryRepository.update(id, { deletedAt });
+
+      if (result.affected === 0) {
+        this.logger.error(
+          'Failed to soft delete entry - entry not found',
+          '',
+          'TypeormEntryRepository',
+        );
+        this.metrics.recordTransaction('delete', 'not_found');
+        throw new Error('Entry not found');
+      }
+
+      this.logger.log('Entry soft deleted', 'TypeormEntryRepository');
+
+      this.metrics.recordTransaction('delete', 'success');
+      return deletedAt;
+    } catch (error) {
+      this.metrics.recordTransaction('delete', 'error');
+      this.logger.error(`Failed to soft delete entry ${id}`, error.stack);
+      throw error;
+    }
+  }
+
+  async getMonthlySummaryStats(
+    userId: string,
+    year: number,
+    month: number,
+  ): Promise<MonthlySummaryStats> {
+    const startTime = Date.now();
+
+    try {
+      const startDate = new Date(year, month - 1, 1);
+      const endDate = new Date(year, month, 0, 23, 59, 59);
+
+      const result = await this.entryRepository
+        .createQueryBuilder('entry')
+        .select(
+          "SUM(CASE WHEN entry.type = 'INCOME' THEN entry.amount ELSE 0 END)",
+          'totalIncome',
+        )
+        .addSelect(
+          "SUM(CASE WHEN entry.type = 'EXPENSE' THEN entry.amount ELSE 0 END)",
+          'totalExpenses',
+        )
+        .addSelect(
+          "SUM(CASE WHEN entry.type = 'INCOME' AND entry.isFixed = true THEN entry.amount ELSE 0 END)",
+          'fixedIncome',
+        )
+        .addSelect(
+          "SUM(CASE WHEN entry.type = 'INCOME' AND entry.isFixed = false THEN entry.amount ELSE 0 END)",
+          'dynamicIncome',
+        )
+        .addSelect(
+          "SUM(CASE WHEN entry.type = 'EXPENSE' AND entry.isFixed = true THEN entry.amount ELSE 0 END)",
+          'fixedExpenses',
+        )
+        .addSelect(
+          "SUM(CASE WHEN entry.type = 'EXPENSE' AND entry.isFixed = false THEN entry.amount ELSE 0 END)",
+          'dynamicExpenses',
+        )
+        .addSelect('COUNT(*)', 'totalEntries')
+        .addSelect(
+          "COUNT(CASE WHEN entry.type = 'INCOME' THEN 1 END)",
+          'incomeEntries',
+        )
+        .addSelect(
+          "COUNT(CASE WHEN entry.type = 'EXPENSE' THEN 1 END)",
+          'expenseEntries',
+        )
+        .where('entry.userId = :userId', { userId })
+        .andWhere('entry.date >= :startDate', { startDate })
+        .andWhere('entry.date <= :endDate', { endDate })
+        .andWhere('entry.deletedAt IS NULL')
+        .getRawOne();
+
+      const duration = Date.now() - startTime;
+
+      // Log business event
+      this.logger.logBusinessEvent({
+        event: 'monthly_summary_stats_calculated',
+        userId,
+        metadata: {
+          year,
+          month,
+          duration,
+        },
+      });
+
+      // Record metrics
+      this.metrics.recordTransaction('get_monthly_summary_stats', 'success');
+
+      return {
+        totalIncome: parseFloat(result?.totalIncome || '0'),
+        totalExpenses: parseFloat(result?.totalExpenses || '0'),
+        fixedIncome: parseFloat(result?.fixedIncome || '0'),
+        dynamicIncome: parseFloat(result?.dynamicIncome || '0'),
+        fixedExpenses: parseFloat(result?.fixedExpenses || '0'),
+        dynamicExpenses: parseFloat(result?.dynamicExpenses || '0'),
+        totalEntries: parseInt(result?.totalEntries || '0'),
+        incomeEntries: parseInt(result?.incomeEntries || '0'),
+        expenseEntries: parseInt(result?.expenseEntries || '0'),
+      };
+    } catch (error) {
+      this.logger.error(
+        `Failed to get monthly summary stats for user ${userId}`,
+        error.stack,
+      );
+
+      this.metrics.recordApiError('get_monthly_summary_stats', error.message);
+
+      throw error;
+    }
+  }
+
+  async getCategorySummaryForMonth(
+    userId: string,
+    year: number,
+    month: number,
+  ): Promise<CategorySummaryItem[]> {
+    const startTime = Date.now();
+
+    try {
+      const startDate = new Date(year, month - 1, 1);
+      const endDate = new Date(year, month, 0, 23, 59, 59);
+
+      const results = await this.entryRepository
+        .createQueryBuilder('entry')
+        .leftJoin('entry.category', 'category')
+        .select([
+          'entry.categoryId',
+          'category.name',
+          'entry.type',
+          'SUM(entry.amount)',
+          'COUNT(*)',
+        ])
+        .where('entry.userId = :userId', { userId })
+        .andWhere('entry.date >= :startDate', { startDate })
+        .andWhere('entry.date <= :endDate', { endDate })
+        .andWhere('entry.deletedAt IS NULL')
+        .andWhere('entry.categoryId IS NOT NULL')
+        .groupBy('entry.categoryId, category.name, entry.type')
+        .orderBy('SUM(entry.amount)', 'DESC')
+        .getRawMany();
+
+      const duration = Date.now() - startTime;
+
+      // Log business event
+      this.logger.logBusinessEvent({
+        event: 'category_summary_calculated',
+        userId,
+        metadata: {
+          year,
+          month,
+          categoriesCount: results.length,
+          duration,
+        },
+      });
+
+      // Record metrics
+      this.metrics.recordTransaction('get_category_summary', 'success');
+
+      return results.map(result => ({
+        categoryId: result.entry_categoryId,
+        categoryName: result.category_name || 'Unknown Category',
+        type: result.entry_type,
+        total: parseFloat(result.sum || '0'),
+        count: parseInt(result.count || '0'),
+      }));
+    } catch (error) {
+      this.logger.error(
+        `Failed to get category summary for user ${userId}`,
+        error.stack,
+      );
+
+      this.metrics.recordApiError('get_category_summary', error.message);
+
+      throw error;
+    }
+  }
+
+  async getFixedEntriesSummary(userId: string): Promise<FixedEntriesSummary> {
+    const startTime = Date.now();
+
+    try {
+      const result = await this.entryRepository
+        .createQueryBuilder('entry')
+        .select(
+          "SUM(CASE WHEN entry.type = 'INCOME' AND entry.isFixed = true THEN entry.amount ELSE 0 END)",
+          'fixedIncome',
+        )
+        .addSelect(
+          "SUM(CASE WHEN entry.type = 'EXPENSE' AND entry.isFixed = true THEN entry.amount ELSE 0 END)",
+          'fixedExpenses',
+        )
+        .addSelect(
+          'COUNT(CASE WHEN entry.isFixed = true THEN 1 END)',
+          'entriesCount',
+        )
+        .where('entry.userId = :userId', { userId })
+        .andWhere('entry.deletedAt IS NULL')
+        .getRawOne();
+
+      const fixedIncome = parseFloat(result?.fixedIncome || '0');
+      const fixedExpenses = parseFloat(result?.fixedExpenses || '0');
+      const fixedNetFlow = fixedIncome - fixedExpenses;
+
+      const duration = Date.now() - startTime;
+
+      // Log business event
+      this.logger.logBusinessEvent({
+        event: 'fixed_entries_summary_calculated',
+        userId,
+        metadata: {
+          fixedIncome,
+          fixedExpenses,
+          fixedNetFlow,
+          entriesCount: parseInt(result?.entriesCount || '0'),
+          duration,
+        },
+      });
+
+      // Record metrics
+      this.metrics.recordTransaction('get_fixed_entries_summary', 'success');
+
+      return {
+        fixedIncome,
+        fixedExpenses,
+        fixedNetFlow,
+        entriesCount: parseInt(result?.entriesCount || '0'),
+      };
+    } catch (error) {
+      this.logger.error(
+        `Failed to get fixed entries summary for user ${userId}`,
+        error.stack,
+      );
+
+      this.metrics.recordApiError('get_fixed_entries_summary', error.message);
+      throw error;
+    }
+  }
+
+  async getCurrentBalance(userId: string): Promise<number> {
+    const startTime = Date.now();
+
+    try {
+      const result = await this.entryRepository
+        .createQueryBuilder('entry')
+        .select(
+          "SUM(CASE WHEN entry.type = 'INCOME' THEN entry.amount ELSE 0 END)",
+          'totalIncome',
+        )
+        .addSelect(
+          "SUM(CASE WHEN entry.type = 'EXPENSE' THEN entry.amount ELSE 0 END)",
+          'totalExpenses',
+        )
+        .where('entry.userId = :userId', { userId })
+        .andWhere('entry.deletedAt IS NULL')
+        .getRawOne();
+
+      const totalIncome = parseFloat(result?.totalIncome || '0');
+      const totalExpenses = parseFloat(result?.totalExpenses || '0');
+      const currentBalance = totalIncome - totalExpenses;
+
+      const duration = Date.now() - startTime;
+
+      // Log business event
+      this.logger.logBusinessEvent({
+        event: 'current_balance_calculated',
+        userId,
+        metadata: {
+          totalIncome,
+          totalExpenses,
+          currentBalance,
+          duration,
+        },
+      });
+
+      // Record metrics
+      this.metrics.recordTransaction('get_current_balance', 'success');
+
+      return currentBalance;
+    } catch (error) {
+      this.logger.error(
+        `Failed to get current balance for user ${userId}`,
+        error.stack,
+      );
+
+      this.metrics.recordApiError('get_current_balance', error.message);
+      throw error;
     }
   }
 
@@ -215,8 +548,10 @@ export class TypeormEntryRepository implements EntryRepository {
       type: entity.type,
       isFixed: entity.isFixed,
       categoryId: entity.categoryId,
+      categoryName: entity.category?.name,
       createdAt: entity.createdAt,
       updatedAt: entity.updatedAt,
+      deletedAt: entity.deletedAt,
     };
   }
 }
