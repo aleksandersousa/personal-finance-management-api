@@ -168,7 +168,6 @@ jobs:
           cache: 'yarn'
 
       - name: 📦 Build
-        working-directory: api
         run: |
           yarn install --frozen-lockfile
           yarn build
@@ -182,9 +181,9 @@ jobs:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USER }}
           key: ${{ secrets.VPS_SSH_KEY }}
-          source: 'api/dist,api/package.json,api/ecosystem.config.js,api/node_modules'
+          source: 'dist,package.json,ecosystem.config.js,node_modules'
           target: '/var/www/financial-management/api/source'
-          strip_components: 1
+          strip_components: 0
 
       - name: 🚀 Reload App
         uses: appleboy/ssh-action@master
