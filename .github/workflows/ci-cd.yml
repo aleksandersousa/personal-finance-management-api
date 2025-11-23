@@ -223,7 +223,6 @@ jobs:
           script: |
             cd /var/www/financial-management/api/source
 
-
             # Run migrations
             yarn migration:run
 

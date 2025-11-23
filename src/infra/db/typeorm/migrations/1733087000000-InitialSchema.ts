@@ -256,9 +256,9 @@ export class InitialSchema1733087000000 implements MigrationInterface {
       }),
     );
 
-    // 6. Create Updated At Trigger Function (in public schema to be reusable)
+    // 6. Create Updated At Trigger Function (in financial schema)
     await queryRunner.query(`
-      CREATE OR REPLACE FUNCTION public.update_updated_at_column()
+      CREATE OR REPLACE FUNCTION financial.update_updated_at_column()
       RETURNS TRIGGER AS $$
       BEGIN
           NEW.updated_at = NOW();
@@ -271,19 +271,19 @@ export class InitialSchema1733087000000 implements MigrationInterface {
     await queryRunner.query(`
       CREATE TRIGGER update_users_updated_at 
       BEFORE UPDATE ON "financial"."users" 
-      FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column()
+      FOR EACH ROW EXECUTE FUNCTION financial.update_updated_at_column()
     `);
 
     await queryRunner.query(`
       CREATE TRIGGER update_categories_updated_at 
       BEFORE UPDATE ON "financial"."categories" 
-      FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column()
+      FOR EACH ROW EXECUTE FUNCTION financial.update_updated_at_column()
     `);
 
     await queryRunner.query(`
       CREATE TRIGGER update_entries_updated_at 
       BEFORE UPDATE ON "financial"."entries" 
-      FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column()
+      FOR EACH ROW EXECUTE FUNCTION financial.update_updated_at_column()
     `);
   }
 
@@ -297,6 +297,11 @@ export class InitialSchema1733087000000 implements MigrationInterface {
     );
     await queryRunner.query(
       `DROP TRIGGER IF EXISTS update_users_updated_at ON "financial"."users"`,
+    );
+
+    // Drop the function
+    await queryRunner.query(
+      `DROP FUNCTION IF EXISTS financial.update_updated_at_column()`,
     );
 
     // Drop Tables (respect FK order)
