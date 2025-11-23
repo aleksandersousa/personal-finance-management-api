@@ -79,7 +79,7 @@ jobs:
     name: 🧪 Test Suite
     runs-on: ubuntu-latest
     needs: [code-quality]
-    if: always() && (needs.code-quality.result == 'success' || github.event_name != 'pull_request')
+    if: always() && (needs.code-quality.result == 'success' || needs.code-quality.result == 'skipped')
 
     services:
       postgres:
@@ -155,6 +155,11 @@ jobs:
   deploy:
     name: 🚀 Build & Deploy
     runs-on: ubuntu-latest
+    needs: [code-quality, test]
+    if: |
+      always() && 
+      (needs.code-quality.result == 'success' || needs.code-quality.result == 'skipped') &&
+      needs.test.result == 'success'
     steps:
       - name: 📥 Checkout code
         uses: actions/checkout@v4
@@ -181,9 +186,7 @@ jobs:
           script: |
             # Remove all files and directories except .env
             cd /var/www/financial-management/api/source
-            # Remove all visible files and directories
             rm -rf * 2>/dev/null || true
-            # Remove hidden files/directories except .env, . and ..
             for file in .*; do
               if [ "$file" != "." ] && [ "$file" != ".." ] && [ "$file" != ".env" ]; then
                 rm -rf "$file" 2>/dev/null || true
