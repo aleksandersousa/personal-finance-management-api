@@ -1,3 +1,5 @@
+import { SCHEMA_NAME, TABLE_NAMES } from '@/domain/contants';
+import { CategoryType } from '@/domain/models';
 import {
   MigrationInterface,
   QueryRunner,
@@ -10,20 +12,62 @@ export class InitialSchema1733087000000 implements MigrationInterface {
   name = 'InitialSchema1733087000000';
 
   public async up(queryRunner: QueryRunner): Promise<void> {
-    // 1. Create Schema and Extensions
-    await queryRunner.createSchema('financial', true);
+    await this.createSchemaAndExtensions(queryRunner);
+
+    await this.createTables(queryRunner);
+
+    await this.createIndices(queryRunner);
+
+    await this.createTriggers(queryRunner);
+  }
+
+  public async down(queryRunner: QueryRunner): Promise<void> {
+    // Drop Triggers
+    await queryRunner.query(
+      `DROP TRIGGER IF EXISTS update_entries_updated_at ON "${SCHEMA_NAME}.${TABLE_NAMES.ENTRIES}"`,
+    );
+    await queryRunner.query(
+      `DROP TRIGGER IF EXISTS update_categories_updated_at ON "${SCHEMA_NAME}.${TABLE_NAMES.CATEGORIES}"`,
+    );
+    await queryRunner.query(
+      `DROP TRIGGER IF EXISTS update_users_updated_at ON "${SCHEMA_NAME}.${TABLE_NAMES.USERS}"`,
+    );
+
+    // Drop the function
+    await queryRunner.query(
+      `DROP FUNCTION IF EXISTS ${SCHEMA_NAME}.update_updated_at_column()`,
+    );
+
+    // Drop Tables (respect FK order)
+    await queryRunner.dropTable(`${SCHEMA_NAME}.${TABLE_NAMES.ENTRIES}`, true);
+    await queryRunner.dropTable(
+      `${SCHEMA_NAME}.${TABLE_NAMES.CATEGORIES}`,
+      true,
+    );
+    await queryRunner.dropTable(`${SCHEMA_NAME}.${TABLE_NAMES.USERS}`, true);
+
+    // Drop Schema
+    await queryRunner.dropSchema(SCHEMA_NAME, true);
+  }
+
+  private async createSchemaAndExtensions(
+    queryRunner: QueryRunner,
+  ): Promise<void> {
+    await queryRunner.createSchema(SCHEMA_NAME, true);
     await queryRunner.query(
       `CREATE EXTENSION IF NOT EXISTS "uuid-ossp" SCHEMA "public"`,
     );
     await queryRunner.query(
       `CREATE EXTENSION IF NOT EXISTS "pgcrypto" SCHEMA "public"`,
     );
+  }
 
-    // 2. Create Users Table
+  private async createTables(queryRunner: QueryRunner): Promise<void> {
+    // Users Table
     await queryRunner.createTable(
       new Table({
-        schema: 'financial',
-        name: 'users',
+        schema: SCHEMA_NAME,
+        name: TABLE_NAMES.USERS,
         columns: [
           {
             name: 'id',
@@ -67,11 +111,11 @@ export class InitialSchema1733087000000 implements MigrationInterface {
       true,
     );
 
-    // 3. Create Categories Table
+    // Categories Table
     await queryRunner.createTable(
       new Table({
-        schema: 'financial',
-        name: 'categories',
+        schema: SCHEMA_NAME,
+        name: TABLE_NAMES.CATEGORIES,
         columns: [
           {
             name: 'id',
@@ -82,26 +126,37 @@ export class InitialSchema1733087000000 implements MigrationInterface {
           {
             name: 'name',
             type: 'varchar',
+            length: '100',
             isNullable: false,
           },
           {
             name: 'description',
             type: 'varchar',
+            length: '255',
             isNullable: true,
           },
           {
             name: 'icon',
             type: 'varchar',
+            length: '50',
             isNullable: true,
           },
           {
             name: 'color',
             type: 'varchar',
+            length: '7',
             isNullable: true,
           },
           {
             name: 'type',
-            type: 'varchar',
+            type: 'enum',
+            enum: Object.values(CategoryType),
+            isNullable: false,
+          },
+          {
+            name: 'is_default',
+            type: 'boolean',
+            default: false,
             isNullable: false,
           },
           {
@@ -125,7 +180,7 @@ export class InitialSchema1733087000000 implements MigrationInterface {
             name: 'FK_categories_users',
             columnNames: ['user_id'],
             referencedColumnNames: ['id'],
-            referencedTableName: 'financial.users',
+            referencedTableName: `${SCHEMA_NAME}.${TABLE_NAMES.USERS}`,
             onDelete: 'CASCADE',
           }),
         ],
@@ -133,11 +188,11 @@ export class InitialSchema1733087000000 implements MigrationInterface {
       true,
     );
 
-    // 4. Create Entries Table
+    // Entries Table
     await queryRunner.createTable(
       new Table({
-        schema: 'financial',
-        name: 'entries',
+        schema: SCHEMA_NAME,
+        name: TABLE_NAMES.ENTRIES,
         columns: [
           {
             name: 'id',
@@ -174,7 +229,8 @@ export class InitialSchema1733087000000 implements MigrationInterface {
           },
           {
             name: 'type',
-            type: 'varchar',
+            type: 'enum',
+            enum: Object.values(CategoryType),
             isNullable: false,
           },
           {
@@ -204,61 +260,63 @@ export class InitialSchema1733087000000 implements MigrationInterface {
             name: 'FK_entries_users',
             columnNames: ['user_id'],
             referencedColumnNames: ['id'],
-            referencedTableName: 'financial.users',
+            referencedTableName: `${SCHEMA_NAME}.${TABLE_NAMES.USERS}`,
             onDelete: 'CASCADE',
           }),
           new TableForeignKey({
             name: 'FK_entries_categories',
             columnNames: ['category_id'],
             referencedColumnNames: ['id'],
-            referencedTableName: 'financial.categories',
+            referencedTableName: `${SCHEMA_NAME}.${TABLE_NAMES.CATEGORIES}`,
             onDelete: 'SET NULL',
           }),
         ],
       }),
       true,
     );
+  }
 
-    // 5. Create Indices
+  private async createIndices(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.createIndex(
-      'financial.entries',
+      `${SCHEMA_NAME}.${TABLE_NAMES.ENTRIES}`,
       new TableIndex({
         name: 'IDX_entries_user_id',
         columnNames: ['user_id'],
       }),
     );
     await queryRunner.createIndex(
-      'financial.entries',
+      `${SCHEMA_NAME}.${TABLE_NAMES.ENTRIES}`,
       new TableIndex({
         name: 'IDX_entries_date',
         columnNames: ['date'],
       }),
     );
     await queryRunner.createIndex(
-      'financial.entries',
+      `${SCHEMA_NAME}.${TABLE_NAMES.ENTRIES}`,
       new TableIndex({
         name: 'IDX_entries_type',
         columnNames: ['type'],
       }),
     );
     await queryRunner.createIndex(
-      'financial.entries',
+      `${SCHEMA_NAME}.${TABLE_NAMES.ENTRIES}`,
       new TableIndex({
         name: 'IDX_entries_user_date',
         columnNames: ['user_id', 'date'],
       }),
     );
     await queryRunner.createIndex(
-      'financial.categories',
+      `${SCHEMA_NAME}.${TABLE_NAMES.CATEGORIES}`,
       new TableIndex({
         name: 'IDX_categories_user_id',
         columnNames: ['user_id'],
       }),
     );
+  }
 
-    // 6. Create Updated At Trigger Function (in financial schema)
+  private async createTriggers(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(`
-      CREATE OR REPLACE FUNCTION financial.update_updated_at_column()
+      CREATE OR REPLACE FUNCTION ${SCHEMA_NAME}.update_updated_at_column()
       RETURNS TRIGGER AS $$
       BEGIN
           NEW.updated_at = NOW();
@@ -267,49 +325,22 @@ export class InitialSchema1733087000000 implements MigrationInterface {
       $$ language 'plpgsql'
     `);
 
-    // 7. Apply Triggers
     await queryRunner.query(`
       CREATE TRIGGER update_users_updated_at 
-      BEFORE UPDATE ON "financial"."users" 
-      FOR EACH ROW EXECUTE FUNCTION financial.update_updated_at_column()
+      BEFORE UPDATE ON "${SCHEMA_NAME}.${TABLE_NAMES.USERS}" 
+      FOR EACH ROW EXECUTE FUNCTION ${SCHEMA_NAME}.update_updated_at_column()
     `);
 
     await queryRunner.query(`
       CREATE TRIGGER update_categories_updated_at 
-      BEFORE UPDATE ON "financial"."categories" 
-      FOR EACH ROW EXECUTE FUNCTION financial.update_updated_at_column()
+      BEFORE UPDATE ON "${SCHEMA_NAME}.${TABLE_NAMES.CATEGORIES}" 
+      FOR EACH ROW EXECUTE FUNCTION ${SCHEMA_NAME}.update_updated_at_column()
     `);
 
     await queryRunner.query(`
       CREATE TRIGGER update_entries_updated_at 
-      BEFORE UPDATE ON "financial"."entries" 
-      FOR EACH ROW EXECUTE FUNCTION financial.update_updated_at_column()
+      BEFORE UPDATE ON "${SCHEMA_NAME}.${TABLE_NAMES.ENTRIES}" 
+      FOR EACH ROW EXECUTE FUNCTION ${SCHEMA_NAME}.update_updated_at_column()
     `);
-  }
-
-  public async down(queryRunner: QueryRunner): Promise<void> {
-    // Drop Triggers
-    await queryRunner.query(
-      `DROP TRIGGER IF EXISTS update_entries_updated_at ON "financial"."entries"`,
-    );
-    await queryRunner.query(
-      `DROP TRIGGER IF EXISTS update_categories_updated_at ON "financial"."categories"`,
-    );
-    await queryRunner.query(
-      `DROP TRIGGER IF EXISTS update_users_updated_at ON "financial"."users"`,
-    );
-
-    // Drop the function
-    await queryRunner.query(
-      `DROP FUNCTION IF EXISTS financial.update_updated_at_column()`,
-    );
-
-    // Drop Tables (respect FK order)
-    await queryRunner.dropTable('financial.entries', true);
-    await queryRunner.dropTable('financial.categories', true);
-    await queryRunner.dropTable('financial.users', true);
-
-    // Drop Schema
-    await queryRunner.dropSchema('financial', true);
   }
 }
