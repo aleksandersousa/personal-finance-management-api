@@ -6,17 +6,24 @@ import {
 import { UserRepository } from '../protocols/user-repository';
 import { Hasher } from '../protocols/hasher';
 import { TokenGenerator } from '../protocols/token-generator';
+import { Logger } from '../protocols';
 
 export class DbLoginUserUseCase implements LoginUserUseCase {
   constructor(
     private readonly userRepository: UserRepository,
     private readonly hasher: Hasher,
     private readonly tokenGenerator: TokenGenerator,
+    private readonly logger: Logger,
   ) {}
 
   async execute(request: LoginUserRequest): Promise<LoginUserResponse> {
     // Validate input
     if (!request.email || !request.password) {
+      this.logger.error(
+        'Invalid credentials',
+        request.email,
+        'DbLoginUserUseCase',
+      );
       throw new Error('Invalid credentials');
     }
 
@@ -25,6 +32,11 @@ export class DbLoginUserUseCase implements LoginUserUseCase {
       request.email.toLowerCase(),
     );
     if (!user || !user.password) {
+      this.logger.error(
+        'Invalid credentials',
+        request.email,
+        'DbLoginUserUseCase',
+      );
       throw new Error('Invalid credentials');
     }
 
@@ -34,6 +46,11 @@ export class DbLoginUserUseCase implements LoginUserUseCase {
       user.password,
     );
     if (!isPasswordValid) {
+      this.logger.error(
+        'Invalid credentials',
+        request.email,
+        'DbLoginUserUseCase',
+      );
       throw new Error('Invalid credentials');
     }
 
@@ -44,8 +61,12 @@ export class DbLoginUserUseCase implements LoginUserUseCase {
     });
 
     // Return response without password
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { password, ...userWithoutPassword } = user;
+
+    this.logger.log(
+      `User logged in successfully: ${user.id}`,
+      'DbLoginUserUseCase',
+    );
 
     return {
       user: userWithoutPassword,

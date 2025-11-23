@@ -7,24 +7,34 @@ import { RefreshTokenUseCase } from '@domain/usecases/refresh-token.usecase';
 import { RegisterUserDto } from '@presentation/dtos/register-user.dto';
 import { LoginUserDto } from '@presentation/dtos/login-user.dto';
 import { RefreshTokenDto } from '@presentation/dtos/refresh-token.dto';
+import type { Logger } from '@/data/protocols';
 
 describe('AuthController', () => {
   let controller: AuthController;
   let mockRegisterUserUseCase: jest.Mocked<RegisterUserUseCase>;
   let mockLoginUserUseCase: jest.Mocked<LoginUserUseCase>;
   let mockRefreshTokenUseCase: jest.Mocked<RefreshTokenUseCase>;
+  let mockLogger: jest.Mocked<Logger>;
 
   beforeEach(async () => {
     mockRegisterUserUseCase = {
       execute: jest.fn(),
     };
-
     mockLoginUserUseCase = {
       execute: jest.fn(),
     };
-
     mockRefreshTokenUseCase = {
       execute: jest.fn(),
+    };
+    mockLogger = {
+      log: jest.fn(),
+      error: jest.fn(),
+      warn: jest.fn(),
+      debug: jest.fn(),
+      verbose: jest.fn(),
+      logBusinessEvent: jest.fn(),
+      logSecurityEvent: jest.fn(),
+      logPerformanceEvent: jest.fn(),
     };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -41,6 +51,10 @@ describe('AuthController', () => {
         {
           provide: 'RefreshTokenUseCase',
           useValue: mockRefreshTokenUseCase,
+        },
+        {
+          provide: 'Logger',
+          useValue: mockLogger,
         },
       ],
     }).compile();

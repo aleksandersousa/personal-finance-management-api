@@ -3,37 +3,56 @@ import {
   RegisterUserResponse,
   RegisterUserUseCase,
 } from '@domain/usecases/register-user.usecase';
-import { UserRepository } from '../protocols/user-repository';
-import { Hasher } from '../protocols/hasher';
-import { TokenGenerator } from '../protocols/token-generator';
+import { UserRepository, Hasher, TokenGenerator, Logger } from '../protocols';
 
 export class DbRegisterUserUseCase implements RegisterUserUseCase {
   constructor(
     private readonly userRepository: UserRepository,
     private readonly hasher: Hasher,
     private readonly tokenGenerator: TokenGenerator,
+    private readonly logger: Logger,
   ) {}
 
   async execute(request: RegisterUserRequest): Promise<RegisterUserResponse> {
     // Validate email format
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(request.email)) {
+      this.logger.error(
+        'Invalid email format',
+        request.email,
+        'DbRegisterUserUseCase',
+      );
       throw new Error('Invalid email format');
     }
 
     // Validate password strength
     if (request.password.length < 6) {
+      this.logger.error(
+        'Password must be at least 6 characters long',
+        request.password,
+        'DbRegisterUserUseCase',
+      );
       throw new Error('Password must be at least 6 characters long');
     }
 
     // Validate name
     if (!request.name || request.name.trim().length === 0) {
+      this.logger.error(
+        'Name is required',
+        request.name,
+        'DbRegisterUserUseCase',
+      );
       throw new Error('Name is required');
     }
 
     // Check if user already exists
     const existingUser = await this.userRepository.findByEmail(request.email);
     if (existingUser) {
+      this.logger.error(
+        'User already exists with this email',
+        request.email,
+        'DbRegisterUserUseCase',
+      );
       throw new Error('User already exists with this email');
     }
 
@@ -53,16 +72,13 @@ export class DbRegisterUserUseCase implements RegisterUserUseCase {
       email: user.email,
     });
 
-    // Return response without password
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const { password, ...userWithoutPassword } = user;
+    delete user.password;
 
-    return {
-      user: userWithoutPassword,
-      tokens: {
-        accessToken: tokens.accessToken,
-        refreshToken: tokens.refreshToken,
-      },
-    };
+    this.logger.log(
+      `User registered successfully: ${user.id}`,
+      'DbRegisterUserUseCase',
+    );
+
+    return { user, tokens };
   }
 }

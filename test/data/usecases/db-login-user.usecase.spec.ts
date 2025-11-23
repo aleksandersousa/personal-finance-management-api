@@ -1,24 +1,26 @@
 import { DbLoginUserUseCase } from '@data/usecases/db-login-user.usecase';
-import { UserRepositoryStub } from '../mocks/repositories/user-repository.stub';
-import { HasherStub } from '../mocks/protocols/hasher.stub';
-import { TokenGeneratorStub } from '../mocks/protocols/token-generator.stub';
-import { MockUserFactory } from '../../domain/mocks/models/user.mock';
+import { UserRepositoryStub } from '../mocks/repositories';
+import { HasherStub, TokenGeneratorStub, LoggerStub } from '../mocks/protocols';
+import { MockUserFactory } from '../../domain/mocks/models';
 
 describe('DbLoginUserUseCase', () => {
   let sut: DbLoginUserUseCase;
   let userRepositoryStub: UserRepositoryStub;
   let hasherStub: HasherStub;
   let tokenGeneratorStub: TokenGeneratorStub;
+  let loggerStub: LoggerStub;
 
   beforeEach(() => {
     userRepositoryStub = new UserRepositoryStub();
     hasherStub = new HasherStub();
     tokenGeneratorStub = new TokenGeneratorStub();
+    loggerStub = new LoggerStub();
 
     sut = new DbLoginUserUseCase(
       userRepositoryStub,
       hasherStub,
       tokenGeneratorStub,
+      loggerStub,
     );
   });
 
@@ -26,6 +28,7 @@ describe('DbLoginUserUseCase', () => {
     userRepositoryStub.clear();
     hasherStub.clear();
     tokenGeneratorStub.clear();
+    loggerStub.clear();
   });
 
   describe('execute', () => {
