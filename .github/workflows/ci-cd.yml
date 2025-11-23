@@ -119,7 +119,7 @@ jobs:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/financial_db_test
 
       - name: 📊 Run test coverage
-        run: yarn test:cov --passWithNoTests
+        run: yarn test:coverage --passWithNoTests
         env:
           NODE_ENV: test
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/financial_db_test
