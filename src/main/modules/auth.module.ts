@@ -15,6 +15,7 @@ import {
   makeRefreshTokenFactory,
   makeRegisterUserFactory,
 } from '../factories';
+import { ContextAwareLoggerService } from '@/infra/logging/context-aware-logger.service';
 
 @Module({
   imports: [
@@ -47,7 +48,11 @@ import {
     {
       provide: 'RegisterUserUseCase',
       useFactory: makeRegisterUserFactory,
-      inject: ['UserRepository', 'Hasher', 'TokenGenerator'],
+      inject: ['UserRepository', 'Hasher', 'TokenGenerator', 'Logger'],
+    },
+    {
+      provide: 'Logger',
+      useClass: ContextAwareLoggerService,
     },
     {
       provide: 'LoginUserUseCase',

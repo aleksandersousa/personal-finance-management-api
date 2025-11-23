@@ -1,7 +1,3 @@
-/**
- * Logger Spy for Infrastructure Layer Testing
- * Observes and controls logging interactions
- */
 import {
   BusinessEvent,
   PerformanceEvent,

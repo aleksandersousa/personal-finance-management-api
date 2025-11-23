@@ -7,6 +7,7 @@ import {
   Inject,
   Post,
   UnauthorizedException,
+  type Logger,
 } from '@nestjs/common';
 import {
   ApiBadRequestResponse,
@@ -36,6 +37,8 @@ export class AuthController {
     private readonly loginUserUseCase: LoginUserUseCase,
     @Inject('RefreshTokenUseCase')
     private readonly refreshTokenUseCase: RefreshTokenUseCase,
+    @Inject('Logger')
+    private readonly logger: Logger,
   ) {}
 
   @Post('register')
@@ -73,8 +76,18 @@ export class AuthController {
       };
     } catch (error) {
       if (error.message.includes('already exists')) {
+        this.logger.error(
+          'User already exists',
+          registerUserDto.email,
+          'AuthController',
+        );
         throw new BadRequestException('User already exists');
       }
+      this.logger.error(
+        'User registration failed',
+        error.stack,
+        'AuthController',
+      );
       throw new BadRequestException('User registration failed');
     }
   }
