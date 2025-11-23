@@ -24,13 +24,13 @@ export class InitialSchema1733087000000 implements MigrationInterface {
   public async down(queryRunner: QueryRunner): Promise<void> {
     // Drop Triggers
     await queryRunner.query(
-      `DROP TRIGGER IF EXISTS update_entries_updated_at ON "${SCHEMA_NAME}.${TABLE_NAMES.ENTRIES}"`,
+      `DROP TRIGGER IF EXISTS update_entries_updated_at ON "${SCHEMA_NAME}"."${TABLE_NAMES.ENTRIES}"`,
     );
     await queryRunner.query(
-      `DROP TRIGGER IF EXISTS update_categories_updated_at ON "${SCHEMA_NAME}.${TABLE_NAMES.CATEGORIES}"`,
+      `DROP TRIGGER IF EXISTS update_categories_updated_at ON "${SCHEMA_NAME}"."${TABLE_NAMES.CATEGORIES}"`,
     );
     await queryRunner.query(
-      `DROP TRIGGER IF EXISTS update_users_updated_at ON "${SCHEMA_NAME}.${TABLE_NAMES.USERS}"`,
+      `DROP TRIGGER IF EXISTS update_users_updated_at ON "${SCHEMA_NAME}"."${TABLE_NAMES.USERS}"`,
     );
 
     // Drop the function
@@ -327,19 +327,19 @@ export class InitialSchema1733087000000 implements MigrationInterface {
 
     await queryRunner.query(`
       CREATE TRIGGER update_users_updated_at 
-      BEFORE UPDATE ON "${SCHEMA_NAME}.${TABLE_NAMES.USERS}" 
+      BEFORE UPDATE ON "${SCHEMA_NAME}"."${TABLE_NAMES.USERS}" 
       FOR EACH ROW EXECUTE FUNCTION ${SCHEMA_NAME}.update_updated_at_column()
     `);
 
     await queryRunner.query(`
       CREATE TRIGGER update_categories_updated_at 
-      BEFORE UPDATE ON "${SCHEMA_NAME}.${TABLE_NAMES.CATEGORIES}" 
+      BEFORE UPDATE ON "${SCHEMA_NAME}"."${TABLE_NAMES.CATEGORIES}" 
       FOR EACH ROW EXECUTE FUNCTION ${SCHEMA_NAME}.update_updated_at_column()
     `);
 
     await queryRunner.query(`
       CREATE TRIGGER update_entries_updated_at 
-      BEFORE UPDATE ON "${SCHEMA_NAME}.${TABLE_NAMES.ENTRIES}" 
+      BEFORE UPDATE ON "${SCHEMA_NAME}"."${TABLE_NAMES.ENTRIES}" 
       FOR EACH ROW EXECUTE FUNCTION ${SCHEMA_NAME}.update_updated_at_column()
     `);
   }
