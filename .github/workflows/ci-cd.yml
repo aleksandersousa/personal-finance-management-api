@@ -219,6 +219,9 @@ jobs:
           script: |
             cd /var/www/financial-management/api/source
 
+            # Build application
+            yarn build
+
             # Run migrations
             yarn migration:run
 
