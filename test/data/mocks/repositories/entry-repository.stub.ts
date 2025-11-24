@@ -6,6 +6,7 @@ import {
   CategorySummaryItem,
   FixedEntriesSummary,
   MonthlySummaryStats,
+  MonthYear,
 } from '@data/protocols/entry-repository';
 import { EntryModel } from '@domain/models/entry.model';
 import { IdGenerator } from '@data/protocols/id-generator';
@@ -348,6 +349,35 @@ export class EntryRepositoryStub implements EntryRepository {
       .reduce((sum, entry) => sum + entry.amount, 0);
 
     return totalIncome - totalExpenses;
+  }
+
+  async getDistinctMonthsYears(userId: string): Promise<MonthYear[]> {
+    if (this.shouldFail && this.errorToThrow) {
+      throw this.errorToThrow;
+    }
+
+    const userEntries = await this.findByUserId(userId);
+    const monthsYearsMap = new Map<string, MonthYear>();
+
+    userEntries.forEach(entry => {
+      if (!entry.deletedAt) {
+        const entryDate = new Date(entry.date);
+        const year = entryDate.getFullYear();
+        const month = entryDate.getMonth() + 1; // Month is 1-indexed
+        const key = `${year}-${month}`;
+
+        if (!monthsYearsMap.has(key)) {
+          monthsYearsMap.set(key, { year, month });
+        }
+      }
+    });
+
+    return Array.from(monthsYearsMap.values()).sort((a, b) => {
+      if (a.year !== b.year) {
+        return b.year - a.year; // Descending by year
+      }
+      return b.month - a.month; // Descending by month
+    });
   }
 
   // =================== Test Utility Methods ===================

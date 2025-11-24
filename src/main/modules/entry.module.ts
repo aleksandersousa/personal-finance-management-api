@@ -15,7 +15,9 @@ import {
   makeDeleteEntryFactory,
   makeListEntriesByMonthFactory,
   makeUpdateEntryFactory,
+  makeGetEntriesMonthsYearsFactory,
 } from '../factories';
+import { ContextAwareLoggerService } from '@/infra/logging/context-aware-logger.service';
 
 @Module({
   imports: [
@@ -38,6 +40,10 @@ import {
     {
       provide: 'IdGenerator',
       useClass: UuidGenerator,
+    },
+    {
+      provide: 'Logger',
+      useClass: ContextAwareLoggerService,
     },
     {
       provide: 'AddEntryUseCase',
@@ -64,12 +70,18 @@ import {
       useFactory: makeDeleteEntryFactory,
       inject: ['EntryRepository'],
     },
+    {
+      provide: 'GetEntriesMonthsYearsUseCase',
+      useFactory: makeGetEntriesMonthsYearsFactory,
+      inject: ['EntryRepository', 'UserRepository', 'Logger'],
+    },
   ],
   exports: [
     'AddEntryUseCase',
     'ListEntriesByMonthUseCase',
     'UpdateEntryUseCase',
     'DeleteEntryUseCase',
+    'GetEntriesMonthsYearsUseCase',
   ],
 })
 export class EntryModule {}

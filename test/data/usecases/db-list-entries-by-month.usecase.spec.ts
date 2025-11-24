@@ -20,6 +20,7 @@ describe('DbListEntriesByMonthUseCase', () => {
       getCategorySummaryForMonth: jest.fn(),
       getFixedEntriesSummary: jest.fn(),
       getCurrentBalance: jest.fn(),
+      getDistinctMonthsYears: jest.fn(),
       update: jest.fn(),
       delete: jest.fn(),
       softDelete: jest.fn(),

@@ -7,6 +7,7 @@ import { AddEntryUseCase } from '@domain/usecases/add-entry.usecase';
 import { DeleteEntryUseCase } from '@domain/usecases/delete-entry.usecase';
 import { ListEntriesByMonthUseCase } from '@domain/usecases/list-entries-by-month.usecase';
 import { UpdateEntryUseCase } from '@domain/usecases/update-entry.usecase';
+import { GetEntriesMonthsYearsUseCase } from '@domain/usecases/get-entries-months-years.usecase';
 import { LoggerSpy } from '../../../infra/mocks/logging/logger.spy';
 import { MetricsSpy } from '../../../infra/mocks/metrics/metrics.spy';
 import { JwtAuthGuard } from '@presentation/guards/jwt-auth.guard';
@@ -19,7 +20,47 @@ describe('EntryController (e2e)', () => {
   let mockAddEntryUseCase: jest.Mocked<AddEntryUseCase>;
   let mockDeleteEntryUseCase: jest.Mocked<DeleteEntryUseCase>;
   let mockListEntriesByMonthUseCase: jest.Mocked<ListEntriesByMonthUseCase>;
+  let mockLoadEntriesMonthsYearsUseCase: jest.Mocked<GetEntriesMonthsYearsUseCase>;
   let mockUpdateEntryUseCase: jest.Mocked<UpdateEntryUseCase>;
+
+  const createProviders = (
+    addEntryUseCase: jest.Mocked<AddEntryUseCase>,
+    deleteEntryUseCase: jest.Mocked<DeleteEntryUseCase>,
+    listEntriesByMonthUseCase: jest.Mocked<ListEntriesByMonthUseCase>,
+    updateEntryUseCase: jest.Mocked<UpdateEntryUseCase>,
+    getEntriesMonthsYearsUseCase: jest.Mocked<GetEntriesMonthsYearsUseCase>,
+    logger: LoggerSpy,
+    metrics: MetricsSpy,
+  ) => [
+    {
+      provide: 'AddEntryUseCase',
+      useValue: addEntryUseCase,
+    },
+    {
+      provide: 'DeleteEntryUseCase',
+      useValue: deleteEntryUseCase,
+    },
+    {
+      provide: 'ListEntriesByMonthUseCase',
+      useValue: listEntriesByMonthUseCase,
+    },
+    {
+      provide: 'UpdateEntryUseCase',
+      useValue: updateEntryUseCase,
+    },
+    {
+      provide: 'GetEntriesMonthsYearsUseCase',
+      useValue: getEntriesMonthsYearsUseCase,
+    },
+    {
+      provide: 'Logger',
+      useValue: logger,
+    },
+    {
+      provide: 'Metrics',
+      useValue: metrics,
+    },
+  ];
 
   beforeAll(async () => {
     loggerSpy = new LoggerSpy();
@@ -36,6 +77,9 @@ describe('EntryController (e2e)', () => {
     mockUpdateEntryUseCase = {
       execute: jest.fn(),
     };
+    mockLoadEntriesMonthsYearsUseCase = {
+      execute: jest.fn(),
+    };
 
     const moduleFixture: TestingModule = await Test.createTestingModule({
       imports: [
@@ -45,32 +89,15 @@ describe('EntryController (e2e)', () => {
         }),
       ],
       controllers: [EntryController],
-      providers: [
-        {
-          provide: 'AddEntryUseCase',
-          useValue: mockAddEntryUseCase,
-        },
-        {
-          provide: 'DeleteEntryUseCase',
-          useValue: mockDeleteEntryUseCase,
-        },
-        {
-          provide: 'ListEntriesByMonthUseCase',
-          useValue: mockListEntriesByMonthUseCase,
-        },
-        {
-          provide: 'UpdateEntryUseCase',
-          useValue: mockUpdateEntryUseCase,
-        },
-        {
-          provide: 'Logger',
-          useValue: loggerSpy,
-        },
-        {
-          provide: 'Metrics',
-          useValue: metricsSpy,
-        },
-      ],
+      providers: createProviders(
+        mockAddEntryUseCase,
+        mockDeleteEntryUseCase,
+        mockListEntriesByMonthUseCase,
+        mockUpdateEntryUseCase,
+        mockLoadEntriesMonthsYearsUseCase,
+        loggerSpy,
+        metricsSpy,
+      ),
     })
       .overrideGuard(JwtAuthGuard)
       .useValue({
@@ -111,32 +138,15 @@ describe('EntryController (e2e)', () => {
           }),
         ],
         controllers: [EntryController],
-        providers: [
-          {
-            provide: 'AddEntryUseCase',
-            useValue: mockAddEntryUseCase,
-          },
-          {
-            provide: 'DeleteEntryUseCase',
-            useValue: mockDeleteEntryUseCase,
-          },
-          {
-            provide: 'ListEntriesByMonthUseCase',
-            useValue: mockListEntriesByMonthUseCase,
-          },
-          {
-            provide: 'UpdateEntryUseCase',
-            useValue: mockUpdateEntryUseCase,
-          },
-          {
-            provide: 'Logger',
-            useValue: loggerSpy,
-          },
-          {
-            provide: 'Metrics',
-            useValue: metricsSpy,
-          },
-        ],
+        providers: createProviders(
+          mockAddEntryUseCase,
+          mockDeleteEntryUseCase,
+          mockListEntriesByMonthUseCase,
+          mockUpdateEntryUseCase,
+          mockLoadEntriesMonthsYearsUseCase,
+          loggerSpy,
+          metricsSpy,
+        ),
       }).compile();
 
       const unguardedApp = moduleFixture.createNestApplication();
@@ -170,32 +180,15 @@ describe('EntryController (e2e)', () => {
           }),
         ],
         controllers: [EntryController],
-        providers: [
-          {
-            provide: 'AddEntryUseCase',
-            useValue: mockAddEntryUseCase,
-          },
-          {
-            provide: 'DeleteEntryUseCase',
-            useValue: mockDeleteEntryUseCase,
-          },
-          {
-            provide: 'ListEntriesByMonthUseCase',
-            useValue: mockListEntriesByMonthUseCase,
-          },
-          {
-            provide: 'UpdateEntryUseCase',
-            useValue: mockUpdateEntryUseCase,
-          },
-          {
-            provide: 'Logger',
-            useValue: loggerSpy,
-          },
-          {
-            provide: 'Metrics',
-            useValue: metricsSpy,
-          },
-        ],
+        providers: createProviders(
+          mockAddEntryUseCase,
+          mockDeleteEntryUseCase,
+          mockListEntriesByMonthUseCase,
+          mockUpdateEntryUseCase,
+          mockLoadEntriesMonthsYearsUseCase,
+          loggerSpy,
+          metricsSpy,
+        ),
       }).compile();
 
       const unguardedApp = moduleFixture.createNestApplication();

@@ -22,6 +22,7 @@ module.exports = {
     // Exclude index.ts files and migrations from coverage
     '!src/**/index.ts', // Index files are just re-exports
     '!src/infra/db/typeorm/migrations/**', // Migrations are database schema changes
+    '!src/domain/constants/**', // Constants are constants
   ],
   coverageDirectory: './coverage',
   testEnvironment: 'node',
