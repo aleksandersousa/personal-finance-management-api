@@ -31,11 +31,13 @@ import { AddEntryUseCase } from '@domain/usecases/add-entry.usecase';
 import { ListEntriesByMonthUseCase } from '@domain/usecases/list-entries-by-month.usecase';
 import { DeleteEntryUseCase } from '@domain/usecases/delete-entry.usecase';
 import { UpdateEntryUseCase } from '@domain/usecases/update-entry.usecase';
+import { GetEntriesMonthsYearsUseCase } from '@domain/usecases/get-entries-months-years.usecase';
 import { CreateEntryDto } from '../dtos/create-entry.dto';
 import { UpdateEntryDto } from '../dtos/update-entry.dto';
 import { EntryResponseDto } from '../dtos/entry-response.dto';
 import { EntryListResponseDto } from '../dtos/entry-list-response.dto';
 import { DeleteEntryResponseDto } from '../dtos/delete-entry-response.dto';
+import { EntriesMonthsYearsResponseDto } from '../dtos/entries-months-years-response.dto';
 import { JwtAuthGuard } from '../guards/jwt-auth.guard';
 import { User } from '../decorators/user.decorator';
 import { Logger } from '@data/protocols/logger';
@@ -56,6 +58,8 @@ export class EntryController {
     private readonly deleteEntryUseCase: DeleteEntryUseCase,
     @Inject('UpdateEntryUseCase')
     private readonly updateEntryUseCase: UpdateEntryUseCase,
+    @Inject('GetEntriesMonthsYearsUseCase')
+    private readonly getEntriesMonthsYearsUseCase: GetEntriesMonthsYearsUseCase,
     @Inject('Logger')
     private readonly logger: Logger,
     @Inject('Metrics')
@@ -459,6 +463,67 @@ export class EntryController {
         throw new BadRequestException(error.message);
       }
       throw new BadRequestException('Failed to delete entry');
+    }
+  }
+
+  @Get('months-years')
+  @ApiOperation({
+    summary: 'Get distinct months and years from entries',
+    description:
+      'Retrieves a list of distinct months and years that have entries for the authenticated user. Useful for filtering and navigation purposes.',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Months and years retrieved successfully',
+    type: EntriesMonthsYearsResponseDto,
+  })
+  @ApiBadRequestResponse({ description: 'Invalid request' })
+  @ApiUnauthorizedResponse({ description: 'Invalid or missing JWT token' })
+  async getMonthsYears(
+    @User() user: UserPayload,
+  ): Promise<EntriesMonthsYearsResponseDto> {
+    const startTime = Date.now();
+
+    try {
+      const result = await this.getEntriesMonthsYearsUseCase.execute({
+        userId: user.id,
+      });
+
+      const duration = Date.now() - startTime;
+
+      this.logger.logBusinessEvent({
+        event: 'entry_api_months_years_success',
+        userId: user.id,
+        duration,
+        metadata: {
+          count: result.monthsYears.length,
+        },
+      });
+
+      this.metrics.recordHttpRequest(
+        'GET',
+        '/entries/months-years',
+        200,
+        duration,
+      );
+
+      return {
+        monthsYears: result.monthsYears,
+      };
+    } catch (error) {
+      // Log error
+      this.logger.error(
+        `Failed to get months and years for user ${user.id}`,
+        error.stack,
+      );
+
+      // Record error metrics
+      this.metrics.recordApiError('entry_months_years', error.message);
+
+      if (this.isClientError(error.message)) {
+        throw new BadRequestException(error.message);
+      }
+      throw new BadRequestException('Failed to retrieve months and years');
     }
   }
 

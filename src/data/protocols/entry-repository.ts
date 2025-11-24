@@ -65,6 +65,11 @@ export interface FixedEntriesSummary {
   entriesCount: number;
 }
 
+export interface MonthYear {
+  year: number;
+  month: number;
+}
+
 export interface EntryRepository {
   create(data: CreateEntryData): Promise<EntryModel>;
   findById(id: string): Promise<EntryModel | null>;
@@ -89,6 +94,7 @@ export interface EntryRepository {
   ): Promise<CategorySummaryItem[]>;
   getFixedEntriesSummary(userId: string): Promise<FixedEntriesSummary>;
   getCurrentBalance(userId: string): Promise<number>;
+  getDistinctMonthsYears(userId: string): Promise<MonthYear[]>;
   update(id: string, data: UpdateEntryData): Promise<EntryModel>;
   delete(id: string): Promise<void>;
   softDelete(id: string): Promise<Date>;

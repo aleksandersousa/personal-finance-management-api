@@ -6,6 +6,7 @@ export * from './create-category.dto';
 export * from './create-entry.dto';
 export * from './delete-category-response.dto';
 export * from './delete-entry-response.dto';
+export * from './entries-months-years-response.dto';
 export * from './entry-list-response.dto';
 export * from './entry-response.dto';
 export * from './health-response.dto';

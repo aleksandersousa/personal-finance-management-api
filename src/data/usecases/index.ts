@@ -2,6 +2,7 @@ export * from './db-add-entry.usecase';
 export * from './db-add-category.usecase';
 export * from './db-delete-category.usecase';
 export * from './db-delete-entry.usecase';
+export * from './db-get-entries-months-years.usecase';
 export * from './db-get-monthly-summary.usecase';
 export * from './db-list-categories.usecase';
 export * from './db-list-entries-by-month.usecase';

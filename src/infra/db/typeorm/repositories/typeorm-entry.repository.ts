@@ -9,6 +9,7 @@ import {
   MonthlySummaryStats,
   CategorySummaryItem,
   FixedEntriesSummary,
+  MonthYear,
 } from '@data/protocols/entry-repository';
 import { EntryModel } from '@domain/models/entry.model';
 import { EntryEntity } from '../entities/entry.entity';
@@ -534,6 +535,54 @@ export class TypeormEntryRepository implements EntryRepository {
       );
 
       this.metrics.recordApiError('get_current_balance', error.message);
+      throw error;
+    }
+  }
+
+  async getDistinctMonthsYears(userId: string): Promise<MonthYear[]> {
+    const startTime = Date.now();
+
+    try {
+      const results = await this.entryRepository
+        .createQueryBuilder('entry')
+        .select('EXTRACT(YEAR FROM entry.date)', 'year')
+        .addSelect('EXTRACT(MONTH FROM entry.date)', 'month')
+        .where('entry.userId = :userId', { userId })
+        .andWhere('entry.deletedAt IS NULL')
+        .groupBy('EXTRACT(YEAR FROM entry.date)')
+        .addGroupBy('EXTRACT(MONTH FROM entry.date)')
+        .orderBy('EXTRACT(YEAR FROM entry.date)', 'DESC')
+        .addOrderBy('EXTRACT(MONTH FROM entry.date)', 'DESC')
+        .getRawMany();
+
+      const monthsYears: MonthYear[] = results.map(result => ({
+        year: parseInt(result.year, 10),
+        month: parseInt(result.month, 10),
+      }));
+
+      const duration = Date.now() - startTime;
+
+      // Log business event
+      this.logger.logBusinessEvent({
+        event: 'distinct_months_years_retrieved',
+        userId,
+        metadata: {
+          count: monthsYears.length,
+          duration,
+        },
+      });
+
+      // Record metrics
+      this.metrics.recordTransaction('get_distinct_months_years', 'success');
+
+      return monthsYears;
+    } catch (error) {
+      this.logger.error(
+        `Failed to get distinct months and years for user ${userId}`,
+        error.stack,
+      );
+
+      this.metrics.recordApiError('get_distinct_months_years', error.message);
       throw error;
     }
   }

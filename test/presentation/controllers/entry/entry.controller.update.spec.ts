@@ -27,6 +27,7 @@ describe('EntryController - UPDATE', () => {
         { provide: 'ListEntriesByMonthUseCase', useValue: {} },
         { provide: 'DeleteEntryUseCase', useValue: {} },
         { provide: 'UpdateEntryUseCase', useValue: updateEntryUseCase },
+        { provide: 'GetEntriesMonthsYearsUseCase', useValue: {} },
         { provide: 'Logger', useValue: loggerSpy },
         { provide: 'Metrics', useValue: metricsSpy },
       ],
