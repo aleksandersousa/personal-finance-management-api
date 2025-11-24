@@ -46,18 +46,18 @@ import { ContextAwareLoggerService } from '@/infra/logging/context-aware-logger.
       useClass: JwtTokenGenerator,
     },
     {
+      provide: 'Logger',
+      useClass: ContextAwareLoggerService,
+    },
+    {
       provide: 'RegisterUserUseCase',
       useFactory: makeRegisterUserFactory,
       inject: ['UserRepository', 'Hasher', 'TokenGenerator', 'Logger'],
     },
     {
-      provide: 'Logger',
-      useClass: ContextAwareLoggerService,
-    },
-    {
       provide: 'LoginUserUseCase',
       useFactory: makeLoginUserFactory,
-      inject: ['UserRepository', 'Hasher', 'TokenGenerator'],
+      inject: ['UserRepository', 'Hasher', 'TokenGenerator', 'Logger'],
     },
     {
       provide: 'RefreshTokenUseCase',
