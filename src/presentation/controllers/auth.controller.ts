@@ -124,6 +124,7 @@ export class AuthController {
         },
       };
     } catch (error) {
+      this.logger.error('Invalid credentials', error.stack, 'AuthController');
       throw new UnauthorizedException('Invalid credentials');
     }
   }
