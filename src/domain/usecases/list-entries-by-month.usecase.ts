@@ -10,6 +10,7 @@ export interface ListEntriesByMonthRequest {
   order?: 'asc' | 'desc';
   type?: 'INCOME' | 'EXPENSE' | 'all';
   categoryId?: string;
+  search?: string;
 }
 
 export interface ListEntriesByMonthResponse {

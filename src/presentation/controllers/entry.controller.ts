@@ -191,6 +191,13 @@ export class EntryController {
     description: "Filter by category ID or 'all' (default: all)",
     example: 'all',
   })
+  @ApiQuery({
+    name: 'search',
+    required: false,
+    description:
+      'Search term for filtering entries by description (case-insensitive)',
+    example: 'groceries',
+  })
   @ApiBadRequestResponse({ description: 'Invalid query parameters' })
   @ApiUnauthorizedResponse({ description: 'Invalid or missing JWT token' })
   async listByMonth(
@@ -201,6 +208,7 @@ export class EntryController {
     @Query('order') order: string = 'desc',
     @Query('type') type: string = 'all',
     @Query('category') category: string = 'all',
+    @Query('search') search: string = '',
     @User() user: UserPayload,
   ): Promise<EntryListResponseDto> {
     const startTime = Date.now();
@@ -258,6 +266,7 @@ export class EntryController {
         order: order as 'asc' | 'desc',
         type: type as 'INCOME' | 'EXPENSE' | 'all',
         categoryId: category !== 'all' ? category : undefined,
+        search: search && search.trim() ? search.trim() : undefined,
       });
 
       const duration = Date.now() - startTime;

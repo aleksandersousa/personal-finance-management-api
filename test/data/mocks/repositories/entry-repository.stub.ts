@@ -98,6 +98,7 @@ export class EntryRepositoryStub implements EntryRepository {
       order = 'desc',
       type = 'all',
       categoryId,
+      search,
     } = filters;
 
     // Get base entries for the month
@@ -111,6 +112,14 @@ export class EntryRepositoryStub implements EntryRepository {
     // Apply category filter
     if (categoryId && categoryId !== 'all') {
       entries = entries.filter(entry => entry.categoryId === categoryId);
+    }
+
+    // Apply search filter (case-insensitive)
+    if (search && search.trim()) {
+      const searchLower = search.trim().toLowerCase();
+      entries = entries.filter(entry =>
+        entry.description.toLowerCase().includes(searchLower),
+      );
     }
 
     // Apply sorting

@@ -29,6 +29,7 @@ export interface FindEntriesByMonthFilters {
   order?: 'asc' | 'desc';
   type?: 'INCOME' | 'EXPENSE' | 'all';
   categoryId?: string;
+  search?: string;
 }
 
 export interface FindEntriesByMonthResult {

@@ -91,6 +91,7 @@ export class TypeormEntryRepository implements EntryRepository {
       order = 'desc',
       type = 'all',
       categoryId,
+      search,
     } = filters;
 
     const startDate = new Date(year, month - 1, 1);
@@ -114,6 +115,13 @@ export class TypeormEntryRepository implements EntryRepository {
     if (categoryId && categoryId !== 'all') {
       queryBuilder = queryBuilder.andWhere('entry.categoryId = :categoryId', {
         categoryId,
+      });
+    }
+
+    // Apply search filter (case-insensitive)
+    if (search && search.trim()) {
+      queryBuilder = queryBuilder.andWhere('entry.description ILIKE :search', {
+        search: `%${search.trim()}%`,
       });
     }
 
@@ -157,6 +165,12 @@ export class TypeormEntryRepository implements EntryRepository {
 
     if (categoryId && categoryId !== 'all') {
       summaryQuery.andWhere('entry.categoryId = :categoryId', { categoryId });
+    }
+
+    if (search && search.trim()) {
+      summaryQuery.andWhere('entry.description ILIKE :search', {
+        search: `%${search.trim()}%`,
+      });
     }
 
     const summaryResult = await summaryQuery.getRawOne();
