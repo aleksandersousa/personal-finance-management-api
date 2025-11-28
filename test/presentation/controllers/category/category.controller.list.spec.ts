@@ -64,6 +64,7 @@ describe('CategoryController - List', () => {
         'false',
         '1',
         '20',
+        '',
         mockRequest.user,
         mockRequest,
       );
@@ -80,6 +81,7 @@ describe('CategoryController - List', () => {
         includeStats: false,
         page: 1,
         limit: 20,
+        search: undefined,
       });
 
       // Verify business event logging
@@ -114,6 +116,7 @@ describe('CategoryController - List', () => {
         'false',
         '1',
         '20',
+        '',
         mockRequest.user,
         mockRequest,
       );
@@ -125,6 +128,7 @@ describe('CategoryController - List', () => {
         includeStats: false,
         page: 1,
         limit: 20,
+        search: undefined,
       });
 
       expect(result.data).toHaveLength(1);
@@ -148,6 +152,7 @@ describe('CategoryController - List', () => {
         'true',
         '1',
         '20',
+        '',
         mockRequest.user,
         mockRequest,
       );
@@ -159,6 +164,7 @@ describe('CategoryController - List', () => {
         includeStats: true,
         page: 1,
         limit: 20,
+        search: undefined,
       });
 
       expect(result.data[0]).toHaveProperty('entriesCount');
@@ -179,6 +185,7 @@ describe('CategoryController - List', () => {
           'false',
           '1',
           '20',
+          '',
           mockRequest.user,
           mockRequest,
         ),
@@ -215,6 +222,7 @@ describe('CategoryController - List', () => {
         'true',
         '1',
         '20',
+        '',
         mockRequest.user,
         mockRequest,
       );
@@ -226,6 +234,7 @@ describe('CategoryController - List', () => {
         includeStats: true,
         page: 1,
         limit: 20,
+        search: undefined,
       });
     });
 
@@ -239,6 +248,7 @@ describe('CategoryController - List', () => {
         'invalid',
         '1',
         '20',
+        '',
         mockRequest.user,
         mockRequest,
       );
@@ -248,6 +258,9 @@ describe('CategoryController - List', () => {
         userId: 'user-123',
         type: undefined,
         includeStats: false,
+        page: 1,
+        limit: 20,
+        search: undefined,
       });
     });
 
@@ -267,6 +280,7 @@ describe('CategoryController - List', () => {
         undefined,
         undefined,
         undefined,
+        undefined,
         mockRequest.user,
         mockRequest,
       );
@@ -276,6 +290,9 @@ describe('CategoryController - List', () => {
         userId: 'user-123',
         type: undefined,
         includeStats: false,
+        page: 1,
+        limit: 20,
+        search: undefined,
       });
 
       expect(result).toHaveProperty('data');
@@ -298,6 +315,7 @@ describe('CategoryController - List', () => {
         'true',
         undefined,
         undefined,
+        undefined,
         mockRequest.user,
         mockRequest,
       );
@@ -309,6 +327,7 @@ describe('CategoryController - List', () => {
         includeStats: true,
         page: 1,
         limit: 20,
+        search: undefined,
       });
 
       expect(result).toHaveProperty('data');
@@ -331,6 +350,7 @@ describe('CategoryController - List', () => {
         undefined,
         undefined,
         undefined,
+        undefined,
         mockRequest.user,
         mockRequest,
       );
@@ -342,6 +362,7 @@ describe('CategoryController - List', () => {
         includeStats: false,
         page: 1,
         limit: 20,
+        search: undefined,
       });
 
       expect(result).toHaveProperty('data');

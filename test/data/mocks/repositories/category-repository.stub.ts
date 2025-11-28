@@ -104,6 +104,13 @@ export class CategoryRepositoryStub implements CategoryRepository {
       );
     }
 
+    if (filters.search && filters.search.trim()) {
+      const searchLower = filters.search.trim().toLowerCase();
+      filtered = filtered.filter(category =>
+        category.name.toLowerCase().includes(searchLower),
+      );
+    }
+
     // Get total before pagination
     const total = filtered.length;
 

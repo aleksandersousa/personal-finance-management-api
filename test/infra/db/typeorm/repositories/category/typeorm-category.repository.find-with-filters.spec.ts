@@ -42,8 +42,10 @@ describe('TypeormCategoryRepository - findWithFilters', () => {
     addSelect: jest.fn().mockReturnThis(),
     groupBy: jest.fn().mockReturnThis(),
     orderBy: jest.fn().mockReturnThis(),
+    skip: jest.fn().mockReturnThis(),
+    take: jest.fn().mockReturnThis(),
     getRawAndEntities: jest.fn(),
-    getCount: jest.fn(),
+    getCount: jest.fn().mockResolvedValue(0),
   };
 
   beforeEach(async () => {
@@ -123,12 +125,14 @@ describe('TypeormCategoryRepository - findWithFilters', () => {
       };
 
       mockQueryBuilder.getRawAndEntities.mockResolvedValue(mockResults);
+      mockQueryBuilder.getCount.mockResolvedValue(2);
 
       // Act
       const result = await repository.findWithFilters(filters);
 
       // Assert
-      expect(result).toHaveLength(2);
+      expect(result.data).toHaveLength(2);
+      expect(result.total).toBe(2);
       expect(mockTypeormRepository.createQueryBuilder).toHaveBeenCalledWith(
         'category',
       );
@@ -178,12 +182,14 @@ describe('TypeormCategoryRepository - findWithFilters', () => {
       };
 
       mockQueryBuilder.getRawAndEntities.mockResolvedValue(mockResults);
+      mockQueryBuilder.getCount.mockResolvedValue(1);
 
       // Act
       const result = await repository.findWithFilters(filters);
 
       // Assert
-      expect(result).toHaveLength(1);
+      expect(result.data).toHaveLength(1);
+      expect(result.total).toBe(1);
       expect(mockQueryBuilder.andWhere).toHaveBeenCalledWith(
         'category.type = :type',
         { type: CategoryType.INCOME },
@@ -203,12 +209,14 @@ describe('TypeormCategoryRepository - findWithFilters', () => {
       };
 
       mockQueryBuilder.getRawAndEntities.mockResolvedValue(mockResults);
+      mockQueryBuilder.getCount.mockResolvedValue(1);
 
       // Act
       const result = await repository.findWithFilters(filters);
 
       // Assert
-      expect(result).toHaveLength(1);
+      expect(result.data).toHaveLength(1);
+      expect(result.total).toBe(1);
       expect(mockQueryBuilder.andWhere).not.toHaveBeenCalledWith(
         expect.stringContaining('type'),
         expect.anything(),
@@ -229,13 +237,26 @@ describe('TypeormCategoryRepository - findWithFilters', () => {
         ],
       };
 
+      // Create a separate mock for the count query builder
+      const mockCountQueryBuilder = {
+        where: jest.fn().mockReturnThis(),
+        andWhere: jest.fn().mockReturnThis(),
+        getCount: jest.fn().mockResolvedValue(1),
+      };
+
+      // Make createQueryBuilder return different builders for main query and count query
+      mockTypeormRepository.createQueryBuilder
+        .mockReturnValueOnce(mockQueryBuilder as any)
+        .mockReturnValueOnce(mockCountQueryBuilder as any);
+
       mockQueryBuilder.getRawAndEntities.mockResolvedValue(mockResults);
 
       // Act
       const result = await repository.findWithFilters(filters);
 
       // Assert
-      expect(result).toHaveLength(1);
+      expect(result.data).toHaveLength(1);
+      expect(result.total).toBe(1);
       expect(mockQueryBuilder.leftJoin).toHaveBeenCalledWith(
         'category.entries',
         'entry',
@@ -254,9 +275,9 @@ describe('TypeormCategoryRepository - findWithFilters', () => {
         'lastUsed',
       );
       expect(mockQueryBuilder.groupBy).toHaveBeenCalledWith('category.id');
-      expect((result[0] as any).entriesCount).toBe(5);
-      expect((result[0] as any).totalAmount).toBe(100.5);
-      expect((result[0] as any).lastUsed).toEqual(new Date('2023-12-01'));
+      expect((result.data[0] as any).entriesCount).toBe(5);
+      expect((result.data[0] as any).totalAmount).toBe(100.5);
+      expect((result.data[0] as any).lastUsed).toEqual(new Date('2023-12-01'));
     });
 
     it('should not include stats when not requested', async () => {
@@ -272,16 +293,18 @@ describe('TypeormCategoryRepository - findWithFilters', () => {
       };
 
       mockQueryBuilder.getRawAndEntities.mockResolvedValue(mockResults);
+      mockQueryBuilder.getCount.mockResolvedValue(1);
 
       // Act
       const result = await repository.findWithFilters(filters);
 
       // Assert
-      expect(result).toHaveLength(1);
+      expect(result.data).toHaveLength(1);
+      expect(result.total).toBe(1);
       expect(mockQueryBuilder.leftJoin).not.toHaveBeenCalled();
-      expect(result[0]).not.toHaveProperty('entriesCount');
-      expect(result[0]).not.toHaveProperty('totalAmount');
-      expect(result[0]).not.toHaveProperty('lastUsed');
+      expect(result.data[0]).not.toHaveProperty('entriesCount');
+      expect(result.data[0]).not.toHaveProperty('totalAmount');
+      expect(result.data[0]).not.toHaveProperty('lastUsed');
     });
 
     it('should handle edge cases in stats parsing', async () => {
@@ -296,18 +319,31 @@ describe('TypeormCategoryRepository - findWithFilters', () => {
         raw: [{ entriesCount: null, totalAmount: undefined, lastUsed: null }],
       };
 
+      // Create a separate mock for the count query builder
+      const mockCountQueryBuilder = {
+        where: jest.fn().mockReturnThis(),
+        andWhere: jest.fn().mockReturnThis(),
+        getCount: jest.fn().mockResolvedValue(1),
+      };
+
+      // Make createQueryBuilder return different builders for main query and count query
+      mockTypeormRepository.createQueryBuilder
+        .mockReturnValueOnce(mockQueryBuilder as any)
+        .mockReturnValueOnce(mockCountQueryBuilder as any);
+
       mockQueryBuilder.getRawAndEntities.mockResolvedValue(mockResults);
 
       // Act
       const result = await repository.findWithFilters(filters);
 
       // Assert
-      expect(result).toHaveLength(1);
-      expect((result[0] as any).entriesCount).toBe(0);
-      expect((result[0] as any).totalAmount).toBe(0);
-      expect((result[0] as any).lastUsed).toBeNull();
-      expect(typeof (result[0] as any).entriesCount).toBe('number');
-      expect(typeof (result[0] as any).totalAmount).toBe('number');
+      expect(result.data).toHaveLength(1);
+      expect(result.total).toBe(1);
+      expect((result.data[0] as any).entriesCount).toBe(0);
+      expect((result.data[0] as any).totalAmount).toBe(0);
+      expect((result.data[0] as any).lastUsed).toBeNull();
+      expect(typeof (result.data[0] as any).entriesCount).toBe('number');
+      expect(typeof (result.data[0] as any).totalAmount).toBe('number');
     });
 
     it('should handle database errors', async () => {
@@ -316,7 +352,7 @@ describe('TypeormCategoryRepository - findWithFilters', () => {
         userId: mockUserId,
       };
       const error = new Error('Database error');
-      mockQueryBuilder.getRawAndEntities.mockRejectedValue(error);
+      mockQueryBuilder.getCount.mockRejectedValue(error);
 
       // Act & Assert
       await expect(repository.findWithFilters(filters)).rejects.toThrow();

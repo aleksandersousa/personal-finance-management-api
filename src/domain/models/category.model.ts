@@ -38,6 +38,7 @@ export interface CategoryListFilters {
   includeStats?: boolean;
   page?: number;
   limit?: number;
+  search?: string;
 }
 
 export interface CategoryWithStats extends Category {

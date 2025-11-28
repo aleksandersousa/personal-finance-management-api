@@ -98,6 +98,13 @@ export class CategoryController {
     description: 'Items per page (default: 20, max: 100)',
     example: 20,
   })
+  @ApiQuery({
+    name: 'search',
+    required: false,
+    description:
+      'Search term for filtering categories by name (case-insensitive)',
+    example: 'groceries',
+  })
   @ApiResponse({
     status: 200,
     description: 'Categories retrieved successfully',
@@ -112,6 +119,7 @@ export class CategoryController {
     @Query('includeStats') includeStats: string = 'false',
     @Query('page') page: string = '1',
     @Query('limit') limit: string = '20',
+    @Query('search') search: string = '',
     @User() user: UserPayload,
     @Request() req: any,
   ): Promise<CategoryListResponseDto> {
@@ -130,6 +138,7 @@ export class CategoryController {
         includeStats: includeStatsBoolean,
         page: pageNum,
         limit: limitNum,
+        search: search && search.trim() ? search.trim() : undefined,
       });
 
       const duration = Date.now() - startTime;
@@ -146,6 +155,7 @@ export class CategoryController {
           page: pageNum,
           limit: limitNum,
           total: result.pagination?.total || result.data.length,
+          search: search && search.trim() ? search.trim() : undefined,
         },
       });
 

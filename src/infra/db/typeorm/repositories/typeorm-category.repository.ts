@@ -219,6 +219,12 @@ export class TypeormCategoryRepository implements CategoryRepository {
         queryBuilder.andWhere('category.type = :type', { type: filters.type });
       }
 
+      if (filters.search && filters.search.trim()) {
+        queryBuilder.andWhere('category.name ILIKE :search', {
+          search: `%${filters.search.trim()}%`,
+        });
+      }
+
       if (filters.includeStats) {
         queryBuilder
           .leftJoin('category.entries', 'entry')
@@ -238,6 +244,12 @@ export class TypeormCategoryRepository implements CategoryRepository {
 
         if (filters.type && filters.type !== 'all') {
           countQuery.andWhere('category.type = :type', { type: filters.type });
+        }
+
+        if (filters.search && filters.search.trim()) {
+          countQuery.andWhere('category.name ILIKE :search', {
+            search: `%${filters.search.trim()}%`,
+          });
         }
 
         total = await countQuery.getCount();
