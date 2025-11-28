@@ -86,9 +86,12 @@ describe('TypeormCategoryRepository - metrics off branches', () => {
       addSelect: jest.fn().mockReturnThis(),
       groupBy: jest.fn().mockReturnThis(),
       orderBy: jest.fn().mockReturnThis(),
+      skip: jest.fn().mockReturnThis(),
+      take: jest.fn().mockReturnThis(),
       getRawAndEntities: jest
         .fn()
         .mockResolvedValue({ raw: [], entities: [baseEntity] }),
+      getCount: jest.fn().mockResolvedValue(1),
     } as unknown as jest.Mocked<SelectQueryBuilder<CategoryEntity>>;
     (mockTypeormRepository.createQueryBuilder as any).mockReturnValue(qb);
 
@@ -97,7 +100,8 @@ describe('TypeormCategoryRepository - metrics off branches', () => {
       type: 'all' as any,
       includeStats: false,
     });
-    expect(result).toHaveLength(1);
-    expect(result[0]).toMatchObject({ id: 'id1' });
+    expect(result.data).toHaveLength(1);
+    expect(result.total).toBe(1);
+    expect(result.data[0]).toMatchObject({ id: 'id1' });
   });
 });

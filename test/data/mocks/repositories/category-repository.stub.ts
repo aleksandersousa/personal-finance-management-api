@@ -4,9 +4,11 @@ import {
   CategoryCreateData,
   CategoryUpdateData,
   CategoryListFilters,
-  CategoryWithStats,
 } from '@domain/models/category.model';
-import { CategoryRepository } from '@data/protocols/category-repository';
+import {
+  CategoryRepository,
+  FindCategoriesWithFiltersResult,
+} from '@data/protocols/category-repository';
 
 /**
  * Category Repository Stub for Data Layer Testing
@@ -87,7 +89,7 @@ export class CategoryRepositoryStub implements CategoryRepository {
 
   async findWithFilters(
     filters: CategoryListFilters,
-  ): Promise<CategoryWithStats[]> {
+  ): Promise<FindCategoriesWithFiltersResult> {
     if (this.shouldFail && this.errorToThrow) {
       throw this.errorToThrow;
     }
@@ -102,12 +104,33 @@ export class CategoryRepositoryStub implements CategoryRepository {
       );
     }
 
-    return filtered.map(category => ({
+    if (filters.search && filters.search.trim()) {
+      const searchLower = filters.search.trim().toLowerCase();
+      filtered = filtered.filter(category =>
+        category.name.toLowerCase().includes(searchLower),
+      );
+    }
+
+    // Get total before pagination
+    const total = filtered.length;
+
+    // Apply pagination if provided
+    if (filters.page !== undefined && filters.limit !== undefined) {
+      const skip = (filters.page - 1) * filters.limit;
+      filtered = filtered.slice(skip, skip + filters.limit);
+    }
+
+    const data = filtered.map(category => ({
       ...category,
       entriesCount: filters.includeStats ? 0 : undefined,
       totalAmount: filters.includeStats ? 0 : undefined,
       lastUsed: filters.includeStats ? null : undefined,
     }));
+
+    return {
+      data,
+      total,
+    };
   }
 
   async update(id: string, data: CategoryUpdateData): Promise<Category> {

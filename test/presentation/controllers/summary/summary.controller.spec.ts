@@ -112,15 +112,19 @@ describe('SummaryController', () => {
     it('should return monthly summary with categories when requested', async () => {
       const responseWithCategories = {
         ...mockResponse,
-        categoryBreakdown: [
-          {
-            categoryId: 'cat-1',
-            categoryName: 'Salary',
-            type: 'INCOME' as const,
-            total: 5000,
-            count: 1,
-          },
-        ],
+        categoryBreakdown: {
+          items: [
+            {
+              categoryId: 'cat-1',
+              categoryName: 'Salary',
+              type: 'INCOME' as const,
+              total: 5000,
+              count: 1,
+            },
+          ],
+          incomeTotal: 1,
+          expenseTotal: 0,
+        },
       };
 
       getMonthlySummaryUseCase.execute.mockResolvedValue(

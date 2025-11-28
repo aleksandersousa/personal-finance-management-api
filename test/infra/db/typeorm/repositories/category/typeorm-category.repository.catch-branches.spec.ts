@@ -76,7 +76,10 @@ describe('TypeormCategoryRepository - catch branches', () => {
       addSelect: jest.fn().mockReturnThis(),
       groupBy: jest.fn().mockReturnThis(),
       orderBy: jest.fn().mockReturnThis(),
-      getRawAndEntities: jest.fn().mockRejectedValue('err'),
+      skip: jest.fn().mockReturnThis(),
+      take: jest.fn().mockReturnThis(),
+      getRawAndEntities: jest.fn(),
+      getCount: jest.fn().mockRejectedValue('err'),
     } as unknown as jest.Mocked<SelectQueryBuilder<CategoryEntity>>;
     (mockTypeormRepository.createQueryBuilder as any).mockReturnValue(qb);
 

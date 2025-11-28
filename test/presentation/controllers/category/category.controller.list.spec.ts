@@ -62,6 +62,9 @@ describe('CategoryController - List', () => {
       const result = await controller.list(
         'all',
         'false',
+        '1',
+        '20',
+        '',
         mockRequest.user,
         mockRequest,
       );
@@ -76,6 +79,9 @@ describe('CategoryController - List', () => {
         userId: 'user-123',
         type: undefined,
         includeStats: false,
+        page: 1,
+        limit: 20,
+        search: undefined,
       });
 
       // Verify business event logging
@@ -108,6 +114,9 @@ describe('CategoryController - List', () => {
       const result = await controller.list(
         CategoryType.INCOME,
         'false',
+        '1',
+        '20',
+        '',
         mockRequest.user,
         mockRequest,
       );
@@ -117,6 +126,9 @@ describe('CategoryController - List', () => {
         userId: 'user-123',
         type: CategoryType.INCOME,
         includeStats: false,
+        page: 1,
+        limit: 20,
+        search: undefined,
       });
 
       expect(result.data).toHaveLength(1);
@@ -138,6 +150,9 @@ describe('CategoryController - List', () => {
       const result = await controller.list(
         'all',
         'true',
+        '1',
+        '20',
+        '',
         mockRequest.user,
         mockRequest,
       );
@@ -147,6 +162,9 @@ describe('CategoryController - List', () => {
         userId: 'user-123',
         type: undefined,
         includeStats: true,
+        page: 1,
+        limit: 20,
+        search: undefined,
       });
 
       expect(result.data[0]).toHaveProperty('entriesCount');
@@ -162,7 +180,15 @@ describe('CategoryController - List', () => {
 
       // Act & Assert
       await expect(
-        controller.list('all', 'false', mockRequest.user, mockRequest),
+        controller.list(
+          'all',
+          'false',
+          '1',
+          '20',
+          '',
+          mockRequest.user,
+          mockRequest,
+        ),
       ).rejects.toThrow(error);
 
       // Verify security event logging
@@ -191,13 +217,24 @@ describe('CategoryController - List', () => {
       const mockRequest = RequestMockFactory.createWithUser('user-123');
 
       // Act
-      await controller.list('all', 'true', mockRequest.user, mockRequest);
+      await controller.list(
+        'all',
+        'true',
+        '1',
+        '20',
+        '',
+        mockRequest.user,
+        mockRequest,
+      );
 
       // Assert
       expect(listCategoriesUseCase.execute).toHaveBeenCalledWith({
         userId: 'user-123',
         type: undefined,
         includeStats: true,
+        page: 1,
+        limit: 20,
+        search: undefined,
       });
     });
 
@@ -206,13 +243,24 @@ describe('CategoryController - List', () => {
       const mockRequest = RequestMockFactory.createWithUser('user-123');
 
       // Act
-      await controller.list('all', 'invalid', mockRequest.user, mockRequest);
+      await controller.list(
+        'all',
+        'invalid',
+        '1',
+        '20',
+        '',
+        mockRequest.user,
+        mockRequest,
+      );
 
       // Assert
       expect(listCategoriesUseCase.execute).toHaveBeenCalledWith({
         userId: 'user-123',
         type: undefined,
         includeStats: false,
+        page: 1,
+        limit: 20,
+        search: undefined,
       });
     });
 
@@ -230,6 +278,9 @@ describe('CategoryController - List', () => {
       const result = await controller.list(
         undefined,
         undefined,
+        undefined,
+        undefined,
+        undefined,
         mockRequest.user,
         mockRequest,
       );
@@ -239,6 +290,9 @@ describe('CategoryController - List', () => {
         userId: 'user-123',
         type: undefined,
         includeStats: false,
+        page: 1,
+        limit: 20,
+        search: undefined,
       });
 
       expect(result).toHaveProperty('data');
@@ -259,6 +313,9 @@ describe('CategoryController - List', () => {
       const result = await controller.list(
         undefined,
         'true',
+        undefined,
+        undefined,
+        undefined,
         mockRequest.user,
         mockRequest,
       );
@@ -268,6 +325,9 @@ describe('CategoryController - List', () => {
         userId: 'user-123',
         type: undefined,
         includeStats: true,
+        page: 1,
+        limit: 20,
+        search: undefined,
       });
 
       expect(result).toHaveProperty('data');
@@ -288,6 +348,9 @@ describe('CategoryController - List', () => {
       const result = await controller.list(
         CategoryType.EXPENSE,
         undefined,
+        undefined,
+        undefined,
+        undefined,
         mockRequest.user,
         mockRequest,
       );
@@ -297,6 +360,9 @@ describe('CategoryController - List', () => {
         userId: 'user-123',
         type: CategoryType.EXPENSE,
         includeStats: false,
+        page: 1,
+        limit: 20,
+        search: undefined,
       });
 
       expect(result).toHaveProperty('data');

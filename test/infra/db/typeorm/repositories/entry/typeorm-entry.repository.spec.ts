@@ -927,6 +927,7 @@ describe('TypeormEntryRepository', () => {
     });
 
     it('should get category summary for month successfully', async () => {
+      // Mock query builder - we get all results then slice to top 3
       mockQueryBuilder.getRawMany.mockResolvedValue(mockCategorySummaryResults);
 
       const result = await repository.getCategorySummaryForMonth(
@@ -974,29 +975,33 @@ describe('TypeormEntryRepository', () => {
         'DESC',
       );
 
-      expect(result).toEqual([
-        {
-          categoryId: 'category-1',
-          categoryName: 'Food',
-          type: 'EXPENSE',
-          total: 1500,
-          count: 5,
-        },
-        {
-          categoryId: 'category-2',
-          categoryName: 'Salary',
-          type: 'INCOME',
-          total: 5000,
-          count: 1,
-        },
-        {
-          categoryId: 'category-3',
-          categoryName: 'Unknown Category', // Should default to 'Unknown Category'
-          type: 'EXPENSE',
-          total: 500,
-          count: 2,
-        },
-      ]);
+      expect(result).toEqual({
+        items: [
+          {
+            categoryId: 'category-1',
+            categoryName: 'Food',
+            type: 'EXPENSE',
+            total: 1500,
+            count: 5,
+          },
+          {
+            categoryId: 'category-2',
+            categoryName: 'Salary',
+            type: 'INCOME',
+            total: 5000,
+            count: 1,
+          },
+          {
+            categoryId: 'category-3',
+            categoryName: 'Unknown Category', // Should default to 'Unknown Category'
+            type: 'EXPENSE',
+            total: 500,
+            count: 2,
+          },
+        ],
+        incomeTotal: 1,
+        expenseTotal: 2,
+      });
 
       // Verify business event logging
       expect(mockLogger.logBusinessEvent).toHaveBeenCalledWith({
@@ -1006,6 +1011,8 @@ describe('TypeormEntryRepository', () => {
           year: 2024,
           month: 1,
           categoriesCount: 3,
+          incomeTotal: 1,
+          expenseTotal: 2,
           duration: 0, // Date.now() - startTime mocked to return 0
         },
       });
@@ -1026,7 +1033,11 @@ describe('TypeormEntryRepository', () => {
         1,
       );
 
-      expect(result).toEqual([]);
+      expect(result).toEqual({
+        items: [],
+        incomeTotal: 0,
+        expenseTotal: 0,
+      });
 
       // Verify business event logging with zero categories
       expect(mockLogger.logBusinessEvent).toHaveBeenCalledWith({
@@ -1036,6 +1047,8 @@ describe('TypeormEntryRepository', () => {
           year: 2024,
           month: 1,
           categoriesCount: 0,
+          incomeTotal: 0,
+          expenseTotal: 0,
           duration: 0,
         },
       });
@@ -1051,6 +1064,7 @@ describe('TypeormEntryRepository', () => {
           count: null, // null count
         },
       ];
+
       mockQueryBuilder.getRawMany.mockResolvedValue(resultsWithNulls);
 
       const result = await repository.getCategorySummaryForMonth(
@@ -1059,15 +1073,19 @@ describe('TypeormEntryRepository', () => {
         1,
       );
 
-      expect(result).toEqual([
-        {
-          categoryId: 'category-1',
-          categoryName: 'Food',
-          type: 'EXPENSE',
-          total: 0, // Should convert null to 0
-          count: 0, // Should convert null to 0
-        },
-      ]);
+      expect(result).toEqual({
+        items: [
+          {
+            categoryId: 'category-1',
+            categoryName: 'Food',
+            type: 'EXPENSE',
+            total: 0, // Should convert null to 0
+            count: 0, // Should convert null to 0
+          },
+        ],
+        incomeTotal: 0,
+        expenseTotal: 1,
+      });
     });
 
     it('should handle database errors during getCategorySummaryForMonth', async () => {
@@ -1114,6 +1132,7 @@ describe('TypeormEntryRepository', () => {
           count: undefined,
         },
       ];
+
       mockQueryBuilder.getRawMany.mockResolvedValue(resultsWithUndefined);
 
       const result = await repository.getCategorySummaryForMonth(
@@ -1122,15 +1141,19 @@ describe('TypeormEntryRepository', () => {
         1,
       );
 
-      expect(result).toEqual([
-        {
-          categoryId: 'category-1',
-          categoryName: 'Food',
-          type: 'EXPENSE',
-          total: 0, // Should convert undefined to 0
-          count: 0, // Should convert undefined to 0
-        },
-      ]);
+      expect(result).toEqual({
+        items: [
+          {
+            categoryId: 'category-1',
+            categoryName: 'Food',
+            type: 'EXPENSE',
+            total: 0, // Should convert undefined to 0
+            count: 0, // Should convert undefined to 0
+          },
+        ],
+        incomeTotal: 0,
+        expenseTotal: 1,
+      });
     });
 
     it('should get category summary for a specific month', async () => {
@@ -1219,15 +1242,17 @@ describe('TypeormEntryRepository', () => {
       );
       expect(mockQueryBuilder.getRawMany).toHaveBeenCalled();
 
-      expect(result).toHaveLength(2);
-      expect(result[0]).toEqual({
+      expect(result.items).toHaveLength(2);
+      expect(result.incomeTotal).toBe(1);
+      expect(result.expenseTotal).toBe(1);
+      expect(result.items[0]).toEqual({
         categoryId: 'cat1',
         categoryName: 'Food',
         type: 'EXPENSE',
         total: 150.5,
         count: 3,
       });
-      expect(result[1]).toEqual({
+      expect(result.items[1]).toEqual({
         categoryId: 'cat2',
         categoryName: 'Salary',
         type: 'INCOME',
@@ -1242,6 +1267,8 @@ describe('TypeormEntryRepository', () => {
           year,
           month,
           categoriesCount: 2,
+          incomeTotal: 1,
+          expenseTotal: 1,
           duration: expect.any(Number),
         }),
       });

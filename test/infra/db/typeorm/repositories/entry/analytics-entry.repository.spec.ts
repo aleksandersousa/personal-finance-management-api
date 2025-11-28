@@ -160,15 +160,19 @@ describe('TypeormEntryRepository - Analytics', () => {
         1,
       );
 
-      expect(result).toEqual([
-        {
-          categoryId: 'category-1',
-          categoryName: 'Food',
-          type: 'EXPENSE',
-          total: 1000,
-          count: 5,
-        },
-      ]);
+      expect(result).toEqual({
+        items: [
+          {
+            categoryId: 'category-1',
+            categoryName: 'Food',
+            type: 'EXPENSE',
+            total: 1000,
+            count: 5,
+          },
+        ],
+        incomeTotal: 0,
+        expenseTotal: 1,
+      });
     });
   });
 

@@ -91,6 +91,7 @@ describe('EntryController - LIST_BY_MONTH', () => {
         'desc',
         'all',
         'all',
+        '',
         mockUser,
       );
 
@@ -115,6 +116,7 @@ describe('EntryController - LIST_BY_MONTH', () => {
         order: 'desc',
         type: 'all',
         categoryId: undefined,
+        search: undefined,
       });
 
       // Verify business event logging
@@ -172,6 +174,7 @@ describe('EntryController - LIST_BY_MONTH', () => {
         undefined, // order - should use default
         undefined, // type - should use default
         undefined, // category - should use default
+        undefined, // search - should use default
         mockUser,
       );
 
@@ -186,6 +189,7 @@ describe('EntryController - LIST_BY_MONTH', () => {
         order: 'desc',
         type: 'all',
         categoryId: undefined,
+        search: undefined,
       });
     });
 
@@ -223,6 +227,7 @@ describe('EntryController - LIST_BY_MONTH', () => {
         'desc',
         'all',
         'all',
+        '',
         mockUser,
       );
 
@@ -268,6 +273,7 @@ describe('EntryController - LIST_BY_MONTH', () => {
         'desc',
         'all',
         'all',
+        '',
         mockUser,
       );
 
@@ -313,6 +319,7 @@ describe('EntryController - LIST_BY_MONTH', () => {
         'desc',
         'all',
         'all',
+        '',
         mockUser,
       );
 
@@ -358,6 +365,7 @@ describe('EntryController - LIST_BY_MONTH', () => {
         'desc',
         'all',
         'all',
+        '',
         mockUser,
       );
 
@@ -384,6 +392,7 @@ describe('EntryController - LIST_BY_MONTH', () => {
           'desc',
           'all',
           'all',
+          '',
           mockUser,
         ),
       ).rejects.toThrow(
@@ -406,6 +415,7 @@ describe('EntryController - LIST_BY_MONTH', () => {
           'invalid-order', // Invalid order
           'all',
           'all',
+          '',
           mockUser,
         ),
       ).rejects.toThrow('Invalid order. Must be one of: asc, desc');
@@ -426,6 +436,7 @@ describe('EntryController - LIST_BY_MONTH', () => {
           'desc',
           'INVALID_TYPE', // Invalid type
           'all',
+          '',
           mockUser,
         ),
       ).rejects.toThrow('Invalid type. Must be one of: INCOME, EXPENSE, all');
@@ -445,6 +456,7 @@ describe('EntryController - LIST_BY_MONTH', () => {
           'desc',
           'all',
           'all',
+          '',
           mockUser,
         ),
       ).rejects.toThrow('Month must be in YYYY-MM format');
@@ -464,6 +476,7 @@ describe('EntryController - LIST_BY_MONTH', () => {
           'desc',
           'all',
           'all',
+          '',
           mockUser,
         ),
       ).rejects.toThrow('Month must be in YYYY-MM format');
@@ -484,6 +497,7 @@ describe('EntryController - LIST_BY_MONTH', () => {
           'desc',
           'all',
           'all',
+          '',
           mockUser,
         ),
       ).rejects.toThrow('Invalid year or month value');
@@ -498,6 +512,7 @@ describe('EntryController - LIST_BY_MONTH', () => {
           'desc',
           'all',
           'all',
+          '',
           mockUser,
         ),
       ).rejects.toThrow('Invalid year or month value');
@@ -537,6 +552,7 @@ describe('EntryController - LIST_BY_MONTH', () => {
         'asc',
         'INCOME',
         'category-123',
+        '',
         mockUser,
       );
 
@@ -551,6 +567,7 @@ describe('EntryController - LIST_BY_MONTH', () => {
         order: 'asc',
         type: 'INCOME',
         categoryId: 'category-123',
+        search: undefined,
       });
     });
 
@@ -572,6 +589,7 @@ describe('EntryController - LIST_BY_MONTH', () => {
           'desc',
           'all',
           'all',
+          '',
           mockUser,
         ),
       ).rejects.toThrow('Failed to retrieve entries');
@@ -601,6 +619,7 @@ describe('EntryController - LIST_BY_MONTH', () => {
           'desc',
           'all',
           'all',
+          '',
           mockUser,
         ),
       ).rejects.toThrow('Invalid parameters provided');
@@ -643,6 +662,7 @@ describe('EntryController - LIST_BY_MONTH', () => {
         'desc',
         'all',
         'all',
+        '',
         mockUser,
       );
 
@@ -689,6 +709,7 @@ describe('EntryController - LIST_BY_MONTH', () => {
         'desc',
         'all',
         'all',
+        '',
         mockUser,
       );
       expect(listEntriesByMonthUseCase.execute).toHaveBeenCalledWith(
@@ -703,6 +724,7 @@ describe('EntryController - LIST_BY_MONTH', () => {
         'desc',
         'all',
         'all',
+        '',
         mockUser,
       );
       expect(listEntriesByMonthUseCase.execute).toHaveBeenCalledWith(
@@ -718,6 +740,7 @@ describe('EntryController - LIST_BY_MONTH', () => {
         'desc',
         'all',
         'all',
+        '',
         mockUser,
       );
       expect(listEntriesByMonthUseCase.execute).toHaveBeenCalledWith(
@@ -732,6 +755,7 @@ describe('EntryController - LIST_BY_MONTH', () => {
         'desc',
         'all',
         'all',
+        '',
         mockUser,
       );
       expect(listEntriesByMonthUseCase.execute).toHaveBeenCalledWith(
@@ -773,6 +797,7 @@ describe('EntryController - LIST_BY_MONTH', () => {
         'desc',
         'all',
         'all',
+        '',
         mockUser,
       );
 
@@ -818,6 +843,7 @@ describe('EntryController - LIST_BY_MONTH', () => {
         'desc',
         'all',
         'all',
+        '',
         mockUser,
       );
 
@@ -827,6 +853,165 @@ describe('EntryController - LIST_BY_MONTH', () => {
           limit: 20, // Should default to 20 when parseInt returns NaN
         }),
       );
+    });
+
+    it('should pass search parameter to use case when provided', async () => {
+      // Arrange
+      const month = '2024-01';
+      const mockUser = { id: 'user-123', email: 'test@example.com' };
+
+      const mockUseCaseResponse = {
+        data: [],
+        pagination: {
+          page: 1,
+          limit: 20,
+          total: 0,
+          totalPages: 0,
+          hasNext: false,
+          hasPrev: false,
+        },
+        summary: {
+          totalIncome: 0,
+          totalExpenses: 0,
+          balance: 0,
+          entriesCount: 0,
+        },
+      };
+
+      listEntriesByMonthUseCase.execute.mockResolvedValue(mockUseCaseResponse);
+
+      // Act
+      await controller.listByMonth(
+        month,
+        '1',
+        '20',
+        'date',
+        'desc',
+        'all',
+        'all',
+        'groceries',
+        mockUser,
+      );
+
+      // Assert
+      expect(listEntriesByMonthUseCase.execute).toHaveBeenCalledWith({
+        userId: 'user-123',
+        year: 2024,
+        month: 1,
+        page: 1,
+        limit: 20,
+        sort: 'date',
+        order: 'desc',
+        type: 'all',
+        categoryId: undefined,
+        search: 'groceries',
+      });
+    });
+
+    it('should trim and pass search parameter when provided with whitespace', async () => {
+      // Arrange
+      const month = '2024-01';
+      const mockUser = { id: 'user-123', email: 'test@example.com' };
+
+      const mockUseCaseResponse = {
+        data: [],
+        pagination: {
+          page: 1,
+          limit: 20,
+          total: 0,
+          totalPages: 0,
+          hasNext: false,
+          hasPrev: false,
+        },
+        summary: {
+          totalIncome: 0,
+          totalExpenses: 0,
+          balance: 0,
+          entriesCount: 0,
+        },
+      };
+
+      listEntriesByMonthUseCase.execute.mockResolvedValue(mockUseCaseResponse);
+
+      // Act
+      await controller.listByMonth(
+        month,
+        '1',
+        '20',
+        'date',
+        'desc',
+        'all',
+        'all',
+        '  groceries  ',
+        mockUser,
+      );
+
+      // Assert
+      expect(listEntriesByMonthUseCase.execute).toHaveBeenCalledWith({
+        userId: 'user-123',
+        year: 2024,
+        month: 1,
+        page: 1,
+        limit: 20,
+        sort: 'date',
+        order: 'desc',
+        type: 'all',
+        categoryId: undefined,
+        search: 'groceries',
+      });
+    });
+
+    it('should not pass search parameter when empty string is provided', async () => {
+      // Arrange
+      const month = '2024-01';
+      const mockUser = { id: 'user-123', email: 'test@example.com' };
+
+      const mockUseCaseResponse = {
+        data: [],
+        pagination: {
+          page: 1,
+          limit: 20,
+          total: 0,
+          totalPages: 0,
+          hasNext: false,
+          hasPrev: false,
+        },
+        summary: {
+          totalIncome: 0,
+          totalExpenses: 0,
+          balance: 0,
+          entriesCount: 0,
+        },
+      };
+
+      listEntriesByMonthUseCase.execute.mockResolvedValue(mockUseCaseResponse);
+
+      // Act
+      await controller.listByMonth(
+        month,
+        '1',
+        '20',
+        'date',
+        'desc',
+        'all',
+        'all',
+        '',
+        mockUser,
+      );
+
+      // Assert
+      expect(listEntriesByMonthUseCase.execute).toHaveBeenCalledWith({
+        userId: 'user-123',
+        year: 2024,
+        month: 1,
+        page: 1,
+        limit: 20,
+        sort: 'date',
+        order: 'desc',
+        type: 'all',
+        categoryId: undefined,
+        search: undefined,
+      });
     });
   });
 });

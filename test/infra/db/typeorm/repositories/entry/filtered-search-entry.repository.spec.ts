@@ -232,5 +232,84 @@ describe('TypeormEntryRepository - Filtered Search', () => {
         totalExpenses: 0,
       });
     });
+
+    it('should apply search filter with ILIKE for case-insensitive description search', async () => {
+      const mockEntries = [mockEntryEntity];
+      const mockTotalCount = 1;
+
+      mockQueryBuilder.getCount.mockResolvedValue(mockTotalCount);
+      mockQueryBuilder.getMany.mockResolvedValue(mockEntries);
+      mockQueryBuilder.getRawOne.mockResolvedValue({
+        totalIncome: '1000.00',
+        totalExpenses: '0.00',
+      });
+
+      const filtersWithSearch: FindEntriesByMonthFilters = {
+        ...filters,
+        search: 'test',
+      };
+
+      const result =
+        await repository.findByUserIdAndMonthWithFilters(filtersWithSearch);
+
+      // Verify search filter was applied with ILIKE
+      expect(mockQueryBuilder.andWhere).toHaveBeenCalledWith(
+        'entry.description ILIKE :search',
+        { search: '%test%' },
+      );
+
+      expect(result.data).toHaveLength(1);
+      expect(result.total).toBe(1);
+    });
+
+    it('should trim search term and apply wildcards', async () => {
+      const mockEntries = [mockEntryEntity];
+      const mockTotalCount = 1;
+
+      mockQueryBuilder.getCount.mockResolvedValue(mockTotalCount);
+      mockQueryBuilder.getMany.mockResolvedValue(mockEntries);
+      mockQueryBuilder.getRawOne.mockResolvedValue({
+        totalIncome: '1000.00',
+        totalExpenses: '0.00',
+      });
+
+      const filtersWithSearch: FindEntriesByMonthFilters = {
+        ...filters,
+        search: '  test entry  ',
+      };
+
+      await repository.findByUserIdAndMonthWithFilters(filtersWithSearch);
+
+      // Verify search term was trimmed and wildcards added
+      expect(mockQueryBuilder.andWhere).toHaveBeenCalledWith(
+        'entry.description ILIKE :search',
+        { search: '%test entry%' },
+      );
+    });
+
+    it('should not apply search filter when search is empty or undefined', async () => {
+      const mockEntries = [mockEntryEntity];
+      const mockTotalCount = 1;
+
+      mockQueryBuilder.getCount.mockResolvedValue(mockTotalCount);
+      mockQueryBuilder.getMany.mockResolvedValue(mockEntries);
+      mockQueryBuilder.getRawOne.mockResolvedValue({
+        totalIncome: '1000.00',
+        totalExpenses: '0.00',
+      });
+
+      const filtersWithoutSearch: FindEntriesByMonthFilters = {
+        ...filters,
+        search: undefined,
+      };
+
+      await repository.findByUserIdAndMonthWithFilters(filtersWithoutSearch);
+
+      // Verify search filter was not applied
+      const searchCalls = (
+        mockQueryBuilder.andWhere as jest.Mock
+      ).mock.calls.filter(call => call[0]?.includes('ILIKE'));
+      expect(searchCalls).toHaveLength(0);
+    });
   });
 });

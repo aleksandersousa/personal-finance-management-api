@@ -29,6 +29,7 @@ export interface FindEntriesByMonthFilters {
   order?: 'asc' | 'desc';
   type?: 'INCOME' | 'EXPENSE' | 'all';
   categoryId?: string;
+  search?: string;
 }
 
 export interface FindEntriesByMonthResult {
@@ -56,6 +57,12 @@ export interface CategorySummaryItem {
   type: 'INCOME' | 'EXPENSE';
   total: number;
   count: number;
+}
+
+export interface CategorySummaryResult {
+  items: CategorySummaryItem[];
+  incomeTotal: number;
+  expenseTotal: number;
 }
 
 export interface FixedEntriesSummary {
@@ -91,7 +98,7 @@ export interface EntryRepository {
     userId: string,
     year: number,
     month: number,
-  ): Promise<CategorySummaryItem[]>;
+  ): Promise<CategorySummaryResult>;
   getFixedEntriesSummary(userId: string): Promise<FixedEntriesSummary>;
   getCurrentBalance(userId: string): Promise<number>;
   getDistinctMonthsYears(userId: string): Promise<MonthYear[]>;

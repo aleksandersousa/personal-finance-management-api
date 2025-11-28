@@ -39,10 +39,16 @@ export interface PreviousMonthComparison {
   };
 }
 
+export interface CategoryBreakdownResult {
+  items: CategoryBreakdownItem[];
+  incomeTotal: number;
+  expenseTotal: number;
+}
+
 export interface GetMonthlySummaryResponse {
   month: string;
   summary: MonthlySummaryData;
-  categoryBreakdown?: CategoryBreakdownItem[];
+  categoryBreakdown?: CategoryBreakdownResult;
   comparisonWithPrevious: PreviousMonthComparison;
 }
 

@@ -36,6 +36,9 @@ export interface CategoryListFilters {
   userId: string;
   type?: CategoryType | 'all';
   includeStats?: boolean;
+  page?: number;
+  limit?: number;
+  search?: string;
 }
 
 export interface CategoryWithStats extends Category {
@@ -55,4 +58,12 @@ export interface CategoryListSummary {
 export interface CategoryListResponse {
   data: CategoryWithStats[];
   summary: CategoryListSummary;
+  pagination?: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+    hasNext: boolean;
+    hasPrev: boolean;
+  };
 }

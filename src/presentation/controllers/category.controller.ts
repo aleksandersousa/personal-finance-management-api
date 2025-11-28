@@ -86,6 +86,25 @@ export class CategoryController {
     description: 'Include usage statistics',
     example: false,
   })
+  @ApiQuery({
+    name: 'page',
+    required: false,
+    description: 'Page number (default: 1)',
+    example: 1,
+  })
+  @ApiQuery({
+    name: 'limit',
+    required: false,
+    description: 'Items per page (default: 20, max: 100)',
+    example: 20,
+  })
+  @ApiQuery({
+    name: 'search',
+    required: false,
+    description:
+      'Search term for filtering categories by name (case-insensitive)',
+    example: 'groceries',
+  })
   @ApiResponse({
     status: 200,
     description: 'Categories retrieved successfully',
@@ -98,6 +117,9 @@ export class CategoryController {
   async list(
     @Query('type') type: CategoryType | 'all' = 'all',
     @Query('includeStats') includeStats: string = 'false',
+    @Query('page') page: string = '1',
+    @Query('limit') limit: string = '20',
+    @Query('search') search: string = '',
     @User() user: UserPayload,
     @Request() req: any,
   ): Promise<CategoryListResponseDto> {
@@ -106,10 +128,17 @@ export class CategoryController {
     try {
       const includeStatsBoolean = includeStats === 'true';
 
+      // Parse and validate pagination parameters
+      const pageNum = Math.max(1, parseInt(page, 10) || 1);
+      const limitNum = Math.min(100, Math.max(1, parseInt(limit, 10) || 20));
+
       const result = await this.listCategoriesUseCase.execute({
         userId: user.id,
         type: type === 'all' ? undefined : type,
         includeStats: includeStatsBoolean,
+        page: pageNum,
+        limit: limitNum,
+        search: search && search.trim() ? search.trim() : undefined,
       });
 
       const duration = Date.now() - startTime;
@@ -123,6 +152,10 @@ export class CategoryController {
           type: type,
           includeStats: includeStatsBoolean,
           resultCount: result.data.length,
+          page: pageNum,
+          limit: limitNum,
+          total: result.pagination?.total || result.data.length,
+          search: search && search.trim() ? search.trim() : undefined,
         },
       });
 
@@ -426,6 +459,7 @@ export class CategoryController {
     return {
       data: result.data.map(this.mapToWithStatsResponseDto),
       summary: result.summary,
+      pagination: result.pagination,
     };
   }
 
