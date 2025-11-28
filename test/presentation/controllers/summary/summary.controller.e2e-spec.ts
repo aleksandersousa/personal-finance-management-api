@@ -226,15 +226,19 @@ describe('SummaryController (e2e)', () => {
       // Arrange
       const responseWithCategories = {
         ...mockSummaryResponse,
-        categoryBreakdown: [
-          {
-            categoryId: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890',
-            categoryName: 'Salary',
-            type: 'INCOME' as const,
-            total: 5000,
-            count: 1,
-          },
-        ],
+        categoryBreakdown: {
+          items: [
+            {
+              categoryId: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890',
+              categoryName: 'Salary',
+              type: 'INCOME' as const,
+              total: 5000,
+              count: 1,
+            },
+          ],
+          incomeTotal: 1,
+          expenseTotal: 0,
+        },
       };
 
       mockGetMonthlySummaryUseCase.execute.mockResolvedValue(
@@ -258,7 +262,9 @@ describe('SummaryController (e2e)', () => {
         });
 
         expect(response.body.categoryBreakdown).toBeDefined();
-        expect(response.body.categoryBreakdown).toHaveLength(1);
+        expect(response.body.categoryBreakdown.items).toHaveLength(1);
+        expect(response.body.categoryBreakdown.incomeTotal).toBe(1);
+        expect(response.body.categoryBreakdown.expenseTotal).toBe(0);
       }
     });
 

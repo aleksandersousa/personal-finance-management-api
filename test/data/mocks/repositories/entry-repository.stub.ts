@@ -4,6 +4,7 @@ import {
   FindEntriesByMonthFilters,
   FindEntriesByMonthResult,
   CategorySummaryItem,
+  CategorySummaryResult,
   FixedEntriesSummary,
   MonthlySummaryStats,
   MonthYear,
@@ -11,10 +12,6 @@ import {
 import { EntryModel } from '@domain/models/entry.model';
 import { IdGenerator } from '@data/protocols/id-generator';
 
-/**
- * Entry Repository Stub for Data Layer Testing
- * Provides controllable implementations for testing business logic
- */
 export class EntryRepositoryStub implements EntryRepository {
   private entries: Map<string, EntryModel> = new Map();
   private shouldFail = false;
@@ -282,7 +279,7 @@ export class EntryRepositoryStub implements EntryRepository {
     userId: string,
     year: number,
     month: number,
-  ): Promise<CategorySummaryItem[]> {
+  ): Promise<CategorySummaryResult> {
     if (this.shouldFail && this.errorToThrow) {
       throw this.errorToThrow;
     }
@@ -316,7 +313,22 @@ export class EntryRepositoryStub implements EntryRepository {
       group.count += 1;
     });
 
-    return Array.from(categoryGroups.values());
+    const allItems = Array.from(categoryGroups.values());
+    // Sort by total descending and take top 3
+    const sortedItems = allItems.sort((a, b) => b.total - a.total);
+    const top3Items = sortedItems.slice(0, 3);
+
+    // Calculate totals by type
+    const incomeTotal = allItems.filter(item => item.type === 'INCOME').length;
+    const expenseTotal = allItems.filter(
+      item => item.type === 'EXPENSE',
+    ).length;
+
+    return {
+      items: top3Items,
+      incomeTotal,
+      expenseTotal,
+    };
   }
 
   async getFixedEntriesSummary(userId: string): Promise<FixedEntriesSummary> {

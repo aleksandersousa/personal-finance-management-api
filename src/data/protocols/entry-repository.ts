@@ -59,6 +59,12 @@ export interface CategorySummaryItem {
   count: number;
 }
 
+export interface CategorySummaryResult {
+  items: CategorySummaryItem[];
+  incomeTotal: number;
+  expenseTotal: number;
+}
+
 export interface FixedEntriesSummary {
   fixedIncome: number;
   fixedExpenses: number;
@@ -92,7 +98,7 @@ export interface EntryRepository {
     userId: string,
     year: number,
     month: number,
-  ): Promise<CategorySummaryItem[]>;
+  ): Promise<CategorySummaryResult>;
   getFixedEntriesSummary(userId: string): Promise<FixedEntriesSummary>;
   getCurrentBalance(userId: string): Promise<number>;
   getDistinctMonthsYears(userId: string): Promise<MonthYear[]>;

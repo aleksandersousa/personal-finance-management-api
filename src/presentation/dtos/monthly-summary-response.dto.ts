@@ -127,6 +127,26 @@ export class PreviousMonthComparisonDto {
   };
 }
 
+export class CategoryBreakdownResultDto {
+  @ApiProperty({
+    description: 'Top 3 category items with highest values',
+    type: [CategoryBreakdownItemDto],
+  })
+  items: CategoryBreakdownItemDto[];
+
+  @ApiProperty({
+    description: 'Total number of income category items',
+    example: 5,
+  })
+  incomeTotal: number;
+
+  @ApiProperty({
+    description: 'Total number of expense category items',
+    example: 8,
+  })
+  expenseTotal: number;
+}
+
 export class MonthlySummaryResponseDto {
   @ApiProperty({
     description: 'Month in YYYY-MM format',
@@ -142,10 +162,10 @@ export class MonthlySummaryResponseDto {
 
   @ApiProperty({
     description: 'Category breakdown (optional)',
-    type: [CategoryBreakdownItemDto],
+    type: CategoryBreakdownResultDto,
     required: false,
   })
-  categoryBreakdown?: CategoryBreakdownItemDto[];
+  categoryBreakdown?: CategoryBreakdownResultDto;
 
   @ApiProperty({
     description: 'Comparison with previous month',

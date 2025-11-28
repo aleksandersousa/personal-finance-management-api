@@ -74,12 +74,17 @@ export class DbGetMonthlySummaryUseCase implements GetMonthlySummaryUseCase {
 
       // Add category breakdown if requested
       if (request.includeCategories) {
-        response.categoryBreakdown =
+        const categorySummary =
           await this.entryRepository.getCategorySummaryForMonth(
             request.userId,
             request.year,
             request.month,
           );
+        response.categoryBreakdown = {
+          items: categorySummary.items,
+          incomeTotal: categorySummary.incomeTotal,
+          expenseTotal: categorySummary.expenseTotal,
+        };
       }
 
       const duration = Date.now() - startTime;

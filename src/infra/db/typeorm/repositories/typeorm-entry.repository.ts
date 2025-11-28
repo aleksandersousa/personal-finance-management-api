@@ -7,7 +7,7 @@ import {
   FindEntriesByMonthFilters,
   FindEntriesByMonthResult,
   MonthlySummaryStats,
-  CategorySummaryItem,
+  CategorySummaryResult,
   FixedEntriesSummary,
   MonthYear,
 } from '@data/protocols/entry-repository';
@@ -379,14 +379,16 @@ export class TypeormEntryRepository implements EntryRepository {
     userId: string,
     year: number,
     month: number,
-  ): Promise<CategorySummaryItem[]> {
+  ): Promise<CategorySummaryResult> {
     const startTime = Date.now();
 
     try {
       const startDate = new Date(year, month - 1, 1);
       const endDate = new Date(year, month, 0, 23, 59, 59);
 
-      const results = await this.entryRepository
+      // Get all results first to count total (before limiting to top 3)
+      // This is acceptable since category summaries are typically small datasets
+      const allResults = await this.entryRepository
         .createQueryBuilder('entry')
         .leftJoin('entry.category', 'category')
         .select([
@@ -405,6 +407,17 @@ export class TypeormEntryRepository implements EntryRepository {
         .orderBy('SUM(entry.amount)', 'DESC')
         .getRawMany();
 
+      // Calculate totals by type
+      const incomeTotal = allResults.filter(
+        result => result.entry_type === 'INCOME',
+      ).length;
+      const expenseTotal = allResults.filter(
+        result => result.entry_type === 'EXPENSE',
+      ).length;
+
+      // Take top 3 items
+      const results = allResults.slice(0, 3);
+
       const duration = Date.now() - startTime;
 
       // Log business event
@@ -415,6 +428,8 @@ export class TypeormEntryRepository implements EntryRepository {
           year,
           month,
           categoriesCount: results.length,
+          incomeTotal,
+          expenseTotal,
           duration,
         },
       });
@@ -422,13 +437,19 @@ export class TypeormEntryRepository implements EntryRepository {
       // Record metrics
       this.metrics.recordTransaction('get_category_summary', 'success');
 
-      return results.map(result => ({
+      const items = results.map(result => ({
         categoryId: result.entry_categoryId,
         categoryName: result.category_name || 'Unknown Category',
         type: result.entry_type,
         total: parseFloat(result.sum || '0'),
         count: parseInt(result.count || '0'),
       }));
+
+      return {
+        items,
+        incomeTotal,
+        expenseTotal,
+      };
     } catch (error) {
       this.logger.error(
         `Failed to get category summary for user ${userId}`,

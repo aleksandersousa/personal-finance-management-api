@@ -86,22 +86,33 @@ describe('DbGetMonthlySummaryUseCase', () => {
       expenseEntries: 16,
     };
 
-    const mockCategorySummary = [
-      {
-        categoryId: 'cat-1',
-        categoryName: 'Salary',
-        type: 'INCOME' as const,
-        total: 5000,
-        count: 1,
-      },
-      {
-        categoryId: 'cat-2',
-        categoryName: 'Housing',
-        type: 'EXPENSE' as const,
-        total: 1200,
-        count: 3,
-      },
-    ];
+    const mockCategorySummary = {
+      items: [
+        {
+          categoryId: 'cat-1',
+          categoryName: 'Salary',
+          type: 'INCOME' as const,
+          total: 5000,
+          count: 1,
+        },
+        {
+          categoryId: 'cat-2',
+          categoryName: 'Housing',
+          type: 'EXPENSE' as const,
+          total: 1200,
+          count: 3,
+        },
+        {
+          categoryId: 'cat-3',
+          categoryName: 'Food',
+          type: 'EXPENSE' as const,
+          total: 800,
+          count: 5,
+        },
+      ],
+      incomeTotal: 2,
+      expenseTotal: 3,
+    };
 
     const mockPreviousMonthStats = {
       totalIncome: 6600,
