@@ -19,15 +19,41 @@ export class DbListCategoriesUseCase implements ListCategoriesUseCase {
       throw new Error('User ID is required');
     }
 
+    // Set default values for pagination
+    const page = Math.max(1, filters.page || 1);
+    const limit = Math.min(100, Math.max(1, filters.limit || 20));
+
     // Get categories with or without stats based on filters
-    const categories = await this.categoryRepository.findWithFilters(filters);
+    const result = await this.categoryRepository.findWithFilters({
+      ...filters,
+      page,
+      limit,
+    });
+
+    // Ensure result.data is an array
+    if (!Array.isArray(result.data)) {
+      throw new Error('Invalid repository response: data is not an array');
+    }
 
     // Calculate summary statistics
-    const summary = this.calculateSummary(categories);
+    const summary = this.calculateSummary(result.data);
+
+    // Calculate pagination metadata
+    const totalPages = Math.ceil(result.total / limit);
+    const hasNext = page * limit < result.total;
+    const hasPrev = page > 1;
 
     return {
-      data: categories,
+      data: result.data,
       summary,
+      pagination: {
+        page,
+        limit,
+        total: result.total,
+        totalPages,
+        hasNext,
+        hasPrev,
+      },
     };
   }
 

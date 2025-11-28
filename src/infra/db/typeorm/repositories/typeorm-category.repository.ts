@@ -1,14 +1,16 @@
 import { Repository } from 'typeorm';
 import { Injectable, Inject } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { CategoryRepository } from '@data/protocols/category-repository';
+import {
+  CategoryRepository,
+  FindCategoriesWithFiltersResult,
+} from '@data/protocols/category-repository';
 import {
   Category,
   CategoryType,
   CategoryCreateData,
   CategoryUpdateData,
   CategoryListFilters,
-  CategoryWithStats,
 } from '@domain/models/category.model';
 import { CategoryEntity } from '../entities/category.entity';
 import type { Logger, Metrics } from '@/data/protocols';
@@ -205,7 +207,7 @@ export class TypeormCategoryRepository implements CategoryRepository {
 
   async findWithFilters(
     filters: CategoryListFilters,
-  ): Promise<CategoryWithStats[]> {
+  ): Promise<FindCategoriesWithFiltersResult> {
     const startTime = Date.now();
 
     try {
@@ -228,6 +230,27 @@ export class TypeormCategoryRepository implements CategoryRepository {
 
       queryBuilder.orderBy('category.name', 'ASC');
 
+      let total: number;
+      if (filters.includeStats) {
+        const countQuery = this.categoryRepository
+          .createQueryBuilder('category')
+          .where('category.userId = :userId', { userId: filters.userId });
+
+        if (filters.type && filters.type !== 'all') {
+          countQuery.andWhere('category.type = :type', { type: filters.type });
+        }
+
+        total = await countQuery.getCount();
+      } else {
+        total = await queryBuilder.getCount();
+      }
+
+      // Apply pagination if provided
+      if (filters.page !== undefined && filters.limit !== undefined) {
+        const skip = (filters.page - 1) * filters.limit;
+        queryBuilder.skip(skip).take(filters.limit);
+      }
+
       const categories = await queryBuilder.getRawAndEntities();
 
       const duration = Date.now() - startTime;
@@ -240,6 +263,9 @@ export class TypeormCategoryRepository implements CategoryRepository {
           type: filters.type,
           includeStats: filters.includeStats,
           resultCount: categories.entities.length,
+          total,
+          page: filters.page,
+          limit: filters.limit,
         },
       });
 
@@ -247,7 +273,7 @@ export class TypeormCategoryRepository implements CategoryRepository {
         this.metrics.recordTransaction('category_find_with_filters', 'success');
       }
 
-      return categories.entities.map((category, index) => {
+      const mappedCategories = categories.entities.map((category, index) => {
         const mapped = this.mapToModel(category);
         if (filters.includeStats) {
           const raw = categories.raw[index];
@@ -260,6 +286,14 @@ export class TypeormCategoryRepository implements CategoryRepository {
         }
         return mapped;
       });
+
+      // Ensure we always return an array, even if empty
+      const data = Array.isArray(mappedCategories) ? mappedCategories : [];
+
+      return {
+        data,
+        total: total || 0,
+      };
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : String(error);
