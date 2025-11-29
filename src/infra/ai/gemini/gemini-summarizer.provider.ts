@@ -12,9 +12,8 @@ export class GeminiSummarizerProvider implements SummarizeResults {
       throw new Error('GEMINI_API_KEY is not set.');
     }
 
-    this.baseUrl =
-      params?.baseUrl || 'https://generativelanguage.googleapis.com';
-    this.model = params?.model || 'gemini-2.0-flash-lite';
+    this.baseUrl = params?.baseUrl;
+    this.model = params?.model;
   }
 
   async execute(input: {

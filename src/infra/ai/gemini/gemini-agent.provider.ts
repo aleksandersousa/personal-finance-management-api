@@ -1,7 +1,7 @@
 import type { FetchDataForQuestion } from '@/data/protocols';
 import { SqlRow } from '@domain/models/sql-agent.model';
 import * as fs from 'fs';
-import * as path from 'path';
+import * as defaultApiSpec from '../centralmind/gateway-spec.json';
 
 type ApiPaths = {
   [path: string]: {
@@ -34,23 +34,25 @@ export class GeminiAgentProvider implements FetchDataForQuestion {
       throw new Error('GEMINI_API_KEY is not set.');
     }
 
-    this.geminiBaseUrl =
-      params?.geminiBaseUrl || 'https://generativelanguage.googleapis.com';
-    this.geminiModel = params?.geminiModel || 'gemini-2.0-flash-lite';
-    this.gatewayBaseUrl =
-      params?.gatewayBaseUrl ||
-      process.env.GATEWAY_BASE_URL ||
-      'http://localhost:9090';
+    this.geminiBaseUrl = params?.geminiBaseUrl;
+    this.geminiModel = params?.geminiModel;
+    this.gatewayBaseUrl = params?.gatewayBaseUrl;
 
-    const specPath =
-      params?.apiSpecPath ||
-      path.resolve(__dirname, '../centralmind/gateway-spec.json');
-    if (!fs.existsSync(specPath)) {
-      throw new Error(
-        `API Spec not found at ${specPath}. Please fetch it from your running CentralMind Gateway by running: curl http://localhost:9090/openapi.json > api/src/infra/ai/centralmind/gateway-spec.json`,
-      );
+    let apiSpec: any;
+
+    if (params?.apiSpecPath) {
+      // If a custom path is provided, read from file system
+      if (!fs.existsSync(params.apiSpecPath)) {
+        throw new Error(
+          `API Spec not found at ${params.apiSpecPath}. Please fetch it from your running CentralMind Gateway by running: curl http://localhost:9090/openapi.json > api/src/infra/ai/centralmind/gateway-spec.json`,
+        );
+      }
+      apiSpec = JSON.parse(fs.readFileSync(params.apiSpecPath, 'utf-8'));
+    } else {
+      // Use the imported default spec
+      apiSpec = defaultApiSpec;
     }
-    const apiSpec = JSON.parse(fs.readFileSync(specPath, 'utf-8'));
+
     this.apiSpecPaths = apiSpec.paths || {};
   }
 
@@ -80,6 +82,8 @@ export class GeminiAgentProvider implements FetchDataForQuestion {
       headers: { 'Content-Type': 'application/json' },
     });
 
+    console.log('res', res);
+
     if (!res.ok) {
       const errorBody = await res.text();
       throw new Error(
@@ -88,6 +92,7 @@ export class GeminiAgentProvider implements FetchDataForQuestion {
     }
 
     const result = await res.json();
+
     return { result: Array.isArray(result) ? result : [result] };
   }
 
