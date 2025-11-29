@@ -1,4 +1,4 @@
-import { SCHEMA_NAME, TABLE_NAMES } from '@/domain/contants';
+import { SCHEMA_NAME, TABLE_NAMES } from '@/domain/constants';
 import { CategoryType } from '@/domain/models';
 import {
   MigrationInterface,
