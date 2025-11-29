@@ -13,3 +13,4 @@ export * from './execute-sql-readonly';
 export * from './secure-sql';
 export * from './generate-sql';
 export * from './summarize-results';
+export * from './fetch-data-for-question';

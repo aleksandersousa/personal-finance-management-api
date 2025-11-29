@@ -1,7 +1,7 @@
 import { Module } from '@nestjs/common';
 import { SqlAgentController } from '@presentation/controllers/sql-agent.controller';
-import { getDataSourceToken, TypeOrmModule } from '@nestjs/typeorm';
-import { makeOrchestrateSqlAnswerFactory } from '@main/factories/usecases/sql-agent/orchestrate-sql-answer.factory';
+import { TypeOrmModule } from '@nestjs/typeorm';
+import { makeAgentBasedOrchestrateAnswerFactory } from '@/main/factories/usecases/sql-agent';
 import { AuthModule } from './auth.module';
 import { ObservabilityModule } from './observability.module';
 
@@ -11,8 +11,7 @@ import { ObservabilityModule } from './observability.module';
   providers: [
     {
       provide: 'OrchestrateSqlAnswerUseCase',
-      useFactory: makeOrchestrateSqlAnswerFactory,
-      inject: [getDataSourceToken()],
+      useFactory: makeAgentBasedOrchestrateAnswerFactory,
     },
   ],
   exports: ['OrchestrateSqlAnswerUseCase'],
