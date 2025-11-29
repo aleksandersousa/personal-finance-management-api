@@ -57,7 +57,7 @@ describe('GeminiAgentProvider', () => {
       (fs.existsSync as jest.Mock).mockReturnValue(false);
 
       expect(() => {
-        new GeminiAgentProvider({});
+        new GeminiAgentProvider({ apiSpecPath: '/custom/path/spec.json' });
       }).toThrow(/API Spec not found/);
     });
 

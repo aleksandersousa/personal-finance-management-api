@@ -7,13 +7,17 @@ export class GeminiSummarizerProvider implements SummarizeResults {
   private readonly apiKey: string;
 
   constructor(params?: { baseUrl?: string; model?: string; apiKey?: string }) {
-    this.apiKey = params?.apiKey || '';
+    this.apiKey = params?.apiKey || process.env.GEMINI_API_KEY || '';
     if (!this.apiKey) {
       throw new Error('GEMINI_API_KEY is not set.');
     }
 
-    this.baseUrl = params?.baseUrl;
-    this.model = params?.model;
+    this.baseUrl =
+      params?.baseUrl ||
+      process.env.GEMINI_BASE_URL ||
+      'https://generativelanguage.googleapis.com';
+    this.model =
+      params?.model || process.env.GEMINI_MODEL || 'gemini-2.5-flash-lite';
   }
 
   async execute(input: {

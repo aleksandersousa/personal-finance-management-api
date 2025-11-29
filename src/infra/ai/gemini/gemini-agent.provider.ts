@@ -34,9 +34,16 @@ export class GeminiAgentProvider implements FetchDataForQuestion {
       throw new Error('GEMINI_API_KEY is not set.');
     }
 
-    this.geminiBaseUrl = params?.geminiBaseUrl;
-    this.geminiModel = params?.geminiModel;
-    this.gatewayBaseUrl = params?.gatewayBaseUrl;
+    this.geminiBaseUrl =
+      params?.geminiBaseUrl ||
+      process.env.GEMINI_BASE_URL ||
+      'https://generativelanguage.googleapis.com';
+    this.geminiModel =
+      params?.geminiModel ||
+      process.env.GEMINI_MODEL ||
+      'gemini-2.5-flash-lite';
+    this.gatewayBaseUrl =
+      params?.gatewayBaseUrl || process.env.GATEWAY_BASE_URL || '';
 
     let apiSpec: any;
 
