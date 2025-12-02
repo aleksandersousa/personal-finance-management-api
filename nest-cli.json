@@ -8,6 +8,10 @@
       {
         "include": "infra/ai/centralmind/*.json",
         "watchAssets": true
+      },
+      {
+        "include": "infra/email/templates/**/*",
+        "watchAssets": true
       }
     ],
     "paths": {

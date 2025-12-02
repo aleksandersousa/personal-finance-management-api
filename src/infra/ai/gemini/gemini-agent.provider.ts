@@ -89,8 +89,6 @@ export class GeminiAgentProvider implements FetchDataForQuestion {
       headers: { 'Content-Type': 'application/json' },
     });
 
-    console.log('res', res);
-
     if (!res.ok) {
       const errorBody = await res.text();
       throw new Error(

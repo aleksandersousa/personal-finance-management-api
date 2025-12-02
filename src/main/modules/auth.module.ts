@@ -16,6 +16,8 @@ import {
   makeRegisterUserFactory,
 } from '../factories';
 import { ContextAwareLoggerService } from '@/infra/logging/context-aware-logger.service';
+import { AuthEmailTemplateService } from '@/infra/email/services';
+import { MailgunEmailSender } from '@/infra/implementations/mailgun-email-sender';
 
 @Module({
   imports: [
@@ -50,9 +52,24 @@ import { ContextAwareLoggerService } from '@/infra/logging/context-aware-logger.
       useClass: ContextAwareLoggerService,
     },
     {
+      provide: 'EmailSender',
+      useClass: MailgunEmailSender,
+    },
+    {
+      provide: 'AuthEmailTemplateService',
+      useClass: AuthEmailTemplateService,
+    },
+    {
       provide: 'RegisterUserUseCase',
       useFactory: makeRegisterUserFactory,
-      inject: ['UserRepository', 'Hasher', 'TokenGenerator', 'Logger'],
+      inject: [
+        'UserRepository',
+        'Hasher',
+        'TokenGenerator',
+        'Logger',
+        'EmailSender',
+        'AuthEmailTemplateService',
+      ],
     },
     {
       provide: 'LoginUserUseCase',

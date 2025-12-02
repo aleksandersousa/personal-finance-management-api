@@ -3,7 +3,14 @@ import {
   RegisterUserResponse,
   RegisterUserUseCase,
 } from '@domain/usecases/register-user.usecase';
-import { UserRepository, Hasher, TokenGenerator, Logger } from '../protocols';
+import {
+  UserRepository,
+  Hasher,
+  TokenGenerator,
+  Logger,
+  EmailSender,
+  AuthEmailTemplateService,
+} from '../protocols';
 
 export class DbRegisterUserUseCase implements RegisterUserUseCase {
   constructor(
@@ -11,6 +18,8 @@ export class DbRegisterUserUseCase implements RegisterUserUseCase {
     private readonly hasher: Hasher,
     private readonly tokenGenerator: TokenGenerator,
     private readonly logger: Logger,
+    private readonly emailSender: EmailSender,
+    private readonly authEmailTemplates: AuthEmailTemplateService,
   ) {}
 
   async execute(request: RegisterUserRequest): Promise<RegisterUserResponse> {
@@ -74,11 +83,55 @@ export class DbRegisterUserUseCase implements RegisterUserUseCase {
 
     delete user.password;
 
+    this.sendWelcomeEmail(user).catch(error => {
+      this.logger.error(
+        'Failed to send welcome email',
+        error.stack,
+        'DbRegisterUserUseCase',
+      );
+    });
+
     this.logger.log(
       `User registered successfully: ${user.id}`,
       'DbRegisterUserUseCase',
     );
 
     return { user, tokens };
+  }
+
+  private async sendWelcomeEmail(user: any): Promise<void> {
+    try {
+      const emailTemplate = await this.authEmailTemplates.getWelcomeEmail({
+        userName: user.name,
+        dashboardUrl: `${process.env.FRONTEND_URL}/dashboard`,
+      });
+
+      const result = await this.emailSender.send({
+        to: user.email,
+        subject: emailTemplate.subject,
+        html: emailTemplate.html,
+        text: emailTemplate.text,
+      });
+
+      if (result.success) {
+        this.logger.log(
+          `Welcome email sent to ${user.email}`,
+          'DbRegisterUserUseCase',
+        );
+      } else {
+        this.logger.error(
+          `Failed to send welcome email: ${result.error}`,
+          '',
+          'DbRegisterUserUseCase',
+        );
+      }
+    } catch (error) {
+      this.logger.error(
+        'Error rendering welcome email template',
+        error.stack,
+        'DbRegisterUserUseCase',
+      );
+      throw error;
+    }
   }
 }

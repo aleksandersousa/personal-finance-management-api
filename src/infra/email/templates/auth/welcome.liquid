@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      line-height: 1.6;
+      color: #333;
+      margin: 0;
+      padding: 0;
+      background-color: #f4f4f4;
+    }
+    .container {
+      max-width: 600px;
+      margin: 0 auto;
+      background-color: #ffffff;
+    }
+    .header {
+      background: linear-gradient(135deg, #7c3aed 0%, #a855f7 100%);
+      color: white;
+      padding: 40px 30px;
+      text-align: center;
+      border-radius: 10px 10px 0 0;
+    }
+    .header h1 {
+      margin: 0;
+      font-size: 28px;
+    }
+    .content {
+      padding: 40px 30px;
+      background-color: #ffffff;
+    }
+    .content h2 {
+      color: #8b5cf6;
+      margin-top: 0;
+    }
+    .content ul {
+      padding-left: 20px;
+    }
+    .content li {
+      margin-bottom: 10px;
+    }
+    .button {
+      display: inline-block;
+      padding: 14px 32px;
+      background: #8b5cf6;
+      color: white;
+      text-decoration: none;
+      border-radius: 5px;
+      margin: 20px 0;
+      font-weight: bold;
+    }
+    .button:hover {
+      background: #7c3aed;
+    }
+    .footer {
+      background-color: #f9f9f9;
+      padding: 30px;
+      text-align: center;
+      color: #666;
+      font-size: 12px;
+      border-radius: 0 0 10px 10px;
+    }
+    .footer p {
+      margin: 5px 0;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>Bem-vindo ao Personal Financial Management! 🎉</h1>
+    </div>
+    
+    <div class="content">
+      <h2>Olá {{ userName }}!</h2>
+      
+      <p>Obrigado por se juntar ao Personal Financial Management. Estamos animados para ajudá-lo a controlar suas finanças!</p>
+      
+      <p>Com nossa plataforma, você pode:</p>
+      <ul>
+        <li>📊 Acompanhar sua receita e despesas</li>
+        <li>📈 Visualizar suas tendências financeiras</li>
+        <li>🎯 Definir e alcançar metas financeiras</li>
+        <li>💡 Obter insights inteligentes sobre seus gastos</li>
+      </ul>
+
+      <p>Pronto para começar?</p>
+      <a href="{{ dashboardUrl }}" class="button">Ir para o Painel</a>
+
+      <p>Se você tiver alguma dúvida, sinta-se à vontade para entrar em contato com nossa equipe de suporte.</p>
+      
+      <p>Atenciosamente,<br>A Equipe do Personal Financial Management</p>
+    </div>
+    
+    <div class="footer">
+      <p>&copy; {{ currentYear }} Personal Financial Management. Todos os direitos reservados.</p>
+      <p>Se você não criou esta conta, por favor, ignore este e-mail.</p>
+    </div>
+  </div>
+</body>
+</html>
+

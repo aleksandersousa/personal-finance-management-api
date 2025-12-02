@@ -1,1 +1,1707 @@
-{"components":{"schemas":{}},"info":{"description":"Config that dynamically generates accessor for data","title":"","version":""},"openapi":"3.1.0","paths":{"/balance":{"get":{"description":"Returns the net balance (total income - total expenses) for the authenticated user.","operationId":"get_balance","parameters":[{"in":"query","name":"user_id","required":true,"schema":{"type":"string"}}],"responses":{"200":{"content":{"application/json":{"schema":{"properties":{"balance":{"type":"number"}},"type":"object"}}},"description":"Success"},"404":{"content":{"application/json":{"schema":{"properties":{"error":{"type":"string"}},"type":"object"}}},"description":"Not Found"},"500":{"content":{"application/json":{"schema":{"properties":{"error":{"type":"string"}},"type":"object"}}},"description":"Error"}},"summary":"Calculate the net balance for a user.","tags":["Entries"]}},"/categories":{"get":{"description":"Fetches a list of all financial categories associated with the authenticated user.","operationId":"get_categories","parameters":[{"in":"query","name":"user_id","required":true,"schema":{"type":"string"}}],"responses":{"200":{"content":{"application/json":{"schema":{"items":{"properties":{"color":{"type":"string"},"created_at":{"format":"date-time","type":"string"},"description":{"type":"string"},"icon":{"type":"string"},"id":{"type":"string"},"is_default":{"type":"boolean"},"name":{"type":"string"},"type":{"type":"string"},"updated_at":{"format":"date-time","type":"string"}},"type":"object"},"type":"array"}}},"description":"Success"},"404":{"content":{"application/json":{"schema":{"properties":{"error":{"type":"string"}},"type":"object"}}},"description":"Not Found"},"500":{"content":{"application/json":{"schema":{"properties":{"error":{"type":"string"}},"type":"object"}}},"description":"Error"}},"summary":"Retrieve all categories for a user.","tags":["Categories"]}},"/categories/expenses/total":{"get":{"description":"Returns the sum of expenses for each category for the authenticated user.","operationId":"get_total_expenses_by_category","parameters":[{"in":"query","name":"user_id","required":true,"schema":{"type":"string"}}],"responses":{"200":{"content":{"application/json":{"schema":{"items":{"properties":{"id":{"type":"string"},"name":{"type":"string"},"total_expenses":{"type":"number"}},"type":"object"},"type":"array"}}},"description":"Success"},"404":{"content":{"application/json":{"schema":{"properties":{"error":{"type":"string"}},"type":"object"}}},"description":"Not Found"},"500":{"content":{"application/json":{"schema":{"properties":{"error":{"type":"string"}},"type":"object"}}},"description":"Error"}},"summary":"Calculate total expenses for each category for a user.","tags":["Categories"]}},"/categories/income/total":{"get":{"description":"Returns the sum of income for each category for the authenticated user.","operationId":"get_total_income_by_category","parameters":[{"in":"query","name":"user_id","required":true,"schema":{"type":"string"}}],"responses":{"200":{"content":{"application/json":{"schema":{"items":{"properties":{"id":{"type":"string"},"name":{"type":"string"},"total_income":{"type":"number"}},"type":"object"},"type":"array"}}},"description":"Success"},"404":{"content":{"application/json":{"schema":{"properties":{"error":{"type":"string"}},"type":"object"}}},"description":"Not Found"},"500":{"content":{"application/json":{"schema":{"properties":{"error":{"type":"string"}},"type":"object"}}},"description":"Error"}},"summary":"Calculate total income for each category for a user.","tags":["Categories"]}},"/categories/{categoryId}":{"get":{"description":"Fetches a single financial category by its unique ID for the authenticated user.","operationId":"get_category_by_id","parameters":[{"in":"path","name":"categoryId","required":true,"schema":{"type":"string"}},{"in":"query","name":"user_id","required":true,"schema":{"type":"string"}}],"responses":{"200":{"content":{"application/json":{"schema":{"properties":{"color":{"type":"string"},"created_at":{"format":"date-time","type":"string"},"description":{"type":"string"},"icon":{"type":"string"},"id":{"type":"string"},"is_default":{"type":"boolean"},"name":{"type":"string"},"type":{"type":"string"},"updated_at":{"format":"date-time","type":"string"}},"type":"object"}}},"description":"Success"},"404":{"content":{"application/json":{"schema":{"properties":{"error":{"type":"string"}},"type":"object"}}},"description":"Not Found"},"500":{"content":{"application/json":{"schema":{"properties":{"error":{"type":"string"}},"type":"object"}}},"description":"Error"}},"summary":"Retrieve a specific category by its ID.","tags":["Categories"]}},"/entries":{"get":{"description":"Fetches a list of all financial entries (income and expenses) associated with the authenticated user. Supports pagination.","operationId":"get_all_entries","parameters":[{"in":"query","name":"user_id","required":true,"schema":{"type":"string"}},{"in":"query","name":"offset","schema":{"default":0,"type":"integer"}},{"in":"query","name":"limit","schema":{"default":20,"type":"integer"}}],"responses":{"200":{"content":{"application/json":{"schema":{"items":{"properties":{"amount":{"type":"number"},"category_id":{"type":"string"},"created_at":{"format":"date-time","type":"string"},"date":{"format":"date-time","type":"string"},"description":{"type":"string"},"id":{"type":"string"},"is_fixed":{"type":"boolean"},"type":{"type":"string"},"updated_at":{"format":"date-time","type":"string"},"user_id":{"type":"string"}},"type":"object"},"type":"array"}}},"description":"Success"},"404":{"content":{"application/json":{"schema":{"properties":{"error":{"type":"string"}},"type":"object"}}},"description":"Not Found"},"500":{"content":{"application/json":{"schema":{"properties":{"error":{"type":"string"}},"type":"object"}}},"description":"Error"}},"summary":"Retrieve all financial entries for a user.","tags":["Entries"]}},"/entries/count":{"get":{"description":"Returns the total number of financial entries for the authenticated user, useful for pagination.","operationId":"get_total_entries_count","parameters":[{"in":"query","name":"user_id","required":true,"schema":{"type":"string"}}],"responses":{"200":{"content":{"application/json":{"schema":{"properties":{"count":{"type":"integer"}},"type":"object"}}},"description":"Success"},"404":{"content":{"application/json":{"schema":{"properties":{"error":{"type":"string"}},"type":"object"}}},"description":"Not Found"},"500":{"content":{"application/json":{"schema":{"properties":{"error":{"type":"string"}},"type":"object"}}},"description":"Error"}},"summary":"Get the total count of financial entries for a user.","tags":["Entries"]}},"/entries/expenses":{"get":{"description":"Fetches a list of all expense entries for the authenticated user. Supports pagination.","operationId":"get_expense_entries","parameters":[{"in":"query","name":"user_id","required":true,"schema":{"type":"string"}},{"in":"query","name":"offset","schema":{"default":0,"type":"integer"}},{"in":"query","name":"limit","schema":{"default":20,"type":"integer"}}],"responses":{"200":{"content":{"application/json":{"schema":{"items":{"properties":{"amount":{"type":"number"},"category_id":{"type":"string"},"created_at":{"format":"date-time","type":"string"},"date":{"format":"date-time","type":"string"},"description":{"type":"string"},"id":{"type":"string"},"is_fixed":{"type":"boolean"},"updated_at":{"format":"date-time","type":"string"},"user_id":{"type":"string"}},"type":"object"},"type":"array"}}},"description":"Success"},"404":{"content":{"application/json":{"schema":{"properties":{"error":{"type":"string"}},"type":"object"}}},"description":"Not Found"},"500":{"content":{"application/json":{"schema":{"properties":{"error":{"type":"string"}},"type":"object"}}},"description":"Error"}},"summary":"Retrieve all expense entries for a user.","tags":["Entries"]}},"/entries/expenses/total":{"get":{"description":"Returns the sum of all expense entries for the authenticated user.","operationId":"get_total_expenses","parameters":[{"in":"query","name":"user_id","required":true,"schema":{"type":"string"}}],"responses":{"200":{"content":{"application/json":{"schema":{"properties":{"total_expenses":{"type":"number"}},"type":"object"}}},"description":"Success"},"404":{"content":{"application/json":{"schema":{"properties":{"error":{"type":"string"}},"type":"object"}}},"description":"Not Found"},"500":{"content":{"application/json":{"schema":{"properties":{"error":{"type":"string"}},"type":"object"}}},"description":"Error"}},"summary":"Calculate the total expenses for a user.","tags":["Entries"]}},"/entries/fixed-expenses":{"get":{"description":"Fetches a list of all fixed expense entries for the authenticated user. Supports pagination.","operationId":"get_fixed_expenses","parameters":[{"in":"query","name":"user_id","required":true,"schema":{"type":"string"}},{"in":"query","name":"offset","schema":{"default":0,"type":"integer"}},{"in":"query","name":"limit","schema":{"default":20,"type":"integer"}}],"responses":{"200":{"content":{"application/json":{"schema":{"items":{"properties":{"amount":{"type":"number"},"category_id":{"type":"string"},"created_at":{"format":"date-time","type":"string"},"date":{"format":"date-time","type":"string"},"description":{"type":"string"},"id":{"type":"string"},"is_fixed":{"type":"boolean"},"updated_at":{"format":"date-time","type":"string"},"user_id":{"type":"string"}},"type":"object"},"type":"array"}}},"description":"Success"},"404":{"content":{"application/json":{"schema":{"properties":{"error":{"type":"string"}},"type":"object"}}},"description":"Not Found"},"500":{"content":{"application/json":{"schema":{"properties":{"error":{"type":"string"}},"type":"object"}}},"description":"Error"}},"summary":"Retrieve all fixed expense entries for a user.","tags":["Entries"]}},"/entries/fixed-income":{"get":{"description":"Fetches a list of all fixed income entries for the authenticated user. Supports pagination.","operationId":"get_fixed_income","parameters":[{"in":"query","name":"user_id","required":true,"schema":{"type":"string"}},{"in":"query","name":"offset","schema":{"default":0,"type":"integer"}},{"in":"query","name":"limit","schema":{"default":20,"type":"integer"}}],"responses":{"200":{"content":{"application/json":{"schema":{"items":{"properties":{"amount":{"type":"number"},"category_id":{"type":"string"},"created_at":{"format":"date-time","type":"string"},"date":{"format":"date-time","type":"string"},"description":{"type":"string"},"id":{"type":"string"},"is_fixed":{"type":"boolean"},"updated_at":{"format":"date-time","type":"string"},"user_id":{"type":"string"}},"type":"object"},"type":"array"}}},"description":"Success"},"404":{"content":{"application/json":{"schema":{"properties":{"error":{"type":"string"}},"type":"object"}}},"description":"Not Found"},"500":{"content":{"application/json":{"schema":{"properties":{"error":{"type":"string"}},"type":"object"}}},"description":"Error"}},"summary":"Retrieve all fixed income entries for a user.","tags":["Entries"]}},"/entries/income":{"get":{"description":"Fetches a list of all income entries for the authenticated user. Supports pagination.","operationId":"get_income_entries","parameters":[{"in":"query","name":"user_id","required":true,"schema":{"type":"string"}},{"in":"query","name":"offset","schema":{"default":0,"type":"integer"}},{"in":"query","name":"limit","schema":{"default":20,"type":"integer"}}],"responses":{"200":{"content":{"application/json":{"schema":{"items":{"properties":{"amount":{"type":"number"},"category_id":{"type":"string"},"created_at":{"format":"date-time","type":"string"},"date":{"format":"date-time","type":"string"},"description":{"type":"string"},"id":{"type":"string"},"is_fixed":{"type":"boolean"},"updated_at":{"format":"date-time","type":"string"},"user_id":{"type":"string"}},"type":"object"},"type":"array"}}},"description":"Success"},"404":{"content":{"application/json":{"schema":{"properties":{"error":{"type":"string"}},"type":"object"}}},"description":"Not Found"},"500":{"content":{"application/json":{"schema":{"properties":{"error":{"type":"string"}},"type":"object"}}},"description":"Error"}},"summary":"Retrieve all income entries for a user.","tags":["Entries"]}},"/entries/income/total":{"get":{"description":"Returns the sum of all income entries for the authenticated user.","operationId":"get_total_income","parameters":[{"in":"query","name":"user_id","required":true,"schema":{"type":"string"}}],"responses":{"200":{"content":{"application/json":{"schema":{"properties":{"total_income":{"type":"number"}},"type":"object"}}},"description":"Success"},"404":{"content":{"application/json":{"schema":{"properties":{"error":{"type":"string"}},"type":"object"}}},"description":"Not Found"},"500":{"content":{"application/json":{"schema":{"properties":{"error":{"type":"string"}},"type":"object"}}},"description":"Error"}},"summary":"Calculate the total income for a user.","tags":["Entries"]}},"/entries/{entryId}":{"get":{"description":"Fetches a single financial entry by its unique ID for the authenticated user.","operationId":"get_entry_by_id","parameters":[{"in":"path","name":"entryId","required":true,"schema":{"type":"string"}},{"in":"query","name":"user_id","required":true,"schema":{"type":"string"}}],"responses":{"200":{"content":{"application/json":{"schema":{"properties":{"amount":{"type":"number"},"category_id":{"type":"string"},"created_at":{"format":"date-time","type":"string"},"date":{"format":"date-time","type":"string"},"description":{"type":"string"},"id":{"type":"string"},"is_fixed":{"type":"boolean"},"type":{"type":"string"},"updated_at":{"format":"date-time","type":"string"},"user_id":{"type":"string"}},"type":"object"}}},"description":"Success"},"404":{"content":{"application/json":{"schema":{"properties":{"error":{"type":"string"}},"type":"object"}}},"description":"Not Found"},"500":{"content":{"application/json":{"schema":{"properties":{"error":{"type":"string"}},"type":"object"}}},"description":"Error"}},"summary":"Retrieve a specific financial entry by its ID.","tags":["Entries"]}},"/raw/discover_data":{"get":{"description":"Discover data structure for connected postgres gateway","operationId":"discover_data","parameters":[{"in":"query","name":"tables_list","schema":{"description":"Comma separated table names to fetch data samples","type":"string"}}],"responses":{"200":{"content":{"application/json":{"schema":{"items":{"properties":{"columns":{"items":{"properties":{"name":{"type":"string"},"type":{"type":"string"}},"type":"object"},"type":"array"},"name":{"type":"string"},"row_count":{"type":"integer"},"sample":{"items":{"type":"object"},"type":"array"}},"type":"object"},"type":"array"}}},"description":"Success"},"500":{"content":{"application/json":{"schema":{"properties":{"error":{"type":"string"}},"type":"object"}}},"description":"Error"}},"summary":"Discover data structure","tags":["Raw"]}},"/raw/list_tables":{"get":{"description":"Return list of tables that available for data in postgres database","operationId":"list_tables","responses":{"200":{"content":{"application/json":{"schema":{"items":{"properties":{"columns":{"items":{"properties":{"name":{"type":"string"},"type":{"type":"string"}},"type":"object"},"type":"array"},"name":{"type":"string"},"row_count":{"type":"integer"}},"type":"object"},"type":"array"}}},"description":"Success"},"500":{"content":{"application/json":{"schema":{"properties":{"error":{"type":"string"}},"type":"object"}}},"description":"Error"}},"summary":"List available tables","tags":["Raw"]}},"/raw/prepare_query":{"get":{"description":"Verify query and prepare output structure for query in postgres database","operationId":"prepare_query","parameters":[{"in":"query","name":"query","required":true,"schema":{"description":"SQL query to verify","type":"string"}}],"responses":{"200":{"content":{"application/json":{"schema":{"items":{"properties":{"name":{"type":"string"},"type":{"type":"string"}},"type":"object"},"type":"array"}}},"description":"Success"},"500":{"content":{"application/json":{"schema":{"properties":{"error":{"type":"string"}},"type":"object"}}},"description":"Error"}},"summary":"Verify and prepare query","tags":["Raw"]}},"/raw/query":{"get":{"description":"Query data structure for connected postgres gateway","operationId":"query","parameters":[{"in":"query","name":"query","required":true,"schema":{"description":"SQL query to execute","type":"string"}}],"responses":{"200":{"content":{"application/json":{"schema":{"items":{"type":"object"},"type":"array"}}},"description":"Success"},"500":{"content":{"application/json":{"schema":{"properties":{"error":{"type":"string"}},"type":"object"}}},"description":"Error"}},"summary":"Execute query","tags":["Raw"]}},"/reports/monthly-expenses":{"get":{"description":"Fetches a summary of expenses per month for the authenticated user.","operationId":"get_monthly_expenses","parameters":[{"in":"query","name":"user_id","required":true,"schema":{"type":"string"}}],"responses":{"200":{"content":{"application/json":{"schema":{"items":{"properties":{"month":{"format":"date-time","type":"string"},"total_expenses":{"type":"number"}},"type":"object"},"type":"array"}}},"description":"Success"},"404":{"content":{"application/json":{"schema":{"properties":{"error":{"type":"string"}},"type":"object"}}},"description":"Not Found"},"500":{"content":{"application/json":{"schema":{"properties":{"error":{"type":"string"}},"type":"object"}}},"description":"Error"}},"summary":"Retrieve monthly expenses for a user.","tags":["Reports"]}},"/reports/monthly-income":{"get":{"description":"Fetches a summary of income per month for the authenticated user.","operationId":"get_monthly_income","parameters":[{"in":"query","name":"user_id","required":true,"schema":{"type":"string"}}],"responses":{"200":{"content":{"application/json":{"schema":{"items":{"properties":{"month":{"format":"date-time","type":"string"},"total_income":{"type":"number"}},"type":"object"},"type":"array"}}},"description":"Success"},"404":{"content":{"application/json":{"schema":{"properties":{"error":{"type":"string"}},"type":"object"}}},"description":"Not Found"},"500":{"content":{"application/json":{"schema":{"properties":{"error":{"type":"string"}},"type":"object"}}},"description":"Error"}},"summary":"Retrieve monthly income for a user.","tags":["Reports"]}}},"servers":[{"description":"Local development server","url":"http://localhost:9090"}]}
+{
+  "components": {
+    "schemas": {}
+  },
+  "info": {
+    "description": "Config that dynamically generates accessor for data",
+    "title": "",
+    "version": ""
+  },
+  "openapi": "3.1.0",
+  "paths": {
+    "/balance": {
+      "get": {
+        "description": "Returns the net balance (total income - total expenses) for the authenticated user.",
+        "operationId": "get_balance",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "user_id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "balance": {
+                      "type": "number"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Calculate the net balance for a user.",
+        "tags": [
+          "Entries"
+        ]
+      }
+    },
+    "/categories": {
+      "get": {
+        "description": "Fetches a list of all financial categories associated with the authenticated user.",
+        "operationId": "get_categories",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "user_id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "properties": {
+                      "color": {
+                        "type": "string"
+                      },
+                      "created_at": {
+                        "format": "date-time",
+                        "type": "string"
+                      },
+                      "description": {
+                        "type": "string"
+                      },
+                      "icon": {
+                        "type": "string"
+                      },
+                      "id": {
+                        "type": "string"
+                      },
+                      "is_default": {
+                        "type": "boolean"
+                      },
+                      "name": {
+                        "type": "string"
+                      },
+                      "type": {
+                        "type": "string"
+                      },
+                      "updated_at": {
+                        "format": "date-time",
+                        "type": "string"
+                      }
+                    },
+                    "type": "object"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Success"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Retrieve all categories for a user.",
+        "tags": [
+          "Categories"
+        ]
+      }
+    },
+    "/categories/expenses/total": {
+      "get": {
+        "description": "Returns the sum of expenses for each category for the authenticated user.",
+        "operationId": "get_total_expenses_by_category",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "user_id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "properties": {
+                      "id": {
+                        "type": "string"
+                      },
+                      "name": {
+                        "type": "string"
+                      },
+                      "total_expenses": {
+                        "type": "number"
+                      }
+                    },
+                    "type": "object"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Success"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Calculate total expenses for each category for a user.",
+        "tags": [
+          "Categories"
+        ]
+      }
+    },
+    "/categories/income/total": {
+      "get": {
+        "description": "Returns the sum of income for each category for the authenticated user.",
+        "operationId": "get_total_income_by_category",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "user_id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "properties": {
+                      "id": {
+                        "type": "string"
+                      },
+                      "name": {
+                        "type": "string"
+                      },
+                      "total_income": {
+                        "type": "number"
+                      }
+                    },
+                    "type": "object"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Success"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Calculate total income for each category for a user.",
+        "tags": [
+          "Categories"
+        ]
+      }
+    },
+    "/categories/{categoryId}": {
+      "get": {
+        "description": "Fetches a single financial category by its unique ID for the authenticated user.",
+        "operationId": "get_category_by_id",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "categoryId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "user_id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "color": {
+                      "type": "string"
+                    },
+                    "created_at": {
+                      "format": "date-time",
+                      "type": "string"
+                    },
+                    "description": {
+                      "type": "string"
+                    },
+                    "icon": {
+                      "type": "string"
+                    },
+                    "id": {
+                      "type": "string"
+                    },
+                    "is_default": {
+                      "type": "boolean"
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "type": {
+                      "type": "string"
+                    },
+                    "updated_at": {
+                      "format": "date-time",
+                      "type": "string"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Retrieve a specific category by its ID.",
+        "tags": [
+          "Categories"
+        ]
+      }
+    },
+    "/entries": {
+      "get": {
+        "description": "Fetches a list of all financial entries (income and expenses) associated with the authenticated user. Supports pagination.",
+        "operationId": "get_all_entries",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "user_id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "schema": {
+              "default": 0,
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "default": 20,
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "properties": {
+                      "amount": {
+                        "type": "number"
+                      },
+                      "category_id": {
+                        "type": "string"
+                      },
+                      "created_at": {
+                        "format": "date-time",
+                        "type": "string"
+                      },
+                      "date": {
+                        "format": "date-time",
+                        "type": "string"
+                      },
+                      "description": {
+                        "type": "string"
+                      },
+                      "id": {
+                        "type": "string"
+                      },
+                      "is_fixed": {
+                        "type": "boolean"
+                      },
+                      "type": {
+                        "type": "string"
+                      },
+                      "updated_at": {
+                        "format": "date-time",
+                        "type": "string"
+                      },
+                      "user_id": {
+                        "type": "string"
+                      }
+                    },
+                    "type": "object"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Success"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Retrieve all financial entries for a user.",
+        "tags": [
+          "Entries"
+        ]
+      }
+    },
+    "/entries/count": {
+      "get": {
+        "description": "Returns the total number of financial entries for the authenticated user, useful for pagination.",
+        "operationId": "get_total_entries_count",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "user_id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "count": {
+                      "type": "integer"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Get the total count of financial entries for a user.",
+        "tags": [
+          "Entries"
+        ]
+      }
+    },
+    "/entries/expenses": {
+      "get": {
+        "description": "Fetches a list of all expense entries for the authenticated user. Supports pagination.",
+        "operationId": "get_expense_entries",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "user_id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "schema": {
+              "default": 0,
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "default": 20,
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "properties": {
+                      "amount": {
+                        "type": "number"
+                      },
+                      "category_id": {
+                        "type": "string"
+                      },
+                      "created_at": {
+                        "format": "date-time",
+                        "type": "string"
+                      },
+                      "date": {
+                        "format": "date-time",
+                        "type": "string"
+                      },
+                      "description": {
+                        "type": "string"
+                      },
+                      "id": {
+                        "type": "string"
+                      },
+                      "is_fixed": {
+                        "type": "boolean"
+                      },
+                      "updated_at": {
+                        "format": "date-time",
+                        "type": "string"
+                      },
+                      "user_id": {
+                        "type": "string"
+                      }
+                    },
+                    "type": "object"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Success"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Retrieve all expense entries for a user.",
+        "tags": [
+          "Entries"
+        ]
+      }
+    },
+    "/entries/expenses/total": {
+      "get": {
+        "description": "Returns the sum of all expense entries for the authenticated user.",
+        "operationId": "get_total_expenses",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "user_id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "total_expenses": {
+                      "type": "number"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Calculate the total expenses for a user.",
+        "tags": [
+          "Entries"
+        ]
+      }
+    },
+    "/entries/fixed-expenses": {
+      "get": {
+        "description": "Fetches a list of all fixed expense entries for the authenticated user. Supports pagination.",
+        "operationId": "get_fixed_expenses",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "user_id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "schema": {
+              "default": 0,
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "default": 20,
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "properties": {
+                      "amount": {
+                        "type": "number"
+                      },
+                      "category_id": {
+                        "type": "string"
+                      },
+                      "created_at": {
+                        "format": "date-time",
+                        "type": "string"
+                      },
+                      "date": {
+                        "format": "date-time",
+                        "type": "string"
+                      },
+                      "description": {
+                        "type": "string"
+                      },
+                      "id": {
+                        "type": "string"
+                      },
+                      "is_fixed": {
+                        "type": "boolean"
+                      },
+                      "updated_at": {
+                        "format": "date-time",
+                        "type": "string"
+                      },
+                      "user_id": {
+                        "type": "string"
+                      }
+                    },
+                    "type": "object"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Success"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Retrieve all fixed expense entries for a user.",
+        "tags": [
+          "Entries"
+        ]
+      }
+    },
+    "/entries/fixed-income": {
+      "get": {
+        "description": "Fetches a list of all fixed income entries for the authenticated user. Supports pagination.",
+        "operationId": "get_fixed_income",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "user_id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "schema": {
+              "default": 0,
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "default": 20,
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "properties": {
+                      "amount": {
+                        "type": "number"
+                      },
+                      "category_id": {
+                        "type": "string"
+                      },
+                      "created_at": {
+                        "format": "date-time",
+                        "type": "string"
+                      },
+                      "date": {
+                        "format": "date-time",
+                        "type": "string"
+                      },
+                      "description": {
+                        "type": "string"
+                      },
+                      "id": {
+                        "type": "string"
+                      },
+                      "is_fixed": {
+                        "type": "boolean"
+                      },
+                      "updated_at": {
+                        "format": "date-time",
+                        "type": "string"
+                      },
+                      "user_id": {
+                        "type": "string"
+                      }
+                    },
+                    "type": "object"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Success"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Retrieve all fixed income entries for a user.",
+        "tags": [
+          "Entries"
+        ]
+      }
+    },
+    "/entries/income": {
+      "get": {
+        "description": "Fetches a list of all income entries for the authenticated user. Supports pagination.",
+        "operationId": "get_income_entries",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "user_id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "schema": {
+              "default": 0,
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "default": 20,
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "properties": {
+                      "amount": {
+                        "type": "number"
+                      },
+                      "category_id": {
+                        "type": "string"
+                      },
+                      "created_at": {
+                        "format": "date-time",
+                        "type": "string"
+                      },
+                      "date": {
+                        "format": "date-time",
+                        "type": "string"
+                      },
+                      "description": {
+                        "type": "string"
+                      },
+                      "id": {
+                        "type": "string"
+                      },
+                      "is_fixed": {
+                        "type": "boolean"
+                      },
+                      "updated_at": {
+                        "format": "date-time",
+                        "type": "string"
+                      },
+                      "user_id": {
+                        "type": "string"
+                      }
+                    },
+                    "type": "object"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Success"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Retrieve all income entries for a user.",
+        "tags": [
+          "Entries"
+        ]
+      }
+    },
+    "/entries/income/total": {
+      "get": {
+        "description": "Returns the sum of all income entries for the authenticated user.",
+        "operationId": "get_total_income",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "user_id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "total_income": {
+                      "type": "number"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Calculate the total income for a user.",
+        "tags": [
+          "Entries"
+        ]
+      }
+    },
+    "/entries/{entryId}": {
+      "get": {
+        "description": "Fetches a single financial entry by its unique ID for the authenticated user.",
+        "operationId": "get_entry_by_id",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "entryId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "user_id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "amount": {
+                      "type": "number"
+                    },
+                    "category_id": {
+                      "type": "string"
+                    },
+                    "created_at": {
+                      "format": "date-time",
+                      "type": "string"
+                    },
+                    "date": {
+                      "format": "date-time",
+                      "type": "string"
+                    },
+                    "description": {
+                      "type": "string"
+                    },
+                    "id": {
+                      "type": "string"
+                    },
+                    "is_fixed": {
+                      "type": "boolean"
+                    },
+                    "type": {
+                      "type": "string"
+                    },
+                    "updated_at": {
+                      "format": "date-time",
+                      "type": "string"
+                    },
+                    "user_id": {
+                      "type": "string"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Retrieve a specific financial entry by its ID.",
+        "tags": [
+          "Entries"
+        ]
+      }
+    },
+    "/raw/discover_data": {
+      "get": {
+        "description": "Discover data structure for connected postgres gateway",
+        "operationId": "discover_data",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "tables_list",
+            "schema": {
+              "description": "Comma separated table names to fetch data samples",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "properties": {
+                      "columns": {
+                        "items": {
+                          "properties": {
+                            "name": {
+                              "type": "string"
+                            },
+                            "type": {
+                              "type": "string"
+                            }
+                          },
+                          "type": "object"
+                        },
+                        "type": "array"
+                      },
+                      "name": {
+                        "type": "string"
+                      },
+                      "row_count": {
+                        "type": "integer"
+                      },
+                      "sample": {
+                        "items": {
+                          "type": "object"
+                        },
+                        "type": "array"
+                      }
+                    },
+                    "type": "object"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Success"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Discover data structure",
+        "tags": [
+          "Raw"
+        ]
+      }
+    },
+    "/raw/list_tables": {
+      "get": {
+        "description": "Return list of tables that available for data in postgres database",
+        "operationId": "list_tables",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "properties": {
+                      "columns": {
+                        "items": {
+                          "properties": {
+                            "name": {
+                              "type": "string"
+                            },
+                            "type": {
+                              "type": "string"
+                            }
+                          },
+                          "type": "object"
+                        },
+                        "type": "array"
+                      },
+                      "name": {
+                        "type": "string"
+                      },
+                      "row_count": {
+                        "type": "integer"
+                      }
+                    },
+                    "type": "object"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Success"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "List available tables",
+        "tags": [
+          "Raw"
+        ]
+      }
+    },
+    "/raw/prepare_query": {
+      "get": {
+        "description": "Verify query and prepare output structure for query in postgres database",
+        "operationId": "prepare_query",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "query",
+            "required": true,
+            "schema": {
+              "description": "SQL query to verify",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "properties": {
+                      "name": {
+                        "type": "string"
+                      },
+                      "type": {
+                        "type": "string"
+                      }
+                    },
+                    "type": "object"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Success"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Verify and prepare query",
+        "tags": [
+          "Raw"
+        ]
+      }
+    },
+    "/raw/query": {
+      "get": {
+        "description": "Query data structure for connected postgres gateway",
+        "operationId": "query",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "query",
+            "required": true,
+            "schema": {
+              "description": "SQL query to execute",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "type": "object"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Success"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Execute query",
+        "tags": [
+          "Raw"
+        ]
+      }
+    },
+    "/reports/monthly-expenses": {
+      "get": {
+        "description": "Fetches a summary of expenses per month for the authenticated user.",
+        "operationId": "get_monthly_expenses",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "user_id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "properties": {
+                      "month": {
+                        "format": "date-time",
+                        "type": "string"
+                      },
+                      "total_expenses": {
+                        "type": "number"
+                      }
+                    },
+                    "type": "object"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Success"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Retrieve monthly expenses for a user.",
+        "tags": [
+          "Reports"
+        ]
+      }
+    },
+    "/reports/monthly-income": {
+      "get": {
+        "description": "Fetches a summary of income per month for the authenticated user.",
+        "operationId": "get_monthly_income",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "user_id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "properties": {
+                      "month": {
+                        "format": "date-time",
+                        "type": "string"
+                      },
+                      "total_income": {
+                        "type": "number"
+                      }
+                    },
+                    "type": "object"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Success"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Retrieve monthly income for a user.",
+        "tags": [
+          "Reports"
+        ]
+      }
+    }
+  },
+  "servers": [
+    {
+      "description": "Local development server",
+      "url": "http://localhost:9090"
+    }
+  ]
+}

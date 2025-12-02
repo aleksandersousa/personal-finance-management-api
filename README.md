@@ -13,6 +13,7 @@ Uma API REST completa para gerenciamento de finanças pessoais, desenvolvida com
 - ✅ **Testes unitários e E2E** com Jest
 - ✅ **Rate limiting** para proteção contra abuso
 - ✅ **Validação** robusta de dados de entrada
+- ✅ **Email Service** com Mailgun para emails transacionais
 
 ## 🎯 Story 1: Add Fixed Income - Implementada
 
@@ -102,6 +103,45 @@ Após iniciar a aplicação, acesse:
 
 - **Swagger UI**: http://localhost:3000/api/v1/docs
 - **API Base URL**: http://localhost:3000/api/v1
+
+## 📧 Email Service
+
+A API inclui integração completa com Mailgun para envio de emails transacionais (boas-vindas, reset de senha, notificações, etc.).
+
+### Quick Start
+
+1. **Configure suas credenciais** no arquivo `.env`:
+
+```bash
+MAILGUN_API_KEY=your_mailgun_api_key_here
+MAILGUN_DOMAIN=your-domain.com
+MAILGUN_API_URL=https://api.mailgun.net/v3
+MAILGUN_FROM_EMAIL=noreply@your-domain.com
+MAILGUN_FROM_NAME=Personal Financial Management
+```
+
+2. **Documentação completa**:
+   - 🚀 [Quick Start Guide](docs/EMAIL_QUICK_START.md) - Guia de configuração rápida
+   - 📖 [Complete Integration Guide](docs/MAILGUN_INTEGRATION.md) - Guia completo com troubleshooting
+   - 💡 [Usage Examples](docs/REGISTER_USER_WITH_EMAIL_EXAMPLE.md) - Exemplos práticos de uso
+
+### Exemplo de Uso
+
+```typescript
+// Inject EmailSender em seu use case
+constructor(
+  @Inject('EmailSender')
+  private readonly emailSender: EmailSender,
+) {}
+
+// Enviar email
+await this.emailSender.send({
+  to: 'user@example.com',
+  subject: 'Welcome!',
+  html: '<h1>Welcome to our platform!</h1>',
+  text: 'Welcome to our platform!',
+});
+```
 
 ## 🧪 Testes e Quality Gates
 
@@ -254,16 +294,19 @@ npm run migration:revert
 
 ### Variáveis de Ambiente
 
-| Variável         | Descrição                       | Padrão                                                       |
-| ---------------- | ------------------------------- | ------------------------------------------------------------ |
-| `DATABASE_URL`   | URL do PostgreSQL               | `postgresql://postgres:postgres@localhost:5432/financial_db` |
-| `NODE_ENV`       | Ambiente da aplicação           | `development`                                                |
-| `PORT`           | Porta da aplicação              | `3000`                                                       |
-| `API_PREFIX`     | Prefixo da API                  | `api/v1`                                                     |
-| `JWT_SECRET`     | Chave secreta para JWT          | `your-jwt-secret-key-here`                                   |
-| `JWT_EXPIRES_IN` | Tempo de expiração do JWT       | `15m`                                                        |
-| `THROTTLE_TTL`   | TTL do rate limiting (segundos) | `60`                                                         |
-| `THROTTLE_LIMIT` | Limite de requisições por TTL   | `10`                                                         |
+| Variável             | Descrição                       | Padrão                                                       |
+| -------------------- | ------------------------------- | ------------------------------------------------------------ |
+| `DATABASE_URL`       | URL do PostgreSQL               | `postgresql://postgres:postgres@localhost:5432/financial_db` |
+| `NODE_ENV`           | Ambiente da aplicação           | `development`                                                |
+| `PORT`               | Porta da aplicação              | `3000`                                                       |
+| `API_PREFIX`         | Prefixo da API                  | `api/v1`                                                     |
+| `JWT_SECRET`         | Chave secreta para JWT          | `your-jwt-secret-key-here`                                   |
+| `JWT_EXPIRES_IN`     | Tempo de expiração do JWT       | `15m`                                                        |
+| `THROTTLE_TTL`       | TTL do rate limiting (segundos) | `60`                                                         |
+| `THROTTLE_LIMIT`     | Limite de requisições por TTL   | `10`                                                         |
+| `MAILGUN_API_KEY`    | Chave da API Mailgun            | `your_mailgun_api_key_here`                                  |
+| `MAILGUN_DOMAIN`     | Domínio verificado no Mailgun   | `your-domain.com`                                            |
+| `MAILGUN_FROM_EMAIL` | Email padrão do remetente       | `noreply@your-domain.com`                                    |
 
 ## 🚀 Deploy
 
