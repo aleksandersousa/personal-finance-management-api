@@ -1,7 +1,13 @@
 import { DbRegisterUserUseCase } from '@data/usecases/db-register-user.usecase';
 import { UserRepositoryStub } from '../mocks/repositories';
 import { MockUserFactory } from '../../domain/mocks/models';
-import { LoggerStub, HasherStub, TokenGeneratorStub } from '../mocks/protocols';
+import {
+  LoggerStub,
+  HasherStub,
+  TokenGeneratorStub,
+  EmailSenderStub,
+  AuthEmailTemplateServiceStub,
+} from '../mocks/protocols';
 
 describe('DbRegisterUserUseCase', () => {
   let sut: DbRegisterUserUseCase;
@@ -9,18 +15,24 @@ describe('DbRegisterUserUseCase', () => {
   let hasherStub: HasherStub;
   let tokenGeneratorStub: TokenGeneratorStub;
   let loggerStub: LoggerStub;
+  let emailSenderStub: EmailSenderStub;
+  let authEmailTemplatesStub: AuthEmailTemplateServiceStub;
 
   beforeEach(() => {
     userRepositoryStub = new UserRepositoryStub();
     hasherStub = new HasherStub();
     tokenGeneratorStub = new TokenGeneratorStub();
     loggerStub = new LoggerStub();
+    emailSenderStub = new EmailSenderStub();
+    authEmailTemplatesStub = new AuthEmailTemplateServiceStub();
 
     sut = new DbRegisterUserUseCase(
       userRepositoryStub,
       hasherStub,
       tokenGeneratorStub,
       loggerStub,
+      emailSenderStub,
+      authEmailTemplatesStub,
     );
   });
 
@@ -29,6 +41,8 @@ describe('DbRegisterUserUseCase', () => {
     hasherStub.clear();
     tokenGeneratorStub.clear();
     loggerStub.clear();
+    emailSenderStub.clear();
+    authEmailTemplatesStub.clear();
   });
 
   describe('execute', () => {

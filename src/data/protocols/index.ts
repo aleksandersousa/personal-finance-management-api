@@ -7,6 +7,8 @@ export * from './category-repository';
 export * from './logger';
 export * from './metrics';
 export * from './cache';
+export * from './email-sender';
+export * from './email-template';
 
 export * from './execute-sql-readonly';
 export * from './summarize-results';
