@@ -1,29 +1,42 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { EmailSender, SendEmailParams, SendEmailResult } from '@data/protocols';
-import { emailConfig } from '@main/config';
+import Mailgun from 'mailgun.js';
 
 @Injectable()
 export class MailgunEmailSender implements EmailSender {
   private readonly logger = new Logger(MailgunEmailSender.name);
-  private readonly apiKey: string;
+  private readonly mailgunClient: any;
   private readonly domain: string;
-  private readonly apiUrl: string;
   private readonly defaultFrom: string;
 
-  constructor() {
-    this.apiKey = emailConfig.mailgun.apiKey;
-    this.domain = emailConfig.mailgun.domain;
-    this.apiUrl = emailConfig.mailgun.apiUrl;
-    this.defaultFrom = `${emailConfig.mailgun.from.name} <${emailConfig.mailgun.from.email}>`;
+  constructor(private readonly configService: ConfigService) {
+    const apiUrl = this.configService.get<string>('MAILGUN_API_URL');
+    const apiKey = this.configService.get<string>('MAILGUN_API_KEY');
+    const fromEmail = this.configService.get<string>('MAILGUN_FROM_EMAIL');
+    const fromName = this.configService.get<string>('MAILGUN_FROM_NAME');
+    this.domain = this.configService.get<string>('MAILGUN_DOMAIN');
+
+    this.defaultFrom = `${fromName} <${fromEmail}>`;
+
+    const mailgun = new Mailgun(FormData);
+    this.mailgunClient = mailgun.client({
+      username: 'api',
+      key: apiKey,
+      url: apiUrl,
+    });
   }
 
   async send(params: SendEmailParams): Promise<SendEmailResult> {
     try {
       this.logger.log(`Sending email to: ${params.to}`);
 
-      const formData = this.prepareFormData(params);
+      const messageData = this.prepareMessageData(params);
 
-      const response = await this.sendToMailgun(formData);
+      const response = await this.mailgunClient.messages.create(
+        this.domain,
+        messageData,
+      );
 
       this.logger.log(`Email sent successfully. Message ID: ${response.id}`);
 
@@ -40,74 +53,50 @@ export class MailgunEmailSender implements EmailSender {
     }
   }
 
-  private prepareFormData(params: SendEmailParams): FormData {
-    const formData = new FormData();
-
-    const from = params.from || this.defaultFrom;
-    formData.append('from', from);
-
-    const toAddresses = Array.isArray(params.to) ? params.to : [params.to];
-    toAddresses.forEach(to => formData.append('to', to));
-
-    formData.append('subject', params.subject);
+  private prepareMessageData(params: SendEmailParams): any {
+    const messageData: any = {
+      from: params.from || this.defaultFrom,
+      to: Array.isArray(params.to) ? params.to : [params.to],
+      subject: params.subject,
+    };
 
     if (params.text) {
-      formData.append('text', params.text);
+      messageData.text = params.text;
     }
+
     if (params.html) {
-      formData.append('html', params.html);
+      messageData.html = params.html;
     }
 
     if (params.cc) {
-      const ccAddresses = Array.isArray(params.cc) ? params.cc : [params.cc];
-      ccAddresses.forEach(cc => formData.append('cc', cc));
+      messageData.cc = Array.isArray(params.cc) ? params.cc : [params.cc];
     }
 
     if (params.bcc) {
-      const bccAddresses = Array.isArray(params.bcc)
-        ? params.bcc
-        : [params.bcc];
-      bccAddresses.forEach(bcc => formData.append('bcc', bcc));
+      messageData.bcc = Array.isArray(params.bcc) ? params.bcc : [params.bcc];
     }
 
     if (params.replyTo) {
-      formData.append('h:Reply-To', params.replyTo);
+      messageData['h:Reply-To'] = params.replyTo;
     }
 
     if (params.attachments && params.attachments.length > 0) {
-      params.attachments.forEach(attachment => {
-        const content =
+      messageData.attachment = params.attachments.map(attachment => {
+        // Convert content to Buffer if needed
+        const data =
           typeof attachment.content === 'string'
-            ? attachment.content
-            : new Uint8Array(attachment.content);
-        const blob = new Blob([content], {
-          type: attachment.contentType || 'application/octet-stream',
-        });
-        formData.append('attachment', blob, attachment.filename);
+            ? Buffer.from(attachment.content)
+            : Buffer.isBuffer(attachment.content)
+              ? attachment.content
+              : Buffer.from(attachment.content);
+
+        return {
+          filename: attachment.filename,
+          data: data,
+        };
       });
     }
 
-    return formData;
-  }
-
-  private async sendToMailgun(formData: FormData): Promise<any> {
-    const url = `${this.apiUrl}/${this.domain}/messages`;
-
-    const auth = Buffer.from(`api:${this.apiKey}`).toString('base64');
-
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: {
-        Authorization: `Basic ${auth}`,
-      },
-      body: formData,
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(`Mailgun API error: ${response.status} - ${errorText}`);
-    }
-
-    return await response.json();
+    return messageData;
   }
 }

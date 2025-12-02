@@ -16,17 +16,19 @@ export abstract class BaseEmailTemplateService {
     let templatesPath: string;
 
     if (process.env.NODE_ENV === 'production' || __dirname.includes('dist')) {
+      // When running from dist, resolve to source templates directory
+      // Use process.cwd() to get project root, then navigate to source templates
+      const projectRoot = process.cwd();
       templatesPath = path.resolve(
-        __dirname,
-        '..',
-        '..',
-        '..',
+        projectRoot,
+        'src',
         'infra',
         'email',
         'templates',
         templateSubdirectory,
       );
     } else {
+      // When running from source, templates are one level up
       templatesPath = path.resolve(
         __dirname,
         '..',
@@ -37,7 +39,7 @@ export abstract class BaseEmailTemplateService {
 
     this.engine = new Liquid({
       root: templatesPath,
-      extname: '.liquid',
+      // Don't set extname since we're passing full filenames with .liquid extension
       cache: process.env.NODE_ENV === 'production',
     });
 
@@ -57,8 +59,8 @@ export abstract class BaseEmailTemplateService {
       };
 
       const [html, text] = await Promise.all([
-        this.engine.renderFile(templateName, templateData),
-        this.engine.renderFile(`${templateName}.txt`, templateData),
+        this.engine.renderFile(`${templateName}.liquid`, templateData),
+        this.engine.renderFile(`${templateName}.txt.liquid`, templateData),
       ]);
 
       return {
