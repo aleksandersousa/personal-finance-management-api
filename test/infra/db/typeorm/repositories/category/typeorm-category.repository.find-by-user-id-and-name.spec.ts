@@ -163,7 +163,9 @@ describe('TypeormCategoryRepository - findByUserIdAndName', () => {
 
     it('should log and rethrow on error', async () => {
       mockTypeormRepository.findOne.mockRejectedValue('err');
-      await expect(repository.findByUserIdAndName('u', 'n')).rejects.toBe('err');
+      await expect(repository.findByUserIdAndName('u', 'n')).rejects.toBe(
+        'err',
+      );
     });
   });
 });

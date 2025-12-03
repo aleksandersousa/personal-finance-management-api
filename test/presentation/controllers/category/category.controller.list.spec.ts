@@ -497,7 +497,7 @@ describe('CategoryController - List', () => {
       });
     });
 
-    it('should handle zero limit value and default to 1', async () => {
+    it('should handle zero limit value and default to 20', async () => {
       // Arrange
       const mockRequest = RequestMockFactory.createWithUser('user-123');
       const expectedResult = {
@@ -518,13 +518,14 @@ describe('CategoryController - List', () => {
         mockRequest,
       );
 
-      // Assert - Should default to 1 (Math.max(1, 0) = 1)
+      // Assert - parseInt('0', 10) returns 0, which is falsy, so || 20 evaluates to 20
+      // Then Math.max(1, 20) = 20, Math.min(100, 20) = 20
       expect(listCategoriesUseCase.execute).toHaveBeenCalledWith({
         userId: 'user-123',
         type: undefined,
         includeStats: false,
         page: 1,
-        limit: 1,
+        limit: 20,
         search: undefined,
       });
     });

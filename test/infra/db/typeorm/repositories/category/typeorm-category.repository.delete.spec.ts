@@ -196,7 +196,10 @@ describe('TypeormCategoryRepository - delete', () => {
     });
 
     it('delete catch path when delete throws after found', async () => {
-      mockTypeormRepository.findOne.mockResolvedValue({ id: 'id', userId: 'u' } as any);
+      mockTypeormRepository.findOne.mockResolvedValue({
+        id: 'id',
+        userId: 'u',
+      } as any);
       mockTypeormRepository.delete.mockRejectedValue('oops');
       await expect(repository.delete('id')).rejects.toBe('oops');
     });

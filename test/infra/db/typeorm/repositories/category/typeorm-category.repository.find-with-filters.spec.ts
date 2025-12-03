@@ -2,8 +2,8 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { Repository, SelectQueryBuilder } from 'typeorm';
 import { TypeormCategoryRepository } from '@infra/db/typeorm/repositories/typeorm-category.repository';
 import { CategoryEntity } from '@infra/db/typeorm/entities/category.entity';
-import { LoggerSpy } from '../../../../mocks/logging/logger.spy';
-import { MetricsSpy } from '../../../../mocks/metrics/metrics.spy';
+import { LoggerSpy } from '@test/infra/mocks/logging/logger.spy';
+import { MetricsSpy } from '@test/infra/mocks/metrics/metrics.spy';
 import {
   CategoryType,
   CategoryListFilters,
