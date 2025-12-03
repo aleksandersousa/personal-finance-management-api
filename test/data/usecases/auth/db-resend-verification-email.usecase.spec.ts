@@ -2,14 +2,14 @@ import { DbResendVerificationEmailUseCase } from '@data/usecases/db-resend-verif
 import {
   UserRepositoryStub,
   EmailVerificationTokenRepositoryStub,
-} from '../mocks/repositories';
-import { MockUserFactory } from '../../domain/mocks/models';
+} from '@test/data/mocks/repositories';
+import { MockUserFactory } from '@test/domain/mocks/models';
 import {
   LoggerStub,
   EmailSenderStub,
   AuthEmailTemplateServiceStub,
   VerificationTokenGeneratorStub,
-} from '../mocks/protocols';
+} from '@test/data/mocks/protocols';
 
 describe('DbResendVerificationEmailUseCase', () => {
   let sut: DbResendVerificationEmailUseCase;

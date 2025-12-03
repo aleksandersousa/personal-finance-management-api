@@ -2,13 +2,13 @@ import { DbVerifyEmailUseCase } from '@data/usecases/db-verify-email.usecase';
 import {
   EmailVerificationTokenRepositoryStub,
   UserRepositoryStub,
-} from '../mocks/repositories';
-import { MockUserFactory } from '../../domain/mocks/models';
+} from '@test/data/mocks/repositories';
+import { MockUserFactory } from '@test/domain/mocks/models';
 import {
   LoggerStub,
   EmailSenderStub,
   AuthEmailTemplateServiceStub,
-} from '../mocks/protocols';
+} from '@test/data/mocks/protocols';
 import { EmailVerificationTokenModel } from '@domain/models/email-verification-token.model';
 
 describe('DbVerifyEmailUseCase', () => {

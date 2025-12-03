@@ -1,16 +1,16 @@
-import { DbRegisterUserUseCase } from '@data/usecases/db-register-user.usecase';
+import { DbRegisterUserUseCase } from '@data/usecases';
 import {
   UserRepositoryStub,
   EmailVerificationTokenRepositoryStub,
-} from '../mocks/repositories';
-import { MockUserFactory } from '../../domain/mocks/models';
+} from '@test/data/mocks/repositories';
+import { MockUserFactory } from '@test/domain/mocks/models';
 import {
   LoggerStub,
   HasherStub,
   EmailSenderStub,
   AuthEmailTemplateServiceStub,
   VerificationTokenGeneratorStub,
-} from '../mocks/protocols';
+} from '@test/data/mocks/protocols';
 
 describe('DbRegisterUserUseCase', () => {
   let sut: DbRegisterUserUseCase;

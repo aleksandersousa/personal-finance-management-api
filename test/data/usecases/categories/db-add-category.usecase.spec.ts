@@ -1,10 +1,10 @@
-import { DbAddCategoryUseCase } from '../../../src/data/usecases/db-add-category.usecase';
-import { CategoryRepositoryStub } from '../mocks/repositories/category-repository.stub';
+import { DbAddCategoryUseCase } from '@data/usecases/db-add-category.usecase';
+import { CategoryRepositoryStub } from '@test/data/mocks/repositories';
 import {
   MockCategoryFactory,
   MockCategoryCreateDataFactory,
-} from '../../domain/mocks/models/category.mock';
-import { CategoryType } from '../../../src/domain/models/category.model';
+} from '@test/domain/mocks/models';
+import { CategoryType } from '@domain/models/category.model';
 
 describe('DbAddCategoryUseCase', () => {
   let useCase: DbAddCategoryUseCase;

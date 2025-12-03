@@ -1,9 +1,7 @@
-import { DbGetMonthlySummaryUseCase } from '../../../src/data/usecases/db-get-monthly-summary.usecase';
-import { EntryRepository } from '../../../src/data/protocols/repositories/entry-repository';
-import { UserRepository } from '../../../src/data/protocols/repositories/user-repository';
-import { Logger } from '../../../src/data/protocols/logger';
-import { Metrics } from '../../../src/data/protocols/metrics';
-import { UserModel } from '../../../src/domain/models/user.model';
+import { DbGetMonthlySummaryUseCase } from '@data/usecases';
+import { EntryRepository, UserRepository } from '@data/protocols/repositories';
+import { Logger, Metrics } from '@data/protocols';
+import { UserModel } from '@domain/models';
 
 describe('DbGetMonthlySummaryUseCase', () => {
   let sut: DbGetMonthlySummaryUseCase;

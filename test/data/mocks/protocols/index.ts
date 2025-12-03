@@ -5,3 +5,4 @@ export * from './verification-token-generator.stub';
 export * from './id-generator.stub';
 export * from './email-sender.stub';
 export * from './auth-email-template-service.stub';
+export * from './cache.stub';

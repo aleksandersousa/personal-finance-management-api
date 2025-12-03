@@ -1,6 +1,6 @@
-import { DbListCategoriesUseCase } from '../../../src/data/usecases/db-list-categories.usecase';
-import { CategoryRepositoryStub } from '../mocks/repositories/category-repository.stub';
-import { MockCategoryFactory } from '../../domain/mocks/models/category.mock';
+import { DbListCategoriesUseCase } from '@data/usecases';
+import { CategoryRepositoryStub } from '@test/data/mocks/repositories';
+import { MockCategoryFactory } from '@test/domain/mocks/models';
 import { CategoryType } from '@domain/models/category.model';
 
 describe('DbListCategoriesUseCase', () => {

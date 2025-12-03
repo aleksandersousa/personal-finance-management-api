@@ -1,6 +1,6 @@
-import { DbDeleteCategoryUseCase } from '../../../src/data/usecases/db-delete-category.usecase';
-import { CategoryRepositoryStub } from '../mocks/repositories/category-repository.stub';
-import { MockCategoryFactory } from '../../domain/mocks/models/category.mock';
+import { DbDeleteCategoryUseCase } from '@data/usecases';
+import { CategoryRepositoryStub } from '@test/data/mocks/repositories';
+import { MockCategoryFactory } from '@test/domain/mocks/models';
 
 describe('DbDeleteCategoryUseCase', () => {
   let useCase: DbDeleteCategoryUseCase;

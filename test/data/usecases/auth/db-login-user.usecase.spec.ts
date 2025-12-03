@@ -1,7 +1,11 @@
 import { DbLoginUserUseCase } from '@data/usecases/db-login-user.usecase';
-import { UserRepositoryStub } from '../mocks/repositories';
-import { HasherStub, TokenGeneratorStub, LoggerStub } from '../mocks/protocols';
-import { MockUserFactory } from '../../domain/mocks/models';
+import { UserRepositoryStub } from '@test/data/mocks/repositories';
+import {
+  HasherStub,
+  TokenGeneratorStub,
+  LoggerStub,
+} from '@test/data/mocks/protocols';
+import { MockUserFactory } from '@test/domain/mocks/models';
 
 describe('DbLoginUserUseCase', () => {
   let sut: DbLoginUserUseCase;

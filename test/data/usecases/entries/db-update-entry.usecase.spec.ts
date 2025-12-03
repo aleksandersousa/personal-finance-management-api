@@ -1,10 +1,14 @@
-import { DbUpdateEntryUseCase } from '../../../src/data/usecases/db-update-entry.usecase';
-import { EntryRepositoryStub } from '../mocks/repositories/entry-repository.stub';
-import { UserRepositoryStub } from '../mocks/repositories/user-repository.stub';
-import { CategoryRepositoryStub } from '../mocks/repositories/category-repository.stub';
-import { MockEntryFactory } from '../../domain/mocks/models/entry.mock';
-import { MockUserFactory } from '../../domain/mocks/models/user.mock';
-import { MockCategoryFactory } from '../../domain/mocks/models/category.mock';
+import { DbUpdateEntryUseCase } from '@data/usecases';
+import {
+  EntryRepositoryStub,
+  UserRepositoryStub,
+  CategoryRepositoryStub,
+} from '@test/data/mocks/repositories';
+import {
+  MockEntryFactory,
+  MockUserFactory,
+  MockCategoryFactory,
+} from '@test/domain/mocks/models';
 
 describe('DbUpdateEntryUseCase', () => {
   let useCase: DbUpdateEntryUseCase;

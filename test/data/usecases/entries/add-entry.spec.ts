@@ -1,12 +1,16 @@
-import { DbAddEntryUseCase } from '@data/usecases/db-add-entry.usecase';
-import { EntryRepositoryStub } from '../mocks/repositories/entry-repository.stub';
-import { UserRepositoryStub } from '../mocks/repositories/user-repository.stub';
-import { CategoryRepositoryStub } from '../mocks/repositories/category-repository.stub';
-import { IdGeneratorStub } from '../mocks/protocols/id-generator.stub';
-import { MockEntryFactory } from '../../domain/mocks/models/entry.mock';
-import { MockUserFactory } from '../../domain/mocks/models/user.mock';
-import { MockCategoryFactory } from '../../domain/mocks/models/category.mock';
-import { CategoryType } from '@domain/models/category.model';
+import { DbAddEntryUseCase } from '@data/usecases';
+import {
+  CategoryRepositoryStub,
+  EntryRepositoryStub,
+  UserRepositoryStub,
+} from '@test/data/mocks/repositories';
+import { IdGeneratorStub } from '@test/data/mocks/protocols';
+import {
+  MockEntryFactory,
+  MockUserFactory,
+  MockCategoryFactory,
+} from '@test/domain/mocks/models';
+import { CategoryType } from '@domain/models';
 
 describe('DbAddEntryUseCase', () => {
   let sut: DbAddEntryUseCase;

@@ -1,9 +1,10 @@
-import { DbGetEntriesMonthsYearsUseCase } from '@data/usecases/db-get-entries-months-years.usecase';
-import { EntryRepositoryStub } from '../mocks/repositories/entry-repository.stub';
-import { UserRepositoryStub } from '../mocks/repositories/user-repository.stub';
-import { MockUserFactory } from '../../domain/mocks/models/user.mock';
-import { MockEntryFactory } from '../../domain/mocks/models/entry.mock';
-import { LoggerStub } from '../mocks/protocols';
+import { DbGetEntriesMonthsYearsUseCase } from '@data/usecases';
+import {
+  EntryRepositoryStub,
+  UserRepositoryStub,
+} from '@test/data/mocks/repositories';
+import { MockUserFactory, MockEntryFactory } from '@test/domain/mocks/models';
+import { LoggerStub } from '@test/data/mocks/protocols';
 
 describe('DbGetEntriesMonthsYearsUseCase', () => {
   let sut: DbGetEntriesMonthsYearsUseCase;

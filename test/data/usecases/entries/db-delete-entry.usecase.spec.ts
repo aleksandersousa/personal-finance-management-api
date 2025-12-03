@@ -1,6 +1,6 @@
-import { DbDeleteEntryUseCase } from '../../../src/data/usecases/db-delete-entry.usecase';
-import { EntryRepositoryStub } from '../mocks/repositories/entry-repository.stub';
-import { MockEntryFactory } from '../../domain/mocks/models/entry.mock';
+import { DbDeleteEntryUseCase } from '@data/usecases';
+import { EntryRepositoryStub } from '@test/data/mocks/repositories';
+import { MockEntryFactory } from '@test/domain/mocks/models';
 
 describe('DbDeleteEntryUseCase', () => {
   let useCase: DbDeleteEntryUseCase;

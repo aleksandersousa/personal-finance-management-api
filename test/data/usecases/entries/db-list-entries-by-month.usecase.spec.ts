@@ -1,8 +1,6 @@
-import { DbListEntriesByMonthUseCase } from '@data/usecases/db-list-entries-by-month.usecase';
-import { EntryRepository } from '@/data/protocols/repositories/entry-repository';
-import { UserRepository } from '@/data/protocols/repositories/user-repository';
-import { EntryModel } from '@domain/models/entry.model';
-import { UserModel } from '@domain/models/user.model';
+import { DbListEntriesByMonthUseCase } from '@data/usecases';
+import { EntryRepository, UserRepository } from '@data/protocols/repositories';
+import { EntryModel, UserModel } from '@domain/models';
 
 describe('DbListEntriesByMonthUseCase', () => {
   let sut: DbListEntriesByMonthUseCase;

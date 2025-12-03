@@ -1,11 +1,11 @@
-import { DbPredictCashFlowUseCase } from '../../../src/data/usecases/db-predict-cash-flow.usecase';
+import { DbPredictCashFlowUseCase } from '@data/usecases';
 import { PredictCashFlowData } from '@domain/usecases/predict-cash-flow.usecase';
-import { EntryRepositoryStub } from '../mocks/repositories/entry-repository.stub';
-import { LoggerSpy } from '../../infra/mocks/logging/logger.spy';
-import { MetricsSpy } from '../../infra/mocks/metrics/metrics.spy';
-import { MockEntryFactory } from '../../domain/mocks/models/entry.mock';
-import { ForecastCacheStub } from '../mocks/protocols/cache.stub';
-import { MockCashFlowForecastFactory } from '../../domain/mocks/usecases/predict-cash-flow.mock';
+import { EntryRepositoryStub } from '@test/data/mocks/repositories';
+import { LoggerSpy } from '@test/infra/mocks/logging/logger.spy';
+import { MetricsSpy } from '@test/infra/mocks/metrics/metrics.spy';
+import { MockEntryFactory } from '@test/domain/mocks/models';
+import { ForecastCacheStub } from '@test/data/mocks/protocols';
+import { MockCashFlowForecastFactory } from '@test/domain/mocks/usecases/predict-cash-flow.mock';
 
 describe('DbPredictCashFlowUseCase', () => {
   let useCase: DbPredictCashFlowUseCase;
