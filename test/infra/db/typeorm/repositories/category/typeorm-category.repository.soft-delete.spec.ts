@@ -137,5 +137,10 @@ describe('TypeormCategoryRepository - softDelete', () => {
       // Verify error metrics
       expect(metricsSpy.hasRecordedMetric('api_errors_total')).toBe(true);
     });
+
+    it('should log and rethrow on error', async () => {
+      mockTypeormRepository.softDelete.mockRejectedValue('err');
+      await expect(repository.softDelete('id')).rejects.toBe('err');
+    });
   });
 });

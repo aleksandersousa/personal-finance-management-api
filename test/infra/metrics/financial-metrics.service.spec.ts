@@ -1,5 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { FinancialMetricsService } from '../../../src/infra/metrics/financial-metrics.service';
+import { FinancialMetricsService } from '@infra/metrics/financial-metrics.service';
 import { Counter, Gauge, Histogram, register } from 'prom-client';
 
 // Mock prom-client

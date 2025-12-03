@@ -160,5 +160,12 @@ describe('TypeormCategoryRepository - findByUserIdAndName', () => {
         'category_repository_find_by_user_id_and_name',
       );
     });
+
+    it('should log and rethrow on error', async () => {
+      mockTypeormRepository.findOne.mockRejectedValue('err');
+      await expect(repository.findByUserIdAndName('u', 'n')).rejects.toBe(
+        'err',
+      );
+    });
   });
 });

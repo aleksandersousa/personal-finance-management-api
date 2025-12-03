@@ -1,4 +1,4 @@
-import { TraceContextMiddleware } from '../../../src/infra/middleware/trace-context.middleware';
+import { TraceContextMiddleware } from '@infra/middleware/trace-context.middleware';
 import { Request, Response, NextFunction } from 'express';
 
 describe('TraceContextMiddleware', () => {

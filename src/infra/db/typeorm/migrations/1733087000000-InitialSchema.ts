@@ -48,6 +48,10 @@ export class InitialSchema1733087000000 implements MigrationInterface {
       `${SCHEMA_NAME}.${TABLE_NAMES.EMAIL_VERIFICATION_TOKENS}`,
       true,
     );
+    await queryRunner.dropTable(
+      `${SCHEMA_NAME}.${TABLE_NAMES.PASSWORD_RESET_TOKENS}`,
+      true,
+    );
     await queryRunner.dropTable(`${SCHEMA_NAME}.${TABLE_NAMES.USERS}`, true);
 
     // Drop Schema
@@ -336,6 +340,58 @@ export class InitialSchema1733087000000 implements MigrationInterface {
       }),
       true,
     );
+
+    // Password Reset Tokens Table
+    await queryRunner.createTable(
+      new Table({
+        schema: SCHEMA_NAME,
+        name: TABLE_NAMES.PASSWORD_RESET_TOKENS,
+        columns: [
+          {
+            name: 'id',
+            type: 'uuid',
+            isPrimary: true,
+            default: 'public.uuid_generate_v4()',
+          },
+          {
+            name: 'user_id',
+            type: 'uuid',
+            isNullable: false,
+          },
+          {
+            name: 'token',
+            type: 'varchar',
+            isNullable: false,
+            isUnique: true,
+          },
+          {
+            name: 'expires_at',
+            type: 'timestamp',
+            isNullable: false,
+          },
+          {
+            name: 'used_at',
+            type: 'timestamp',
+            isNullable: true,
+          },
+          {
+            name: 'created_at',
+            type: 'timestamp',
+            default: 'now()',
+          },
+        ],
+        foreignKeys: [
+          new TableForeignKey({
+            name: 'FK_password_reset_tokens_users',
+            columnNames: ['user_id'],
+            referencedColumnNames: ['id'],
+            referencedTableName: `${SCHEMA_NAME}.${TABLE_NAMES.USERS}`,
+            onDelete: 'CASCADE',
+          }),
+        ],
+      }),
+      true,
+    );
   }
 
   private async createIndices(queryRunner: QueryRunner): Promise<void> {
@@ -385,6 +441,20 @@ export class InitialSchema1733087000000 implements MigrationInterface {
       `${SCHEMA_NAME}.${TABLE_NAMES.EMAIL_VERIFICATION_TOKENS}`,
       new TableIndex({
         name: 'IDX_email_verification_tokens_token',
+        columnNames: ['token'],
+      }),
+    );
+    await queryRunner.createIndex(
+      `${SCHEMA_NAME}.${TABLE_NAMES.PASSWORD_RESET_TOKENS}`,
+      new TableIndex({
+        name: 'IDX_password_reset_tokens_user_id',
+        columnNames: ['user_id'],
+      }),
+    );
+    await queryRunner.createIndex(
+      `${SCHEMA_NAME}.${TABLE_NAMES.PASSWORD_RESET_TOKENS}`,
+      new TableIndex({
+        name: 'IDX_password_reset_tokens_token',
         columnNames: ['token'],
       }),
     );

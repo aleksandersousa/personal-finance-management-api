@@ -1,5 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { ContextAwareLoggerService } from '../../../src/infra/logging/context-aware-logger.service';
+import { ContextAwareLoggerService } from '@infra/logging/context-aware-logger.service';
 import * as winston from 'winston';
 
 // Mock winston

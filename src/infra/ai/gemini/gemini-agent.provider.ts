@@ -1,5 +1,5 @@
 import type { FetchDataForQuestion } from '@/data/protocols';
-import { SqlRow } from '@domain/models/sql-agent.model';
+import { SqlRow } from '@domain/models';
 import * as fs from 'fs';
 import * as defaultApiSpec from '../centralmind/gateway-spec.json';
 

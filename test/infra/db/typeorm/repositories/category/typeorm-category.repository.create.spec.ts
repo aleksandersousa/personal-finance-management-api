@@ -215,5 +215,20 @@ describe('TypeormCategoryRepository - create', () => {
         endpoint: 'category_repository_create',
       });
     });
+
+    it('should rethrow non-Error exception and log/metric', async () => {
+      mockTypeormRepository.create.mockImplementation(() => ({}) as any);
+      (mockTypeormRepository.save as any).mockRejectedValue('db-failure');
+      await expect(
+        repository.create({
+          name: 'n',
+          description: 'd',
+          type: 'income' as any,
+          color: '#',
+          icon: 'i',
+          userId: 'u',
+        }),
+      ).rejects.toBe('db-failure');
+    });
   });
 });

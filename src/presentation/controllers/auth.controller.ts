@@ -17,16 +17,21 @@ import {
   ApiTags,
   ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
+import { Throttle } from '@nestjs/throttler';
 import { RegisterUserUseCase } from '@domain/usecases/register-user.usecase';
 import { LoginUserUseCase } from '@domain/usecases/login-user.usecase';
 import { RefreshTokenUseCase } from '@domain/usecases/refresh-token.usecase';
 import { VerifyEmailUseCase } from '@domain/usecases/verify-email.usecase';
 import { ResendVerificationEmailUseCase } from '@domain/usecases/resend-verification-email.usecase';
+import { RequestPasswordResetUseCase } from '@domain/usecases/request-password-reset.usecase';
+import { ResetPasswordUseCase } from '@domain/usecases/reset-password.usecase';
 import { RegisterUserDto } from '../dtos/register-user.dto';
 import { LoginUserDto } from '../dtos/login-user.dto';
 import { RefreshTokenDto } from '../dtos/refresh-token.dto';
 import { VerifyEmailDto } from '../dtos/auth/verify-email.dto';
 import { ResendVerificationDto } from '../dtos/auth/resend-verification.dto';
+import { RequestPasswordResetDto } from '../dtos/auth/request-password-reset.dto';
+import { ResetPasswordDto } from '../dtos/auth/reset-password.dto';
 import { RegisterResponseDto } from '../dtos/register-response.dto';
 import { LoginResponseDto } from '../dtos/login-response.dto';
 import { RefreshTokenResponseDto } from '../dtos/refresh-token-response.dto';
@@ -45,6 +50,10 @@ export class AuthController {
     private readonly verifyEmailUseCase: VerifyEmailUseCase,
     @Inject('ResendVerificationEmailUseCase')
     private readonly resendVerificationEmailUseCase: ResendVerificationEmailUseCase,
+    @Inject('RequestPasswordResetUseCase')
+    private readonly requestPasswordResetUseCase: RequestPasswordResetUseCase,
+    @Inject('ResetPasswordUseCase')
+    private readonly resetPasswordUseCase: ResetPasswordUseCase,
     @Inject('Logger')
     private readonly logger: Logger,
   ) {}
@@ -224,6 +233,69 @@ export class AuthController {
       };
     } catch (error) {
       throw new UnauthorizedException('Invalid refresh token');
+    }
+  }
+
+  @Post('forgot-password')
+  @HttpCode(HttpStatus.OK)
+  @Throttle({ default: { limit: 3, ttl: 3600000 } }) // 3 requests per hour
+  @ApiOperation({ summary: 'Request password reset' })
+  @ApiResponse({
+    status: 200,
+    description:
+      'Se o email existe e está verificado, um link de redefinição de senha foi enviado.',
+  })
+  @ApiBadRequestResponse({
+    description: 'Invalid email format or email not verified',
+  })
+  @ApiBody({ type: RequestPasswordResetDto })
+  async forgotPassword(
+    @Body() requestPasswordResetDto: RequestPasswordResetDto,
+  ) {
+    try {
+      const result = await this.requestPasswordResetUseCase.execute({
+        email: requestPasswordResetDto.email,
+      });
+
+      return {
+        success: result.success,
+        message: result.message,
+      };
+    } catch (error) {
+      this.logger.error(
+        'Password reset request failed',
+        error.stack,
+        'AuthController',
+      );
+      throw new BadRequestException(error.message);
+    }
+  }
+
+  @Post('reset-password')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Reset password with token' })
+  @ApiResponse({
+    status: 200,
+    description: 'Password reset successfully',
+  })
+  @ApiBadRequestResponse({
+    description: 'Invalid, expired, or already used token, or weak password',
+  })
+  @ApiBody({ type: ResetPasswordDto })
+  async resetPassword(@Body() resetPasswordDto: ResetPasswordDto) {
+    try {
+      const result = await this.resetPasswordUseCase.execute({
+        token: resetPasswordDto.token,
+        newPassword: resetPasswordDto.newPassword,
+      });
+
+      return {
+        success: result.success,
+        message: result.message,
+      };
+    } catch (error) {
+      this.logger.error('Password reset failed', error.stack, 'AuthController');
+      throw new BadRequestException(error.message);
     }
   }
 }

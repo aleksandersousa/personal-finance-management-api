@@ -33,6 +33,7 @@ module.exports = {
     '^@infra/(.*)$': '<rootDir>/src/infra/$1',
     '^@presentation/(.*)$': '<rootDir>/src/presentation/$1',
     '^@main/(.*)$': '<rootDir>/src/main/$1',
+    '^@test/(.*)$': '<rootDir>/test/$1',
   },
   setupFilesAfterEnv: ['<rootDir>/test/setup.ts'],
   testPathIgnorePatterns: ['/node_modules/', '/dist/'],

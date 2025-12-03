@@ -114,6 +114,13 @@ export class AuthEmailTemplateServiceStub implements AuthEmailTemplateService {
   }
 
   /**
+   * Check if password reset email was rendered
+   */
+  wasPasswordResetEmailRendered(): boolean {
+    return this.renderedTemplates.some(t => t.type === 'password-reset');
+  }
+
+  /**
    * Get last rendered template
    */
   getLastRenderedTemplate():

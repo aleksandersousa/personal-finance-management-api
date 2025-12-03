@@ -31,11 +31,6 @@ describe('TypeormEntryRepository - Create Entry', () => {
     mockRepository = {
       create: jest.fn(),
       save: jest.fn(),
-      findOne: jest.fn(),
-      find: jest.fn(),
-      update: jest.fn(),
-      delete: jest.fn(),
-      createQueryBuilder: jest.fn(),
     } as any;
 
     mockLogger = {

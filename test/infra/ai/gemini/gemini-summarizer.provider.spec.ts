@@ -1,5 +1,5 @@
-import { GeminiSummarizerProvider } from '@infra/ai/gemini/gemini-summarizer.provider';
-import { SqlRow } from '@domain/models/sql-agent.model';
+import { GeminiSummarizerProvider } from '@infra/ai/gemini';
+import { SqlRow } from '@domain/models';
 
 // Mock fetch globally
 global.fetch = jest.fn();

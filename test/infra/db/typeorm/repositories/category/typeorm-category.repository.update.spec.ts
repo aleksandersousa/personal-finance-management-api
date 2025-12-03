@@ -267,5 +267,18 @@ describe('TypeormCategoryRepository - update', () => {
       // Verify error metrics
       expect(metricsSpy.hasRecordedMetric('api_errors_total')).toBe(true);
     });
+
+    it('should handle non-Error rejection from update call', async () => {
+      (mockTypeormRepository.update as any).mockRejectedValue('boom');
+      await expect(repository.update('id', { name: 'n' })).rejects.toBe('boom');
+    });
+
+    it('update catch path when findOne throws after update', async () => {
+      mockTypeormRepository.update.mockResolvedValue({ affected: 1 } as any);
+      mockTypeormRepository.findOne.mockRejectedValue(new Error('db err'));
+      await expect(repository.update('id', { name: 'n' })).rejects.toThrow(
+        'db err',
+      );
+    });
   });
 });
