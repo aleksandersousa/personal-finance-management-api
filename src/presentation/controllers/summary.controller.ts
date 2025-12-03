@@ -16,9 +16,9 @@ import {
   ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
 import { GetMonthlySummaryUseCase } from '@domain/usecases/get-monthly-summary.usecase';
-import { MonthlySummaryResponseDto } from '../dtos/monthly-summary-response.dto';
-import { JwtAuthGuard } from '../guards/jwt-auth.guard';
-import { User } from '../decorators/user.decorator';
+import { MonthlySummaryResponseDto } from '@presentation/dtos';
+import { JwtAuthGuard } from '@presentation/guards/jwt-auth.guard';
+import { User } from '@presentation/decorators/user.decorator';
 import { Logger } from '@data/protocols/logger';
 import { Metrics } from '@data/protocols/metrics';
 

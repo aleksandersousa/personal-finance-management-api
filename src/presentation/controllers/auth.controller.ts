@@ -25,16 +25,18 @@ import { VerifyEmailUseCase } from '@domain/usecases/verify-email.usecase';
 import { ResendVerificationEmailUseCase } from '@domain/usecases/resend-verification-email.usecase';
 import { RequestPasswordResetUseCase } from '@domain/usecases/request-password-reset.usecase';
 import { ResetPasswordUseCase } from '@domain/usecases/reset-password.usecase';
-import { RegisterUserDto } from '../dtos/register-user.dto';
-import { LoginUserDto } from '../dtos/login-user.dto';
-import { RefreshTokenDto } from '../dtos/refresh-token.dto';
-import { VerifyEmailDto } from '../dtos/auth/verify-email.dto';
-import { ResendVerificationDto } from '../dtos/auth/resend-verification.dto';
-import { RequestPasswordResetDto } from '../dtos/auth/request-password-reset.dto';
-import { ResetPasswordDto } from '../dtos/auth/reset-password.dto';
-import { RegisterResponseDto } from '../dtos/register-response.dto';
-import { LoginResponseDto } from '../dtos/login-response.dto';
-import { RefreshTokenResponseDto } from '../dtos/refresh-token-response.dto';
+import {
+  RegisterUserDto,
+  LoginUserDto,
+  RefreshTokenDto,
+  VerifyEmailDto,
+  ResendVerificationDto,
+  RequestPasswordResetDto,
+  ResetPasswordDto,
+  RegisterResponseDto,
+  LoginResponseDto,
+  RefreshTokenResponseDto,
+} from '../dtos';
 
 @ApiTags('auth')
 @Controller('auth')

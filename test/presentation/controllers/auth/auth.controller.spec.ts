@@ -8,12 +8,14 @@ import { VerifyEmailUseCase } from '@domain/usecases/verify-email.usecase';
 import { ResendVerificationEmailUseCase } from '@domain/usecases/resend-verification-email.usecase';
 import { RequestPasswordResetUseCase } from '@domain/usecases/request-password-reset.usecase';
 import { ResetPasswordUseCase } from '@domain/usecases/reset-password.usecase';
-import { RegisterUserDto } from '@presentation/dtos/register-user.dto';
-import { LoginUserDto } from '@presentation/dtos/login-user.dto';
-import { RefreshTokenDto } from '@presentation/dtos/refresh-token.dto';
-import { VerifyEmailDto } from '@presentation/dtos/auth/verify-email.dto';
-import { ResendVerificationDto } from '@presentation/dtos/auth/resend-verification.dto';
-import type { Logger } from '@/data/protocols';
+import {
+  RegisterUserDto,
+  LoginUserDto,
+  RefreshTokenDto,
+  VerifyEmailDto,
+  ResendVerificationDto,
+} from '@presentation/dtos';
+import type { Logger } from '@data/protocols';
 
 describe('AuthController', () => {
   let controller: AuthController;

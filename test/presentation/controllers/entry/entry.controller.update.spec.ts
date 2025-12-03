@@ -2,10 +2,10 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { EntryController } from '@presentation/controllers/entry.controller';
 import { UpdateEntryUseCase } from '@domain/usecases/update-entry.usecase';
-import { MockEntryFactory } from '../../../domain/mocks/models/entry.mock';
-import { LoggerSpy } from '../../../infra/mocks/logging/logger.spy';
-import { MetricsSpy } from '../../../infra/mocks/metrics/metrics.spy';
-import { UpdateEntryDto } from '@presentation/dtos/update-entry.dto';
+import { MockEntryFactory } from '@test/domain/mocks/models/entry.mock';
+import { LoggerSpy } from '@test/infra/mocks/logging/logger.spy';
+import { MetricsSpy } from '@test/infra/mocks/metrics/metrics.spy';
+import { UpdateEntryDto } from '@presentation/dtos';
 
 describe('EntryController - UPDATE', () => {
   let controller: EntryController;
