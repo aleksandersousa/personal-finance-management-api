@@ -29,6 +29,7 @@ import {
 import { ContextAwareLoggerService } from '@/infra/logging/context-aware-logger.service';
 import { AuthEmailTemplateService } from '@/infra/email/services';
 import { MailgunEmailSender } from '@/infra/implementations/mailgun-email-sender';
+import { LoginAttemptTracker } from '@/infra/cache/login-attempt-tracker.service';
 
 @Module({
   imports: [
@@ -89,6 +90,10 @@ import { MailgunEmailSender } from '@/infra/implementations/mailgun-email-sender
       useClass: AuthEmailTemplateService,
     },
     {
+      provide: 'LoginAttemptTracker',
+      useClass: LoginAttemptTracker,
+    },
+    {
       provide: 'RegisterUserUseCase',
       useFactory: makeRegisterUserFactory,
       inject: [
@@ -104,7 +109,13 @@ import { MailgunEmailSender } from '@/infra/implementations/mailgun-email-sender
     {
       provide: 'LoginUserUseCase',
       useFactory: makeLoginUserFactory,
-      inject: ['UserRepository', 'Hasher', 'TokenGenerator', 'Logger'],
+      inject: [
+        'UserRepository',
+        'Hasher',
+        'TokenGenerator',
+        'Logger',
+        'LoginAttemptTracker',
+      ],
     },
     {
       provide: 'RefreshTokenUseCase',

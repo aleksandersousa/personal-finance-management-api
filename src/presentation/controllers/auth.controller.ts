@@ -6,9 +6,11 @@ import {
   HttpStatus,
   Inject,
   Post,
+  Req,
   UnauthorizedException,
   type Logger,
 } from '@nestjs/common';
+import { Request } from 'express';
 import {
   ApiBadRequestResponse,
   ApiBody,
@@ -119,11 +121,22 @@ export class AuthController {
     description: 'Invalid credentials',
   })
   @ApiBody({ type: LoginUserDto })
-  async login(@Body() loginUserDto: LoginUserDto): Promise<LoginResponseDto> {
+  async login(
+    @Body() loginUserDto: LoginUserDto,
+    @Req() req: Request,
+  ): Promise<LoginResponseDto> {
     try {
+      // Extract IP address from request
+      const ipAddress =
+        (req.headers['x-forwarded-for'] as string)?.split(',')[0]?.trim() ||
+        req.ip ||
+        req.socket.remoteAddress ||
+        'unknown';
+
       const result = await this.loginUserUseCase.execute({
         email: loginUserDto.email,
         password: loginUserDto.password,
+        ipAddress,
       });
 
       return {
@@ -142,6 +155,19 @@ export class AuthController {
       if (error.message.includes('Email not verified')) {
         this.logger.error('Email not verified', error.stack, 'AuthController');
         throw new UnauthorizedException(error.message);
+      }
+      if (error.message.includes('Too many attempts')) {
+        this.logger.error(
+          'Too many login attempts',
+          error.stack,
+          'AuthController',
+        );
+        const remainingDelayMs = (error as any).remainingDelayMs || 0;
+        const remainingSeconds = Math.ceil(remainingDelayMs / 1000);
+        throw new UnauthorizedException({
+          message: 'Too many attempts, please try again later',
+          remainingDelaySeconds: remainingSeconds,
+        });
       }
       this.logger.error('Invalid credentials', error.stack, 'AuthController');
       throw new UnauthorizedException('Invalid credentials');

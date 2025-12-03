@@ -16,6 +16,7 @@ import {
   ResendVerificationDto,
 } from '@presentation/dtos';
 import type { Logger } from '@data/protocols';
+import type { Request } from 'express';
 
 describe('AuthController', () => {
   let controller: AuthController;
@@ -104,6 +105,14 @@ describe('AuthController', () => {
 
   afterEach(() => {
     jest.clearAllMocks();
+  });
+
+  const createMockRequest = (): Partial<Request> => ({
+    ip: '127.0.0.1',
+    headers: {},
+    socket: {
+      remoteAddress: '127.0.0.1',
+    } as any,
   });
 
   it('should be defined', () => {
@@ -211,7 +220,8 @@ describe('AuthController', () => {
 
       mockLoginUserUseCase.execute.mockResolvedValue(mockResponse);
 
-      const result = await controller.login(loginDto);
+      const mockRequest = createMockRequest() as Request;
+      const result = await controller.login(loginDto, mockRequest);
 
       expect(result).toEqual({
         user: {
@@ -229,6 +239,7 @@ describe('AuthController', () => {
       expect(mockLoginUserUseCase.execute).toHaveBeenCalledWith({
         email: loginDto.email,
         password: loginDto.password,
+        ipAddress: '127.0.0.1',
       });
     });
 
@@ -242,10 +253,11 @@ describe('AuthController', () => {
         new Error('Invalid credentials'),
       );
 
-      await expect(controller.login(loginDto)).rejects.toThrow(
+      const mockRequest = createMockRequest() as Request;
+      await expect(controller.login(loginDto, mockRequest)).rejects.toThrow(
         UnauthorizedException,
       );
-      await expect(controller.login(loginDto)).rejects.toThrow(
+      await expect(controller.login(loginDto, mockRequest)).rejects.toThrow(
         'Invalid credentials',
       );
     });
@@ -262,10 +274,11 @@ describe('AuthController', () => {
         ),
       );
 
-      await expect(controller.login(loginDto)).rejects.toThrow(
+      const mockRequest = createMockRequest() as Request;
+      await expect(controller.login(loginDto, mockRequest)).rejects.toThrow(
         UnauthorizedException,
       );
-      await expect(controller.login(loginDto)).rejects.toThrow(
+      await expect(controller.login(loginDto, mockRequest)).rejects.toThrow(
         'Email not verified',
       );
     });
@@ -435,7 +448,8 @@ describe('AuthController', () => {
         new Error('Database connection failed'),
       );
 
-      await expect(controller.login(loginDto)).rejects.toThrow(
+      const mockRequest = createMockRequest() as Request;
+      await expect(controller.login(loginDto, mockRequest)).rejects.toThrow(
         UnauthorizedException,
       );
     });

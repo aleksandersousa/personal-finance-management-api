@@ -10,6 +10,7 @@ import { SummaryModule } from './summary.module';
 import { SqlAgentModule } from './sql-agent.module';
 import { ObservabilityModule } from './observability.module';
 import { EmailModule } from './email.module';
+import { RedisModule } from './redis.module';
 import { HealthController } from '@presentation/controllers/health.controller';
 import { MetricsController } from '@presentation/controllers/metrics.controller';
 import { TraceContextMiddleware } from '../../infra/middleware/trace-context.middleware';
@@ -41,6 +42,9 @@ import { typeOrmConfig } from '@infra/db/typeorm/config/data-source';
 
     // Email Module (Global)
     EmailModule,
+
+    // Redis Module (Global)
+    RedisModule,
 
     // Feature Modules
     EntryModule,
