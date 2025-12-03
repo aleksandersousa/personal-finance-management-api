@@ -95,7 +95,7 @@ export class DbResetPasswordUseCase implements ResetPasswordUseCase {
 
     return {
       success: true,
-      message: 'Password reset successfully',
+      message: 'Senha redefinida com sucesso!',
     };
   }
 }

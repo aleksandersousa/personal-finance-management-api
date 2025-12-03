@@ -243,7 +243,7 @@ export class AuthController {
   @ApiResponse({
     status: 200,
     description:
-      'If the email exists and is verified, a password reset link has been sent.',
+      'Se o email existe e está verificado, um link de redefinição de senha foi enviado.',
   })
   @ApiBadRequestResponse({
     description: 'Invalid email format or email not verified',

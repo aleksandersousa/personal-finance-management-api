@@ -66,7 +66,7 @@ describe('DbResetPasswordUseCase', () => {
 
       // Assert
       expect(result.success).toBe(true);
-      expect(result.message).toBe('Password reset successfully');
+      expect(result.message).toBe('Senha redefinida com sucesso!');
       const updatedUser = await userRepositoryStub.findById(mockUser.id);
       expect(updatedUser?.password).toBe('hashed_newPassword123');
       const token = await passwordResetTokenRepositoryStub.findByToken(

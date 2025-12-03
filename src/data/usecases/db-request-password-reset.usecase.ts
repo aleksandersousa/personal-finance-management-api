@@ -43,7 +43,7 @@ export class DbRequestPasswordResetUseCase
       return {
         success: true,
         message:
-          'If the email exists and is verified, a password reset link has been sent.',
+          'Se o email existe e está verificado, um link de redefinição de senha foi enviado.',
       };
     }
 
@@ -61,7 +61,7 @@ export class DbRequestPasswordResetUseCase
       return {
         success: true,
         message:
-          'If the email exists and is verified, a password reset link has been sent.',
+          'Se o email existe e está verificado, um link de redefinição de senha foi enviado.',
       };
     }
 
@@ -73,7 +73,7 @@ export class DbRequestPasswordResetUseCase
         'DbRequestPasswordResetUseCase',
       );
       throw new Error(
-        'Email not verified. Please verify your email before resetting your password.',
+        'Email não verificado. Por favor, verifique seu email antes de redefinir sua senha.',
       );
     }
 
@@ -91,7 +91,7 @@ export class DbRequestPasswordResetUseCase
         'DbRequestPasswordResetUseCase',
       );
       throw new Error(
-        'Too many password reset requests. Please try again later.',
+        'Muitas requisições de redefinição de senha. Por favor, tente novamente mais tarde.',
       );
     }
 
@@ -151,7 +151,7 @@ export class DbRequestPasswordResetUseCase
     return {
       success: true,
       message:
-        'If the email exists and is verified, a password reset link has been sent.',
+        'Se o email existe e está verificado, um link de redefinição de senha foi enviado.',
     };
   }
 }
