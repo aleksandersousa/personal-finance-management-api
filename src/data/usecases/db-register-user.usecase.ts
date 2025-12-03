@@ -6,20 +6,24 @@ import {
 import {
   UserRepository,
   Hasher,
-  TokenGenerator,
   Logger,
   EmailSender,
   AuthEmailTemplateService,
+  EmailVerificationTokenRepository,
+  VerificationTokenGenerator,
 } from '../protocols';
 
 export class DbRegisterUserUseCase implements RegisterUserUseCase {
+  private readonly TOKEN_EXPIRY_HOURS = 24;
+
   constructor(
     private readonly userRepository: UserRepository,
     private readonly hasher: Hasher,
-    private readonly tokenGenerator: TokenGenerator,
     private readonly logger: Logger,
     private readonly emailSender: EmailSender,
     private readonly authEmailTemplates: AuthEmailTemplateService,
+    private readonly emailVerificationTokenRepository: EmailVerificationTokenRepository,
+    private readonly verificationTokenGenerator: VerificationTokenGenerator,
   ) {}
 
   async execute(request: RegisterUserRequest): Promise<RegisterUserResponse> {
@@ -68,24 +72,30 @@ export class DbRegisterUserUseCase implements RegisterUserUseCase {
     // Hash password
     const hashedPassword = await this.hasher.hash(request.password);
 
-    // Create user
+    // Create user (emailVerified defaults to false)
     const user = await this.userRepository.create({
       name: request.name.trim(),
       email: request.email.toLowerCase(),
       password: hashedPassword,
     });
 
-    // Generate tokens
-    const tokens = await this.tokenGenerator.generateTokens({
-      userId: user.id,
-      email: user.email,
-    });
+    // Generate verification token
+    const token = this.verificationTokenGenerator.generate();
+    const expiresAt = new Date();
+    expiresAt.setHours(expiresAt.getHours() + this.TOKEN_EXPIRY_HOURS);
+
+    // Create verification token
+    await this.emailVerificationTokenRepository.create(
+      user.id,
+      token,
+      expiresAt,
+    );
 
     delete user.password;
 
-    this.sendWelcomeEmail(user).catch(error => {
+    this.sendVerificationEmail(user, token).catch(error => {
       this.logger.error(
-        'Failed to send welcome email',
+        'Failed to send verification email',
         error.stack,
         'DbRegisterUserUseCase',
       );
@@ -96,14 +106,22 @@ export class DbRegisterUserUseCase implements RegisterUserUseCase {
       'DbRegisterUserUseCase',
     );
 
-    return { user, tokens };
+    return {
+      user,
+      message:
+        'Registration successful. Please check your email to verify your account.',
+    };
   }
 
-  private async sendWelcomeEmail(user: any): Promise<void> {
+  private async sendVerificationEmail(user: any, token: string): Promise<void> {
     try {
-      const emailTemplate = await this.authEmailTemplates.getWelcomeEmail({
+      const verificationUrl = `${process.env.FRONTEND_URL}/verify-email?token=${token}`;
+      const expirationTime = '24 horas';
+
+      const emailTemplate = await this.authEmailTemplates.getVerifyEmailEmail({
         userName: user.name,
-        dashboardUrl: `${process.env.FRONTEND_URL}/dashboard`,
+        verificationUrl,
+        expirationTime,
       });
 
       const result = await this.emailSender.send({
@@ -115,19 +133,19 @@ export class DbRegisterUserUseCase implements RegisterUserUseCase {
 
       if (result.success) {
         this.logger.log(
-          `Welcome email sent to ${user.email}`,
+          `Verification email sent to ${user.email}`,
           'DbRegisterUserUseCase',
         );
       } else {
         this.logger.error(
-          `Failed to send welcome email: ${result.error}`,
+          `Failed to send verification email: ${result.error}`,
           '',
           'DbRegisterUserUseCase',
         );
       }
     } catch (error) {
       this.logger.error(
-        'Error rendering welcome email template',
+        'Error rendering verification email template',
         error.stack,
         'DbRegisterUserUseCase',
       );

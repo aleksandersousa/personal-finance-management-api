@@ -1,4 +1,4 @@
-import { UserRepository } from '@data/protocols/user-repository';
+import { UserRepository } from '@/data/protocols/repositories/user-repository';
 import { UserModel } from '@domain/models/user.model';
 
 /**
@@ -20,6 +20,7 @@ export class UserRepositoryStub implements UserRepository {
 
     const user: UserModel = {
       ...data,
+      emailVerified: data.emailVerified ?? false,
       id: `stub-user-${Date.now()}-${this.nextId++}`,
       createdAt: new Date(),
       updatedAt: new Date(),
@@ -43,6 +44,26 @@ export class UserRepositoryStub implements UserRepository {
     return (
       Array.from(this.users.values()).find(user => user.email === email) || null
     );
+  }
+
+  async update(id: string, data: Partial<UserModel>): Promise<UserModel> {
+    if (this.shouldFail && this.errorToThrow) {
+      throw this.errorToThrow;
+    }
+
+    const user = this.users.get(id);
+    if (!user) {
+      throw new Error('User not found');
+    }
+
+    const updatedUser: UserModel = {
+      ...user,
+      ...data,
+      updatedAt: new Date(),
+    };
+
+    this.users.set(id, updatedUser);
+    return updatedUser;
   }
 
   // =================== Test Utility Methods ===================

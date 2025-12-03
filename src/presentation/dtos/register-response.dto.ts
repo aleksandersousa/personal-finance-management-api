@@ -46,8 +46,9 @@ export class RegisterResponseDto {
   createdAt: Date;
 
   @ApiProperty({
-    description: 'Authentication tokens',
-    type: TokensDto,
+    description: 'Registration message',
+    example:
+      'Registration successful. Please check your email to verify your account.',
   })
-  tokens: TokensDto;
+  message: string;
 }

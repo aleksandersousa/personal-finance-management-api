@@ -4,7 +4,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import {
   CategoryRepository,
   FindCategoriesWithFiltersResult,
-} from '@data/protocols/category-repository';
+} from '@/data/protocols/repositories/category-repository';
 import {
   Category,
   CategoryType,

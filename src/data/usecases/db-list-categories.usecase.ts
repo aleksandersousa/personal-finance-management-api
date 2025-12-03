@@ -7,7 +7,7 @@ import {
   CategoryListSummary,
   CategoryType,
 } from '@domain/models/category.model';
-import { CategoryRepository } from '@data/protocols/category-repository';
+import { CategoryRepository } from '@/data/protocols/repositories/category-repository';
 
 @Injectable()
 export class DbListCategoriesUseCase implements ListCategoriesUseCase {

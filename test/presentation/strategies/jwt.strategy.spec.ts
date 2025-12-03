@@ -72,6 +72,7 @@ describe('JwtStrategy', () => {
           name: 'Test User',
           email: 'test@example.com',
           avatarUrl: null,
+          emailVerified: false,
           createdAt: mockUser.createdAt,
           updatedAt: mockUser.updatedAt,
         });

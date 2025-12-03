@@ -4,9 +4,13 @@ import { AuthController } from '@presentation/controllers/auth.controller';
 import { RegisterUserUseCase } from '@domain/usecases/register-user.usecase';
 import { LoginUserUseCase } from '@domain/usecases/login-user.usecase';
 import { RefreshTokenUseCase } from '@domain/usecases/refresh-token.usecase';
+import { VerifyEmailUseCase } from '@domain/usecases/verify-email.usecase';
+import { ResendVerificationEmailUseCase } from '@domain/usecases/resend-verification-email.usecase';
 import { RegisterUserDto } from '@presentation/dtos/register-user.dto';
 import { LoginUserDto } from '@presentation/dtos/login-user.dto';
 import { RefreshTokenDto } from '@presentation/dtos/refresh-token.dto';
+import { VerifyEmailDto } from '@presentation/dtos/auth/verify-email.dto';
+import { ResendVerificationDto } from '@presentation/dtos/auth/resend-verification.dto';
 import type { Logger } from '@/data/protocols';
 
 describe('AuthController', () => {
@@ -14,6 +18,8 @@ describe('AuthController', () => {
   let mockRegisterUserUseCase: jest.Mocked<RegisterUserUseCase>;
   let mockLoginUserUseCase: jest.Mocked<LoginUserUseCase>;
   let mockRefreshTokenUseCase: jest.Mocked<RefreshTokenUseCase>;
+  let mockVerifyEmailUseCase: jest.Mocked<VerifyEmailUseCase>;
+  let mockResendVerificationEmailUseCase: jest.Mocked<ResendVerificationEmailUseCase>;
   let mockLogger: jest.Mocked<Logger>;
 
   beforeEach(async () => {
@@ -24,6 +30,12 @@ describe('AuthController', () => {
       execute: jest.fn(),
     };
     mockRefreshTokenUseCase = {
+      execute: jest.fn(),
+    };
+    mockVerifyEmailUseCase = {
+      execute: jest.fn(),
+    };
+    mockResendVerificationEmailUseCase = {
       execute: jest.fn(),
     };
     mockLogger = {
@@ -51,6 +63,14 @@ describe('AuthController', () => {
         {
           provide: 'RefreshTokenUseCase',
           useValue: mockRefreshTokenUseCase,
+        },
+        {
+          provide: 'VerifyEmailUseCase',
+          useValue: mockVerifyEmailUseCase,
+        },
+        {
+          provide: 'ResendVerificationEmailUseCase',
+          useValue: mockResendVerificationEmailUseCase,
         },
         {
           provide: 'Logger',
@@ -86,10 +106,8 @@ describe('AuthController', () => {
           createdAt: new Date(),
           updatedAt: new Date(),
         },
-        tokens: {
-          accessToken: 'access-token',
-          refreshToken: 'refresh-token',
-        },
+        message:
+          'Registration successful. Please check your email to verify your account.',
       };
 
       mockRegisterUserUseCase.execute.mockResolvedValue(mockResponse);
@@ -101,11 +119,7 @@ describe('AuthController', () => {
         name: mockResponse.user.name,
         email: mockResponse.user.email,
         createdAt: mockResponse.user.createdAt,
-        tokens: {
-          accessToken: mockResponse.tokens.accessToken,
-          refreshToken: mockResponse.tokens.refreshToken,
-          expiresIn: 900,
-        },
+        message: mockResponse.message,
       });
 
       expect(mockRegisterUserUseCase.execute).toHaveBeenCalledWith({
@@ -215,6 +229,26 @@ describe('AuthController', () => {
         'Invalid credentials',
       );
     });
+
+    it('should throw UnauthorizedException when email is not verified', async () => {
+      const loginDto: LoginUserDto = {
+        email: 'john@example.com',
+        password: 'password123',
+      };
+
+      mockLoginUserUseCase.execute.mockRejectedValue(
+        new Error(
+          'Email not verified. Please check your email and verify your account.',
+        ),
+      );
+
+      await expect(controller.login(loginDto)).rejects.toThrow(
+        UnauthorizedException,
+      );
+      await expect(controller.login(loginDto)).rejects.toThrow(
+        'Email not verified',
+      );
+    });
   });
 
   describe('refresh', () => {
@@ -257,6 +291,100 @@ describe('AuthController', () => {
       await expect(controller.refresh(refreshTokenDto)).rejects.toThrow(
         'Invalid refresh token',
       );
+    });
+  });
+
+  describe('verifyEmail', () => {
+    it('should verify email successfully', async () => {
+      const verifyEmailDto: VerifyEmailDto = {
+        token: 'valid-verification-token',
+      };
+
+      const mockResponse = {
+        success: true,
+        message: 'Email verified successfully',
+      };
+
+      mockVerifyEmailUseCase.execute.mockResolvedValue(mockResponse);
+
+      const result = await controller.verifyEmail(verifyEmailDto);
+
+      expect(result).toEqual(mockResponse);
+      expect(mockVerifyEmailUseCase.execute).toHaveBeenCalledWith({
+        token: verifyEmailDto.token,
+      });
+    });
+
+    it('should throw BadRequestException for invalid token', async () => {
+      const verifyEmailDto: VerifyEmailDto = {
+        token: 'invalid-token',
+      };
+
+      mockVerifyEmailUseCase.execute.mockRejectedValue(
+        new Error('Invalid verification token'),
+      );
+
+      await expect(controller.verifyEmail(verifyEmailDto)).rejects.toThrow(
+        BadRequestException,
+      );
+      await expect(controller.verifyEmail(verifyEmailDto)).rejects.toThrow(
+        'Invalid verification token',
+      );
+    });
+
+    it('should throw BadRequestException for expired token', async () => {
+      const verifyEmailDto: VerifyEmailDto = {
+        token: 'expired-token',
+      };
+
+      mockVerifyEmailUseCase.execute.mockRejectedValue(
+        new Error('Verification token has expired'),
+      );
+
+      await expect(controller.verifyEmail(verifyEmailDto)).rejects.toThrow(
+        BadRequestException,
+      );
+    });
+  });
+
+  describe('resendVerification', () => {
+    it('should resend verification email successfully', async () => {
+      const resendVerificationDto: ResendVerificationDto = {
+        email: 'john@example.com',
+      };
+
+      const mockResponse = {
+        success: true,
+        message: 'Verification email sent successfully',
+      };
+
+      mockResendVerificationEmailUseCase.execute.mockResolvedValue(
+        mockResponse,
+      );
+
+      const result = await controller.resendVerification(resendVerificationDto);
+
+      expect(result).toEqual(mockResponse);
+      expect(mockResendVerificationEmailUseCase.execute).toHaveBeenCalledWith({
+        email: resendVerificationDto.email,
+      });
+    });
+
+    it('should throw BadRequestException when resend fails', async () => {
+      const resendVerificationDto: ResendVerificationDto = {
+        email: 'john@example.com',
+      };
+
+      mockResendVerificationEmailUseCase.execute.mockRejectedValue(
+        new Error('Failed to send verification email'),
+      );
+
+      await expect(
+        controller.resendVerification(resendVerificationDto),
+      ).rejects.toThrow(BadRequestException);
+      await expect(
+        controller.resendVerification(resendVerificationDto),
+      ).rejects.toThrow('Failed to resend verification email');
     });
   });
 

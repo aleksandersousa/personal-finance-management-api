@@ -1,6 +1,6 @@
 import { DbGetMonthlySummaryUseCase } from '../../../src/data/usecases/db-get-monthly-summary.usecase';
-import { EntryRepository } from '../../../src/data/protocols/entry-repository';
-import { UserRepository } from '../../../src/data/protocols/user-repository';
+import { EntryRepository } from '../../../src/data/protocols/repositories/entry-repository';
+import { UserRepository } from '../../../src/data/protocols/repositories/user-repository';
 import { Logger } from '../../../src/data/protocols/logger';
 import { Metrics } from '../../../src/data/protocols/metrics';
 import { UserModel } from '../../../src/domain/models/user.model';
@@ -33,6 +33,7 @@ describe('DbGetMonthlySummaryUseCase', () => {
       create: jest.fn(),
       findById: jest.fn(),
       findByEmail: jest.fn(),
+      update: jest.fn(),
     };
 
     mockLogger = {

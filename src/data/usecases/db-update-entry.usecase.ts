@@ -3,9 +3,9 @@ import {
   UpdateEntryUseCase,
 } from '@domain/usecases/update-entry.usecase';
 import { EntryModel } from '@domain/models/entry.model';
-import { EntryRepository } from '../protocols/entry-repository';
-import { UserRepository } from '../protocols/user-repository';
-import { CategoryRepository } from '../protocols/category-repository';
+import { EntryRepository } from '../protocols/repositories/entry-repository';
+import { UserRepository } from '../protocols/repositories/user-repository';
+import { CategoryRepository } from '../protocols/repositories/category-repository';
 
 export class DbUpdateEntryUseCase implements UpdateEntryUseCase {
   constructor(

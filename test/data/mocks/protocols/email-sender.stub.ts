@@ -16,7 +16,10 @@ export class EmailSenderStub implements EmailSender {
 
   async send(params: SendEmailParams): Promise<SendEmailResult> {
     if (this.shouldFail && this.errorToThrow) {
-      throw this.errorToThrow;
+      return {
+        success: false,
+        error: this.errorToThrow.message,
+      };
     }
 
     this.sentEmails.push(params);

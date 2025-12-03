@@ -10,7 +10,7 @@ import {
   CategorySummaryResult,
   FixedEntriesSummary,
   MonthYear,
-} from '@data/protocols/entry-repository';
+} from '@/data/protocols/repositories/entry-repository';
 import { EntryModel } from '@domain/models/entry.model';
 import { EntryEntity } from '../entities/entry.entity';
 import type { Logger, Metrics } from '@/data/protocols';
