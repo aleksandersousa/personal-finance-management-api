@@ -8,10 +8,7 @@ export interface RegisterUserRequest {
 
 export interface RegisterUserResponse {
   user: Omit<UserModel, 'password'>;
-  tokens: {
-    accessToken: string;
-    refreshToken: string;
-  };
+  message: string;
 }
 
 export interface RegisterUserUseCase {

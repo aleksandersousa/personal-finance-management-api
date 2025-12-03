@@ -4,7 +4,7 @@ import {
   RefreshTokenUseCase,
 } from '@domain/usecases/refresh-token.usecase';
 import { TokenGenerator } from '../protocols/token-generator';
-import { UserRepository } from '../protocols/user-repository';
+import { UserRepository } from '../protocols/repositories/user-repository';
 
 export class DbRefreshTokenUseCase implements RefreshTokenUseCase {
   constructor(

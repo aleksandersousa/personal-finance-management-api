@@ -40,6 +40,7 @@ describe('DbLoginUserUseCase', () => {
       name: 'John Doe',
       email: 'john@example.com',
       password: mockHashedPassword,
+      emailVerified: true,
     });
 
     const mockRequest = {
@@ -216,6 +217,40 @@ describe('DbLoginUserUseCase', () => {
       expect(tokenGeneratorStub.getTokenCount()).toBe(2); // access + refresh tokens
       expect(result.tokens.accessToken).toContain(mockUser.id);
       expect(result.tokens.refreshToken).toContain(mockUser.id);
+    });
+
+    it('should throw error if email is not verified', async () => {
+      // Arrange
+      const unverifiedUser = MockUserFactory.create({
+        ...mockUser,
+        emailVerified: false,
+      });
+      userRepositoryStub.seed([unverifiedUser]);
+      hasherStub.seedPasswordHash(mockPassword, mockHashedPassword);
+
+      // Act & Assert
+      await expect(sut.execute(mockRequest)).rejects.toThrow(
+        'Email not verified',
+      );
+      expect(tokenGeneratorStub.getTokenCount()).toBe(0); // No tokens generated
+    });
+
+    it('should allow login when email is verified', async () => {
+      // Arrange
+      const verifiedUser = MockUserFactory.create({
+        ...mockUser,
+        emailVerified: true,
+      });
+      userRepositoryStub.seed([verifiedUser]);
+      hasherStub.seedPasswordHash(mockPassword, mockHashedPassword);
+
+      // Act
+      const result = await sut.execute(mockRequest);
+
+      // Assert
+      expect(result.user.id).toBe(verifiedUser.id);
+      expect(result.tokens).toHaveProperty('accessToken');
+      expect(result.tokens).toHaveProperty('refreshToken');
     });
   });
 });

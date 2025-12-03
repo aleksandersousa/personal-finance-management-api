@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      line-height: 1.6;
+      color: #333;
+      margin: 0;
+      padding: 0;
+      background-color: #f4f4f4;
+    }
+    .container {
+      max-width: 600px;
+      margin: 0 auto;
+      background-color: #ffffff;
+    }
+    .header {
+      background: linear-gradient(135deg, #7c3aed 0%, #a855f7 100%);
+      color: white;
+      padding: 40px 30px;
+      text-align: center;
+      border-radius: 10px 10px 0 0;
+    }
+    .header h1 {
+      margin: 0;
+      font-size: 28px;
+    }
+    .content {
+      padding: 40px 30px;
+      background-color: #ffffff;
+    }
+    .content h2 {
+      color: #8b5cf6;
+      margin-top: 0;
+    }
+    .button {
+      display: inline-block;
+      padding: 14px 32px;
+      background: #8b5cf6;
+      color: white;
+      text-decoration: none;
+      border-radius: 5px;
+      margin: 20px 0;
+      font-weight: bold;
+      text-align: center;
+    }
+    .button:hover {
+      background: #7c3aed;
+    }
+    .warning {
+      background-color: #fef3c7;
+      border-left: 4px solid #f59e0b;
+      padding: 15px;
+      margin: 20px 0;
+      border-radius: 4px;
+    }
+    .footer {
+      background-color: #f9fafb;
+      padding: 20px 30px;
+      text-align: center;
+      border-radius: 0 0 10px 10px;
+      font-size: 12px;
+      color: #6b7280;
+    }
+    .footer p {
+      margin: 5px 0;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>Verifique Seu Email ✉️</h1>
+    </div>
+    
+    <div class="content">
+      <h2>Olá, {{ userName }}!</h2>
+      
+      <p>Obrigado por se cadastrar no Personal Financial Management!</p>
+      
+      <p>Para completar seu cadastro e começar a usar nossa plataforma, por favor, verifique seu endereço de email clicando no botão abaixo:</p>
+      <a href="{{ verificationUrl }}" class="button">Verificar Email</a>
+      
+      <div class="warning">
+        <strong>⏰ Importante:</strong> Este link expirará em {{ expirationTime }}.
+      </div>
+      
+      <p>Se o botão não funcionar, copie e cole o link abaixo no seu navegador:</p>
+      <p style="word-break: break-all; color: #6b7280; font-size: 12px;">{{ verificationUrl }}</p>
+      
+      <p>Se você não criou uma conta no Personal Financial Management, por favor, ignore este e-mail.</p>
+      
+      <p>Atenciosamente,<br>Equipe do Personal Financial Management</p>
+    </div>
+    
+    <div class="footer">
+      <p>&copy; {{ currentYear }} Personal Financial Management. Todos os direitos reservados.</p>
+      <p>Se você tiver alguma dúvida, por favor, entre em contato com nossa equipe de suporte.</p>
+    </div>
+  </div>
+</body>
+</html>
+

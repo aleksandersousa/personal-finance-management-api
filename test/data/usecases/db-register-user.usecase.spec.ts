@@ -1,48 +1,56 @@
 import { DbRegisterUserUseCase } from '@data/usecases/db-register-user.usecase';
-import { UserRepositoryStub } from '../mocks/repositories';
+import {
+  UserRepositoryStub,
+  EmailVerificationTokenRepositoryStub,
+} from '../mocks/repositories';
 import { MockUserFactory } from '../../domain/mocks/models';
 import {
   LoggerStub,
   HasherStub,
-  TokenGeneratorStub,
   EmailSenderStub,
   AuthEmailTemplateServiceStub,
+  VerificationTokenGeneratorStub,
 } from '../mocks/protocols';
 
 describe('DbRegisterUserUseCase', () => {
   let sut: DbRegisterUserUseCase;
   let userRepositoryStub: UserRepositoryStub;
   let hasherStub: HasherStub;
-  let tokenGeneratorStub: TokenGeneratorStub;
   let loggerStub: LoggerStub;
   let emailSenderStub: EmailSenderStub;
   let authEmailTemplatesStub: AuthEmailTemplateServiceStub;
+  let emailVerificationTokenRepositoryStub: EmailVerificationTokenRepositoryStub;
+  let verificationTokenGeneratorStub: VerificationTokenGeneratorStub;
 
   beforeEach(() => {
     userRepositoryStub = new UserRepositoryStub();
     hasherStub = new HasherStub();
-    tokenGeneratorStub = new TokenGeneratorStub();
     loggerStub = new LoggerStub();
     emailSenderStub = new EmailSenderStub();
     authEmailTemplatesStub = new AuthEmailTemplateServiceStub();
+    emailVerificationTokenRepositoryStub =
+      new EmailVerificationTokenRepositoryStub();
+    verificationTokenGeneratorStub = new VerificationTokenGeneratorStub();
 
     sut = new DbRegisterUserUseCase(
       userRepositoryStub,
       hasherStub,
-      tokenGeneratorStub,
       loggerStub,
       emailSenderStub,
       authEmailTemplatesStub,
+      emailVerificationTokenRepositoryStub,
+      verificationTokenGeneratorStub,
     );
   });
 
   afterEach(() => {
     userRepositoryStub.clear();
     hasherStub.clear();
-    tokenGeneratorStub.clear();
     loggerStub.clear();
     emailSenderStub.clear();
     authEmailTemplatesStub.clear();
+    emailVerificationTokenRepositoryStub.clear();
+    verificationTokenGeneratorStub.clear();
   });
 
   describe('execute', () => {
@@ -58,15 +66,18 @@ describe('DbRegisterUserUseCase', () => {
 
       // Assert
       expect(result).toHaveProperty('user');
-      expect(result).toHaveProperty('tokens');
+      expect(result).toHaveProperty('message');
       expect(result.user.name).toBe(mockRequest.name);
       expect(result.user.email).toBe(mockRequest.email.toLowerCase());
+      expect(result.user.emailVerified).toBe(false);
       expect(result.user).not.toHaveProperty('password'); // Password should be excluded
-      expect(result.tokens).toHaveProperty('accessToken');
-      expect(result.tokens).toHaveProperty('refreshToken');
-      expect(result.tokens.accessToken).toContain('access_token_');
-      expect(result.tokens.refreshToken).toContain('refresh_token_');
+      expect(result.message).toContain('Registration successful');
       expect(userRepositoryStub.getCount()).toBe(1);
+      expect(emailVerificationTokenRepositoryStub.getCount()).toBe(1);
+      expect(emailSenderStub.getEmailCount()).toBe(1);
+      expect(authEmailTemplatesStub.wasWelcomeEmailRendered()).toBe(false);
+      const lastTemplate = authEmailTemplatesStub.getLastRenderedTemplate();
+      expect(lastTemplate?.type).toBe('verify-email');
     });
 
     it('should throw error for invalid email format', async () => {
@@ -272,24 +283,31 @@ describe('DbRegisterUserUseCase', () => {
       expect(userRepositoryStub.getCount()).toBe(0);
     });
 
-    it('should handle token generation errors', async () => {
+    it('should create verification token and send verification email', async () => {
       // Arrange
-      tokenGeneratorStub.mockTokenGenerationError();
+      verificationTokenGeneratorStub.seedTokens(['test-verification-token']);
+
+      // Act
+      await sut.execute(mockRequest);
+
+      // Assert
+      expect(emailVerificationTokenRepositoryStub.getCount()).toBe(1);
+      expect(emailSenderStub.getEmailCount()).toBe(1);
+      const lastEmail = emailSenderStub.getLastSentEmail();
+      expect(lastEmail?.to).toBe(mockRequest.email.toLowerCase());
+      expect(lastEmail?.subject).toBe('Verify Your Email Address');
+    });
+
+    it('should handle verification token repository errors', async () => {
+      // Arrange
+      emailVerificationTokenRepositoryStub.mockFailure(
+        new Error('Failed to create token'),
+      );
 
       // Act & Assert
       await expect(sut.execute(mockRequest)).rejects.toThrow(
-        'Token generation failed',
+        'Failed to create token',
       );
-    });
-
-    it('should pass correct payload to token generator', async () => {
-      // Act
-      const result = await sut.execute(mockRequest);
-
-      // Assert
-      expect(tokenGeneratorStub.getTokenCount()).toBe(2); // access + refresh tokens
-      expect(result.tokens.accessToken).toBeDefined();
-      expect(result.tokens.refreshToken).toBeDefined();
     });
 
     it('should validate email format with various edge cases', async () => {
@@ -327,7 +345,10 @@ describe('DbRegisterUserUseCase', () => {
         // Clear repository between tests
         userRepositoryStub.clear();
         hasherStub.clear();
-        tokenGeneratorStub.clear();
+        emailVerificationTokenRepositoryStub.clear();
+        verificationTokenGeneratorStub.clear();
+        emailSenderStub.clear();
+        authEmailTemplatesStub.clear();
 
         const validRequest = { ...mockRequest, email };
         const result = await sut.execute(validRequest);

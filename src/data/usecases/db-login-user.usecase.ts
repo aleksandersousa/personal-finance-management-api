@@ -3,7 +3,7 @@ import {
   LoginUserResponse,
   LoginUserUseCase,
 } from '@domain/usecases/login-user.usecase';
-import { UserRepository } from '../protocols/user-repository';
+import { UserRepository } from '../protocols/repositories';
 import { Hasher } from '../protocols/hasher';
 import { TokenGenerator } from '../protocols/token-generator';
 import { Logger } from '../protocols';
@@ -52,6 +52,14 @@ export class DbLoginUserUseCase implements LoginUserUseCase {
         'DbLoginUserUseCase',
       );
       throw new Error('Invalid credentials');
+    }
+
+    // Check if email is verified
+    if (!user.emailVerified) {
+      this.logger.error('Email not verified', user.id, 'DbLoginUserUseCase');
+      throw new Error(
+        'Email not verified. Please check your email and verify your account.',
+      );
     }
 
     // Generate tokens

@@ -4,6 +4,7 @@ export interface UserModel {
   email: string;
   password?: string;
   avatarUrl?: string;
+  emailVerified?: boolean;
   createdAt: Date;
   updatedAt: Date;
 }

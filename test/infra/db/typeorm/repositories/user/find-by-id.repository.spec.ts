@@ -42,10 +42,12 @@ describe('TypeormUserRepository - Find By ID', () => {
       email: 'john@example.com',
       password: 'hashedPassword123',
       avatarUrl: null,
+      emailVerified: false,
       createdAt: new Date('2024-01-01'),
       updatedAt: new Date('2024-01-01'),
       entries: [],
       categories: [],
+      emailVerificationTokens: [],
     };
 
     it('should find user by id successfully', async () => {
@@ -65,6 +67,7 @@ describe('TypeormUserRepository - Find By ID', () => {
         email: mockUserEntity.email,
         password: mockUserEntity.password,
         avatarUrl: mockUserEntity.avatarUrl,
+        emailVerified: mockUserEntity.emailVerified,
         createdAt: mockUserEntity.createdAt,
         updatedAt: mockUserEntity.updatedAt,
       });

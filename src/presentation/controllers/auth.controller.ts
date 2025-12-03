@@ -20,9 +20,13 @@ import {
 import { RegisterUserUseCase } from '@domain/usecases/register-user.usecase';
 import { LoginUserUseCase } from '@domain/usecases/login-user.usecase';
 import { RefreshTokenUseCase } from '@domain/usecases/refresh-token.usecase';
+import { VerifyEmailUseCase } from '@domain/usecases/verify-email.usecase';
+import { ResendVerificationEmailUseCase } from '@domain/usecases/resend-verification-email.usecase';
 import { RegisterUserDto } from '../dtos/register-user.dto';
 import { LoginUserDto } from '../dtos/login-user.dto';
 import { RefreshTokenDto } from '../dtos/refresh-token.dto';
+import { VerifyEmailDto } from '../dtos/auth/verify-email.dto';
+import { ResendVerificationDto } from '../dtos/auth/resend-verification.dto';
 import { RegisterResponseDto } from '../dtos/register-response.dto';
 import { LoginResponseDto } from '../dtos/login-response.dto';
 import { RefreshTokenResponseDto } from '../dtos/refresh-token-response.dto';
@@ -37,6 +41,10 @@ export class AuthController {
     private readonly loginUserUseCase: LoginUserUseCase,
     @Inject('RefreshTokenUseCase')
     private readonly refreshTokenUseCase: RefreshTokenUseCase,
+    @Inject('VerifyEmailUseCase')
+    private readonly verifyEmailUseCase: VerifyEmailUseCase,
+    @Inject('ResendVerificationEmailUseCase')
+    private readonly resendVerificationEmailUseCase: ResendVerificationEmailUseCase,
     @Inject('Logger')
     private readonly logger: Logger,
   ) {}
@@ -68,11 +76,7 @@ export class AuthController {
         name: result.user.name,
         email: result.user.email,
         createdAt: result.user.createdAt,
-        tokens: {
-          accessToken: result.tokens.accessToken,
-          refreshToken: result.tokens.refreshToken,
-          expiresIn: 900, // 15 minutes
-        },
+        message: result.message,
       };
     } catch (error) {
       if (error.message.includes('already exists')) {
@@ -124,8 +128,73 @@ export class AuthController {
         },
       };
     } catch (error) {
+      if (error.message.includes('Email not verified')) {
+        this.logger.error('Email not verified', error.stack, 'AuthController');
+        throw new UnauthorizedException(error.message);
+      }
       this.logger.error('Invalid credentials', error.stack, 'AuthController');
       throw new UnauthorizedException('Invalid credentials');
+    }
+  }
+
+  @Post('verify-email')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Verify email address' })
+  @ApiResponse({
+    status: 200,
+    description: 'E-mail verificado com sucesso!',
+  })
+  @ApiBadRequestResponse({
+    description: 'Invalid or expired token',
+  })
+  @ApiBody({ type: VerifyEmailDto })
+  async verifyEmail(@Body() verifyEmailDto: VerifyEmailDto) {
+    try {
+      const result = await this.verifyEmailUseCase.execute({
+        token: verifyEmailDto.token,
+      });
+
+      return {
+        success: result.success,
+        message: result.message,
+      };
+    } catch (error) {
+      this.logger.error(
+        'Email verification failed',
+        error.stack,
+        'AuthController',
+      );
+      throw new BadRequestException(error.message);
+    }
+  }
+
+  @Post('resend-verification')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Resend verification email' })
+  @ApiResponse({
+    status: 200,
+    description: 'E-mail de verificação reenviado com sucesso!',
+  })
+  @ApiBody({ type: ResendVerificationDto })
+  async resendVerification(
+    @Body() resendVerificationDto: ResendVerificationDto,
+  ) {
+    try {
+      const result = await this.resendVerificationEmailUseCase.execute({
+        email: resendVerificationDto.email,
+      });
+
+      return {
+        success: result.success,
+        message: result.message,
+      };
+    } catch (error) {
+      this.logger.error(
+        'Resend verification failed',
+        error.stack,
+        'AuthController',
+      );
+      throw new BadRequestException('Failed to resend verification email');
     }
   }
 

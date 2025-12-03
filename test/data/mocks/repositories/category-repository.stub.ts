@@ -8,7 +8,7 @@ import {
 import {
   CategoryRepository,
   FindCategoriesWithFiltersResult,
-} from '@data/protocols/category-repository';
+} from '@/data/protocols/repositories/category-repository';
 
 /**
  * Category Repository Stub for Data Layer Testing

@@ -3,7 +3,7 @@ import {
   DeleteEntryResponse,
   DeleteEntryUseCase,
 } from '@domain/usecases/delete-entry.usecase';
-import { EntryRepository } from '../protocols/entry-repository';
+import { EntryRepository } from '../protocols/repositories/entry-repository';
 
 export class DbDeleteEntryUseCase implements DeleteEntryUseCase {
   constructor(private readonly entryRepository: EntryRepository) {}

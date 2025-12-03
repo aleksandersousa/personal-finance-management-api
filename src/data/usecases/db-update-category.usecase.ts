@@ -4,7 +4,7 @@ import {
   UpdateCategoryUseCase,
 } from '@domain/usecases/update-category.usecase';
 import { Category } from '@domain/models/category.model';
-import { CategoryRepository } from '@data/protocols/category-repository';
+import { CategoryRepository } from '@/data/protocols/repositories/category-repository';
 
 @Injectable()
 export class DbUpdateCategoryUseCase implements UpdateCategoryUseCase {
