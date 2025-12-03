@@ -188,6 +188,11 @@ export class InitialSchema1733087000000 implements MigrationInterface {
             type: 'timestamp',
             default: 'now()',
           },
+          {
+            name: 'deleted_at',
+            type: 'timestamp',
+            isNullable: true,
+          },
         ],
         foreignKeys: [
           new TableForeignKey({
