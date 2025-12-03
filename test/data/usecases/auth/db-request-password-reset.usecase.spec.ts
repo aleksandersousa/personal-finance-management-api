@@ -66,7 +66,9 @@ describe('DbRequestPasswordResetUseCase', () => {
 
       // Assert
       expect(result.success).toBe(true);
-      expect(result.message).toContain('password reset link has been sent');
+      expect(result.message).toContain(
+        'link de redefinição de senha foi enviado',
+      );
       expect(emailSenderStub.getEmailCount()).toBe(1);
       expect(authEmailTemplatesStub.wasPasswordResetEmailRendered()).toBe(true);
       const tokens = passwordResetTokenRepositoryStub.getTokensByUserId(
@@ -85,7 +87,9 @@ describe('DbRequestPasswordResetUseCase', () => {
 
       // Assert
       expect(result.success).toBe(true);
-      expect(result.message).toContain('password reset link has been sent');
+      expect(result.message).toContain(
+        'link de redefinição de senha foi enviado',
+      );
       expect(emailSenderStub.getEmailCount()).toBe(0);
     });
 
@@ -98,7 +102,9 @@ describe('DbRequestPasswordResetUseCase', () => {
 
       // Assert
       expect(result.success).toBe(true);
-      expect(result.message).toContain('password reset link has been sent');
+      expect(result.message).toContain(
+        'link de redefinição de senha foi enviado',
+      );
       expect(emailSenderStub.getEmailCount()).toBe(0);
     });
 
@@ -113,7 +119,7 @@ describe('DbRequestPasswordResetUseCase', () => {
       // Act & Assert
       await expect(
         sut.execute({ email: unverifiedUser.email }),
-      ).rejects.toThrow('Email not verified');
+      ).rejects.toThrow('Email não verificado');
       expect(emailSenderStub.getEmailCount()).toBe(0);
     });
 
@@ -151,7 +157,7 @@ describe('DbRequestPasswordResetUseCase', () => {
 
       // Act & Assert
       await expect(sut.execute({ email: mockUser.email })).rejects.toThrow(
-        'Too many password reset requests',
+        'Muitas requisições de redefinição de senha',
       );
       expect(emailSenderStub.getEmailCount()).toBe(0);
     });
