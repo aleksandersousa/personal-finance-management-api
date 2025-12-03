@@ -71,7 +71,7 @@ describe('DbVerifyEmailUseCase', () => {
 
       // Assert
       expect(result.success).toBe(true);
-      expect(result.message).toContain('Email verified successfully');
+      expect(result.message).toContain('E-mail verificado com sucesso!');
       const updatedUser = await userRepositoryStub.findById(mockUser.id);
       expect(updatedUser?.emailVerified).toBe(true);
       const token = await emailVerificationTokenRepositoryStub.findByToken(

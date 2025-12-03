@@ -66,7 +66,9 @@ describe('DbResendVerificationEmailUseCase', () => {
 
       // Assert
       expect(result.success).toBe(true);
-      expect(result.message).toContain('Verification email sent successfully');
+      expect(result.message).toContain(
+        'E-mail de verificação reenviado com sucesso!',
+      );
       expect(emailVerificationTokenRepositoryStub.getCount()).toBe(1);
       expect(emailSenderStub.getEmailCount()).toBe(1);
       const lastEmail = emailSenderStub.getLastSentEmail();

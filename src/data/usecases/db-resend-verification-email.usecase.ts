@@ -115,7 +115,7 @@ export class DbResendVerificationEmailUseCase
 
     return {
       success: true,
-      message: 'Verification email sent successfully',
+      message: 'E-mail de verificação reenviado com sucesso!',
     };
   }
 }

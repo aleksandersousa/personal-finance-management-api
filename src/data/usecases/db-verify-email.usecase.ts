@@ -97,7 +97,7 @@ export class DbVerifyEmailUseCase implements VerifyEmailUseCase {
 
     return {
       success: true,
-      message: 'Email verified successfully',
+      message: 'E-mail verificado com sucesso!',
     };
   }
 

@@ -142,7 +142,7 @@ export class AuthController {
   @ApiOperation({ summary: 'Verify email address' })
   @ApiResponse({
     status: 200,
-    description: 'Email verified successfully',
+    description: 'E-mail verificado com sucesso!',
   })
   @ApiBadRequestResponse({
     description: 'Invalid or expired token',
@@ -173,7 +173,7 @@ export class AuthController {
   @ApiOperation({ summary: 'Resend verification email' })
   @ApiResponse({
     status: 200,
-    description: 'Verification email sent successfully',
+    description: 'E-mail de verificação reenviado com sucesso!',
   })
   @ApiBody({ type: ResendVerificationDto })
   async resendVerification(

@@ -302,7 +302,7 @@ describe('AuthController', () => {
 
       const mockResponse = {
         success: true,
-        message: 'Email verified successfully',
+        message: 'E-mail verificado com sucesso!',
       };
 
       mockVerifyEmailUseCase.execute.mockResolvedValue(mockResponse);
@@ -355,7 +355,7 @@ describe('AuthController', () => {
 
       const mockResponse = {
         success: true,
-        message: 'Verification email sent successfully',
+        message: 'E-mail de verificação reenviado com sucesso!',
       };
 
       mockResendVerificationEmailUseCase.execute.mockResolvedValue(
