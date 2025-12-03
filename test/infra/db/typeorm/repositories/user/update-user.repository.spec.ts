@@ -127,4 +127,3 @@ describe('TypeormUserRepository - Update User', () => {
     });
   });
 });
-
