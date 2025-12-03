@@ -150,5 +150,41 @@ describe('TypeormCategoryRepository - findByUserId', () => {
         'category_repository_find_by_user_id',
       );
     });
+
+    it('should log and rethrow on error', async () => {
+      mockTypeormRepository.find.mockRejectedValue('err');
+      await expect(repository.findByUserId('u')).rejects.toBe('err');
+      expect(loggerSpy.getErrorsCount()).toBeGreaterThan(0);
+      expect(metricsSpy.hasRecordedMetric('api_errors_total')).toBe(true);
+    });
+
+    it('findByUserId without metrics should return mapped categories', async () => {
+      const baseEntity = {
+        id: 'id1',
+        name: 'Name',
+        description: 'Desc',
+        type: CategoryType.EXPENSE,
+        color: '#000',
+        icon: 'i',
+        userId: 'user-1',
+        isDefault: false,
+        createdAt: new Date('2023-01-01'),
+        updatedAt: new Date('2023-01-01'),
+        deletedAt: null as any,
+        entries: [],
+      } as any;
+
+      // Create repository without metrics
+      const repositoryWithoutMetrics = new TypeormCategoryRepository(
+        mockTypeormRepository,
+        loggerSpy,
+        undefined as any,
+      );
+
+      mockTypeormRepository.find.mockResolvedValue([baseEntity] as any);
+      const result = await repositoryWithoutMetrics.findByUserId('user-1');
+      expect(result).toHaveLength(1);
+      expect(result[0]).toMatchObject({ id: 'id1', userId: 'user-1' });
+    });
   });
 });

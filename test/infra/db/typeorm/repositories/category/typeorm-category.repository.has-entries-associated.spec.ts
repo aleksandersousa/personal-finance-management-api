@@ -153,5 +153,16 @@ describe('TypeormCategoryRepository - hasEntriesAssociated', () => {
         'category_repository_has_entries_associated',
       );
     });
+
+    it('should log and rethrow on error', async () => {
+      const qb = {
+        leftJoin: jest.fn().mockReturnThis(),
+        where: jest.fn().mockReturnThis(),
+        andWhere: jest.fn().mockReturnThis(),
+        getCount: jest.fn().mockRejectedValue('err'),
+      } as any;
+      (mockTypeormRepository.createQueryBuilder as any).mockReturnValue(qb);
+      await expect(repository.hasEntriesAssociated('id')).rejects.toBe('err');
+    });
   });
 });

@@ -368,5 +368,307 @@ describe('CategoryController - List', () => {
       expect(result).toHaveProperty('data');
       expect(result).toHaveProperty('summary');
     });
+
+    it('should handle invalid page values and default to 1', async () => {
+      // Arrange
+      const mockRequest = RequestMockFactory.createWithUser('user-123');
+      const expectedResult = {
+        data: [MockCategoryFactory.createWithStats()],
+        summary: { total: 1, income: 1, expense: 0, custom: 1, default: 0 },
+      };
+
+      listCategoriesUseCase.execute.mockResolvedValue(expectedResult);
+
+      // Act - Test with invalid page values (NaN, 0, negative)
+      await controller.list(
+        'all',
+        'false',
+        'invalid',
+        '20',
+        '',
+        mockRequest.user,
+        mockRequest,
+      );
+
+      // Assert - Should default to page 1
+      expect(listCategoriesUseCase.execute).toHaveBeenCalledWith({
+        userId: 'user-123',
+        type: undefined,
+        includeStats: false,
+        page: 1,
+        limit: 20,
+        search: undefined,
+      });
+    });
+
+    it('should handle zero page value and default to 1', async () => {
+      // Arrange
+      const mockRequest = RequestMockFactory.createWithUser('user-123');
+      const expectedResult = {
+        data: [MockCategoryFactory.createWithStats()],
+        summary: { total: 1, income: 1, expense: 0, custom: 1, default: 0 },
+      };
+
+      listCategoriesUseCase.execute.mockResolvedValue(expectedResult);
+
+      // Act
+      await controller.list(
+        'all',
+        'false',
+        '0',
+        '20',
+        '',
+        mockRequest.user,
+        mockRequest,
+      );
+
+      // Assert - Should default to page 1 (Math.max(1, 0) = 1)
+      expect(listCategoriesUseCase.execute).toHaveBeenCalledWith({
+        userId: 'user-123',
+        type: undefined,
+        includeStats: false,
+        page: 1,
+        limit: 20,
+        search: undefined,
+      });
+    });
+
+    it('should handle negative page value and default to 1', async () => {
+      // Arrange
+      const mockRequest = RequestMockFactory.createWithUser('user-123');
+      const expectedResult = {
+        data: [MockCategoryFactory.createWithStats()],
+        summary: { total: 1, income: 1, expense: 0, custom: 1, default: 0 },
+      };
+
+      listCategoriesUseCase.execute.mockResolvedValue(expectedResult);
+
+      // Act
+      await controller.list(
+        'all',
+        'false',
+        '-5',
+        '20',
+        '',
+        mockRequest.user,
+        mockRequest,
+      );
+
+      // Assert - Should default to page 1 (Math.max(1, -5) = 1)
+      expect(listCategoriesUseCase.execute).toHaveBeenCalledWith({
+        userId: 'user-123',
+        type: undefined,
+        includeStats: false,
+        page: 1,
+        limit: 20,
+        search: undefined,
+      });
+    });
+
+    it('should handle invalid limit values and default appropriately', async () => {
+      // Arrange
+      const mockRequest = RequestMockFactory.createWithUser('user-123');
+      const expectedResult = {
+        data: [MockCategoryFactory.createWithStats()],
+        summary: { total: 1, income: 1, expense: 0, custom: 1, default: 0 },
+      };
+
+      listCategoriesUseCase.execute.mockResolvedValue(expectedResult);
+
+      // Act - Test with invalid limit (NaN)
+      await controller.list(
+        'all',
+        'false',
+        '1',
+        'invalid',
+        '',
+        mockRequest.user,
+        mockRequest,
+      );
+
+      // Assert - Should default to 20
+      expect(listCategoriesUseCase.execute).toHaveBeenCalledWith({
+        userId: 'user-123',
+        type: undefined,
+        includeStats: false,
+        page: 1,
+        limit: 20,
+        search: undefined,
+      });
+    });
+
+    it('should handle zero limit value and default to 1', async () => {
+      // Arrange
+      const mockRequest = RequestMockFactory.createWithUser('user-123');
+      const expectedResult = {
+        data: [MockCategoryFactory.createWithStats()],
+        summary: { total: 1, income: 1, expense: 0, custom: 1, default: 0 },
+      };
+
+      listCategoriesUseCase.execute.mockResolvedValue(expectedResult);
+
+      // Act
+      await controller.list(
+        'all',
+        'false',
+        '1',
+        '0',
+        '',
+        mockRequest.user,
+        mockRequest,
+      );
+
+      // Assert - Should default to 1 (Math.max(1, 0) = 1)
+      expect(listCategoriesUseCase.execute).toHaveBeenCalledWith({
+        userId: 'user-123',
+        type: undefined,
+        includeStats: false,
+        page: 1,
+        limit: 1,
+        search: undefined,
+      });
+    });
+
+    it('should handle negative limit value and default to 1', async () => {
+      // Arrange
+      const mockRequest = RequestMockFactory.createWithUser('user-123');
+      const expectedResult = {
+        data: [MockCategoryFactory.createWithStats()],
+        summary: { total: 1, income: 1, expense: 0, custom: 1, default: 0 },
+      };
+
+      listCategoriesUseCase.execute.mockResolvedValue(expectedResult);
+
+      // Act
+      await controller.list(
+        'all',
+        'false',
+        '1',
+        '-10',
+        '',
+        mockRequest.user,
+        mockRequest,
+      );
+
+      // Assert - Should default to 1 (Math.max(1, -10) = 1)
+      expect(listCategoriesUseCase.execute).toHaveBeenCalledWith({
+        userId: 'user-123',
+        type: undefined,
+        includeStats: false,
+        page: 1,
+        limit: 1,
+        search: undefined,
+      });
+    });
+
+    it('should cap limit value at 100', async () => {
+      // Arrange
+      const mockRequest = RequestMockFactory.createWithUser('user-123');
+      const expectedResult = {
+        data: [MockCategoryFactory.createWithStats()],
+        summary: { total: 1, income: 1, expense: 0, custom: 1, default: 0 },
+      };
+
+      listCategoriesUseCase.execute.mockResolvedValue(expectedResult);
+
+      // Act - Test with limit > 100
+      await controller.list(
+        'all',
+        'false',
+        '1',
+        '150',
+        '',
+        mockRequest.user,
+        mockRequest,
+      );
+
+      // Assert - Should cap at 100 (Math.min(100, 150) = 100)
+      expect(listCategoriesUseCase.execute).toHaveBeenCalledWith({
+        userId: 'user-123',
+        type: undefined,
+        includeStats: false,
+        page: 1,
+        limit: 100,
+        search: undefined,
+      });
+    });
+
+    it('should trim search parameter and include in metadata', async () => {
+      // Arrange
+      const mockRequest = RequestMockFactory.createWithUser('user-123');
+      const expectedResult = {
+        data: [MockCategoryFactory.createWithStats()],
+        summary: { total: 1, income: 1, expense: 0, custom: 1, default: 0 },
+      };
+
+      listCategoriesUseCase.execute.mockResolvedValue(expectedResult);
+
+      // Act - Test with search parameter that has whitespace
+      const result = await controller.list(
+        'all',
+        'false',
+        '1',
+        '20',
+        '  groceries  ',
+        mockRequest.user,
+        mockRequest,
+      );
+
+      // Assert - Search should be trimmed
+      expect(listCategoriesUseCase.execute).toHaveBeenCalledWith({
+        userId: 'user-123',
+        type: undefined,
+        includeStats: false,
+        page: 1,
+        limit: 20,
+        search: 'groceries',
+      });
+
+      // Verify search is included in business event metadata
+      const businessEvents = loggerSpy.getBusinessEvents(
+        'category_api_list_success',
+      );
+      expect(businessEvents).toHaveLength(1);
+      expect(businessEvents[0].metadata.search).toBe('groceries');
+    });
+
+    it('should handle empty search parameter after trimming', async () => {
+      // Arrange
+      const mockRequest = RequestMockFactory.createWithUser('user-123');
+      const expectedResult = {
+        data: [MockCategoryFactory.createWithStats()],
+        summary: { total: 1, income: 1, expense: 0, custom: 1, default: 0 },
+      };
+
+      listCategoriesUseCase.execute.mockResolvedValue(expectedResult);
+
+      // Act - Test with search parameter that is only whitespace
+      await controller.list(
+        'all',
+        'false',
+        '1',
+        '20',
+        '   ',
+        mockRequest.user,
+        mockRequest,
+      );
+
+      // Assert - Search should be undefined after trimming empty string
+      expect(listCategoriesUseCase.execute).toHaveBeenCalledWith({
+        userId: 'user-123',
+        type: undefined,
+        includeStats: false,
+        page: 1,
+        limit: 20,
+        search: undefined,
+      });
+
+      // Verify search is undefined in business event metadata
+      const businessEvents = loggerSpy.getBusinessEvents(
+        'category_api_list_success',
+      );
+      expect(businessEvents).toHaveLength(1);
+      expect(businessEvents[0].metadata.search).toBeUndefined();
+    });
   });
 });

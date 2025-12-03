@@ -90,4 +90,3 @@ describe('TypeormEmailVerificationTokenRepository - Create Token', () => {
     });
   });
 });
-

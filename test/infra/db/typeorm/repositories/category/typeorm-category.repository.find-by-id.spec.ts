@@ -155,5 +155,38 @@ describe('TypeormCategoryRepository - findById', () => {
         'category_repository_find_by_id',
       );
     });
+
+    it('should handle non-Error rejection', async () => {
+      (mockTypeormRepository.findOne as any).mockRejectedValue('fail');
+      await expect(repository.findById('x')).rejects.toBe('fail');
+    });
+
+    it('findById without metrics should not attempt to record metrics', async () => {
+      const baseEntity = {
+        id: 'id1',
+        name: 'Name',
+        description: 'Desc',
+        type: CategoryType.EXPENSE,
+        color: '#000',
+        icon: 'i',
+        userId: 'user-1',
+        isDefault: false,
+        createdAt: new Date('2023-01-01'),
+        updatedAt: new Date('2023-01-01'),
+        deletedAt: null as any,
+        entries: [],
+      } as any;
+
+      // Create repository without metrics
+      const repositoryWithoutMetrics = new TypeormCategoryRepository(
+        mockTypeormRepository,
+        loggerSpy,
+        undefined as any,
+      );
+
+      mockTypeormRepository.findOne.mockResolvedValue(baseEntity as any);
+      const result = await repositoryWithoutMetrics.findById('id1');
+      expect(result).toMatchObject({ id: 'id1', name: 'Name' });
+    });
   });
 });

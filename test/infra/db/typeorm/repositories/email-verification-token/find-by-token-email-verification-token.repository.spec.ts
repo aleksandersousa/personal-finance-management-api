@@ -89,4 +89,3 @@ describe('TypeormEmailVerificationTokenRepository - Find By Token', () => {
     });
   });
 });
-

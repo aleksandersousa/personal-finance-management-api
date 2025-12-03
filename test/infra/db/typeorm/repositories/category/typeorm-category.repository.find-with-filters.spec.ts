@@ -1,5 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { Repository } from 'typeorm';
+import { Repository, SelectQueryBuilder } from 'typeorm';
 import { TypeormCategoryRepository } from '@infra/db/typeorm/repositories/typeorm-category.repository';
 import { CategoryEntity } from '@infra/db/typeorm/entities/category.entity';
 import { LoggerSpy } from '../../../../mocks/logging/logger.spy';
@@ -369,6 +369,79 @@ describe('TypeormCategoryRepository - findWithFilters', () => {
       expect(errorMetrics[0].labels.endpoint).toBe(
         'category_repository_find_with_filters',
       );
+    });
+
+    it('should log and rethrow on error', async () => {
+      const qb = {
+        where: jest.fn().mockReturnThis(),
+        andWhere: jest.fn().mockReturnThis(),
+        leftJoin: jest.fn().mockReturnThis(),
+        addSelect: jest.fn().mockReturnThis(),
+        groupBy: jest.fn().mockReturnThis(),
+        orderBy: jest.fn().mockReturnThis(),
+        skip: jest.fn().mockReturnThis(),
+        take: jest.fn().mockReturnThis(),
+        getRawAndEntities: jest.fn(),
+        getCount: jest.fn().mockRejectedValue('err'),
+      } as unknown as jest.Mocked<SelectQueryBuilder<CategoryEntity>>;
+      (mockTypeormRepository.createQueryBuilder as any).mockReturnValue(qb);
+
+      await expect(
+        repository.findWithFilters({
+          userId: 'u',
+          type: 'all' as any,
+          includeStats: false,
+        }),
+      ).rejects.toBe('err');
+    });
+
+    it('findWithFilters without metrics should work for includeStats=false', async () => {
+      const baseEntity = {
+        id: 'id1',
+        name: 'Name',
+        description: 'Desc',
+        type: CategoryType.EXPENSE,
+        color: '#000',
+        icon: 'i',
+        userId: 'user-1',
+        isDefault: false,
+        createdAt: new Date('2023-01-01'),
+        updatedAt: new Date('2023-01-01'),
+        deletedAt: null as any,
+        entries: [],
+      } as any;
+
+      // Create repository without metrics
+      const repositoryWithoutMetrics = new TypeormCategoryRepository(
+        mockTypeormRepository,
+        loggerSpy,
+        undefined as any,
+      );
+
+      const qb = {
+        where: jest.fn().mockReturnThis(),
+        andWhere: jest.fn().mockReturnThis(),
+        leftJoin: jest.fn().mockReturnThis(),
+        addSelect: jest.fn().mockReturnThis(),
+        groupBy: jest.fn().mockReturnThis(),
+        orderBy: jest.fn().mockReturnThis(),
+        skip: jest.fn().mockReturnThis(),
+        take: jest.fn().mockReturnThis(),
+        getRawAndEntities: jest
+          .fn()
+          .mockResolvedValue({ raw: [], entities: [baseEntity] }),
+        getCount: jest.fn().mockResolvedValue(1),
+      } as unknown as jest.Mocked<SelectQueryBuilder<CategoryEntity>>;
+      (mockTypeormRepository.createQueryBuilder as any).mockReturnValue(qb);
+
+      const result = await repositoryWithoutMetrics.findWithFilters({
+        userId: 'user-1',
+        type: 'all' as any,
+        includeStats: false,
+      });
+      expect(result.data).toHaveLength(1);
+      expect(result.total).toBe(1);
+      expect(result.data[0]).toMatchObject({ id: 'id1' });
     });
   });
 });

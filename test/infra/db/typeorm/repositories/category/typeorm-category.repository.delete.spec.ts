@@ -194,5 +194,16 @@ describe('TypeormCategoryRepository - delete', () => {
       // Verify error metrics
       expect(metricsSpy.hasRecordedMetric('api_errors_total')).toBe(true);
     });
+
+    it('delete catch path when delete throws after found', async () => {
+      mockTypeormRepository.findOne.mockResolvedValue({ id: 'id', userId: 'u' } as any);
+      mockTypeormRepository.delete.mockRejectedValue('oops');
+      await expect(repository.delete('id')).rejects.toBe('oops');
+    });
+
+    it('should log and rethrow on error', async () => {
+      mockTypeormRepository.findOne.mockRejectedValue('err');
+      await expect(repository.delete('id')).rejects.toBe('err');
+    });
   });
 });

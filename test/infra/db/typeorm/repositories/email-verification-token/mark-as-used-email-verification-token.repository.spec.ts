@@ -60,4 +60,3 @@ describe('TypeormEmailVerificationTokenRepository - Mark As Used', () => {
     });
   });
 });
-
