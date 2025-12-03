@@ -6,7 +6,7 @@ import { EntryEntity } from '@infra/db/typeorm/entities/entry.entity';
 import { ContextAwareLoggerService } from '@infra/logging/context-aware-logger.service';
 import { FinancialMetricsService } from '@infra/metrics/financial-metrics.service';
 
-describe('TypeormEntryRepository - Analytics', () => {
+describe('TypeormEntryRepository - Get Fixed Entries Summary', () => {
   let repository: TypeormEntryRepository;
   let testingModule: TestingModule;
   let mockRepository: jest.Mocked<Repository<EntryEntity>>;
@@ -15,12 +15,6 @@ describe('TypeormEntryRepository - Analytics', () => {
 
   beforeEach(async () => {
     mockRepository = {
-      create: jest.fn(),
-      save: jest.fn(),
-      findOne: jest.fn(),
-      find: jest.fn(),
-      update: jest.fn(),
-      delete: jest.fn(),
       createQueryBuilder: jest.fn(),
     } as any;
 
@@ -69,115 +63,9 @@ describe('TypeormEntryRepository - Analytics', () => {
     jest.clearAllMocks();
   });
 
-  describe('getMonthlySummaryStats', () => {
-    it('should get monthly summary stats successfully', async () => {
-      const userId = 'test-user-id';
-      const mockResult = {
-        totalIncome: '5000.00',
-        totalExpenses: '2500.00',
-        totalEntries: '10',
-        fixedIncome: '3000.00',
-        fixedExpenses: '1500.00',
-        dynamicIncome: '2000.00',
-        dynamicExpenses: '1000.00',
-        incomeEntries: '6',
-        expenseEntries: '4',
-      };
-
-      const mockQueryBuilder = {
-        select: jest.fn().mockReturnThis(),
-        addSelect: jest.fn().mockReturnThis(),
-        where: jest.fn().mockReturnThis(),
-        andWhere: jest.fn().mockReturnThis(),
-        getRawOne: jest.fn().mockResolvedValue(mockResult),
-      };
-
-      mockRepository.createQueryBuilder = jest
-        .fn()
-        .mockReturnValue(mockQueryBuilder);
-
-      const result = await repository.getMonthlySummaryStats(userId, 2024, 1);
-
-      expect(result).toEqual({
-        totalIncome: 5000,
-        totalExpenses: 2500,
-        totalEntries: 10,
-        fixedIncome: 3000,
-        fixedExpenses: 1500,
-        dynamicIncome: 2000,
-        dynamicExpenses: 1000,
-        incomeEntries: 6,
-        expenseEntries: 4,
-      });
-
-      expect(mockLogger.logBusinessEvent).toHaveBeenCalledWith({
-        event: 'monthly_summary_stats_calculated',
-        userId,
-        metadata: expect.objectContaining({
-          year: 2024,
-          month: 1,
-          duration: expect.any(Number),
-        }),
-      });
-
-      expect(mockMetrics.recordTransaction).toHaveBeenCalledWith(
-        'get_monthly_summary_stats',
-        'success',
-      );
-    });
-  });
-
-  describe('getCategorySummaryForMonth', () => {
-    it('should get category summary for month successfully', async () => {
-      const userId = 'test-user-id';
-      const mockResults = [
-        {
-          entry_categoryId: 'category-1',
-          category_name: 'Food',
-          entry_type: 'EXPENSE',
-          sum: '1000.00',
-          count: '5',
-        },
-      ];
-
-      const mockQueryBuilder = {
-        leftJoin: jest.fn().mockReturnThis(),
-        select: jest.fn().mockReturnThis(),
-        where: jest.fn().mockReturnThis(),
-        andWhere: jest.fn().mockReturnThis(),
-        groupBy: jest.fn().mockReturnThis(),
-        orderBy: jest.fn().mockReturnThis(),
-        getRawMany: jest.fn().mockResolvedValue(mockResults),
-      };
-
-      mockRepository.createQueryBuilder = jest
-        .fn()
-        .mockReturnValue(mockQueryBuilder);
-
-      const result = await repository.getCategorySummaryForMonth(
-        userId,
-        2024,
-        1,
-      );
-
-      expect(result).toEqual({
-        items: [
-          {
-            categoryId: 'category-1',
-            categoryName: 'Food',
-            type: 'EXPENSE',
-            total: 1000,
-            count: 5,
-          },
-        ],
-        incomeTotal: 0,
-        expenseTotal: 1,
-      });
-    });
-  });
-
   describe('getFixedEntriesSummary', () => {
     it('should get fixed entries summary', async () => {
+      // Arrange
       const userId = 'test-user-id';
       const mockResult = {
         fixedIncome: '5000.00',
@@ -197,7 +85,31 @@ describe('TypeormEntryRepository - Analytics', () => {
         .fn()
         .mockReturnValue(mockQueryBuilder);
 
+      // Act
       const result = await repository.getFixedEntriesSummary(userId);
+
+      // Assert
+      expect(mockRepository.createQueryBuilder).toHaveBeenCalledWith('entry');
+      expect(mockQueryBuilder.select).toHaveBeenCalledWith(
+        "SUM(CASE WHEN entry.type = 'INCOME' AND entry.isFixed = true THEN entry.amount ELSE 0 END)",
+        'fixedIncome',
+      );
+      expect(mockQueryBuilder.addSelect).toHaveBeenCalledWith(
+        "SUM(CASE WHEN entry.type = 'EXPENSE' AND entry.isFixed = true THEN entry.amount ELSE 0 END)",
+        'fixedExpenses',
+      );
+      expect(mockQueryBuilder.addSelect).toHaveBeenCalledWith(
+        'COUNT(CASE WHEN entry.isFixed = true THEN 1 END)',
+        'entriesCount',
+      );
+      expect(mockQueryBuilder.where).toHaveBeenCalledWith(
+        'entry.userId = :userId',
+        { userId },
+      );
+      expect(mockQueryBuilder.andWhere).toHaveBeenCalledWith(
+        'entry.deletedAt IS NULL',
+      );
+      expect(mockQueryBuilder.getRawOne).toHaveBeenCalled();
 
       expect(result).toEqual({
         fixedIncome: 5000,
@@ -225,6 +137,7 @@ describe('TypeormEntryRepository - Analytics', () => {
     });
 
     it('should handle null result from database query', async () => {
+      // This test targets lines 449 and 475 where parseFloat and parseInt handle null/undefined values
       const userId = 'test-user-id';
 
       const mockQueryBuilder = {
@@ -232,30 +145,44 @@ describe('TypeormEntryRepository - Analytics', () => {
         addSelect: jest.fn().mockReturnThis(),
         where: jest.fn().mockReturnThis(),
         andWhere: jest.fn().mockReturnThis(),
-        getRawOne: jest.fn().mockResolvedValue(null),
+        getRawOne: jest.fn().mockResolvedValue(null), // null result to test fallback
       };
 
       mockRepository.createQueryBuilder = jest
         .fn()
         .mockReturnValue(mockQueryBuilder);
 
+      // Act
       const result = await repository.getFixedEntriesSummary(userId);
 
+      // Assert
       expect(result).toEqual({
-        fixedIncome: 0,
-        fixedExpenses: 0,
+        fixedIncome: 0, // parseFloat(null?.fixedIncome || '0')
+        fixedExpenses: 0, // parseFloat(null?.fixedExpenses || '0')
         fixedNetFlow: 0,
-        entriesCount: 0,
+        entriesCount: 0, // parseInt(null?.entriesCount || '0')
+      });
+
+      expect(mockLogger.logBusinessEvent).toHaveBeenCalledWith({
+        event: 'fixed_entries_summary_calculated',
+        userId,
+        metadata: expect.objectContaining({
+          fixedIncome: 0,
+          fixedExpenses: 0,
+          fixedNetFlow: 0,
+          entriesCount: 0,
+          duration: expect.any(Number),
+        }),
       });
     });
-  });
 
-  describe('getCurrentBalance', () => {
-    it('should get current balance', async () => {
+    it('should handle undefined values in database result', async () => {
+      // This test targets lines 449 and 475 with undefined values in the result object
       const userId = 'test-user-id';
       const mockResult = {
-        totalIncome: '8000.00',
-        totalExpenses: '3500.00',
+        fixedIncome: undefined, // Test undefined fixedIncome
+        fixedExpenses: undefined, // Test undefined fixedExpenses
+        entriesCount: undefined, // Test undefined entriesCount
       };
 
       const mockQueryBuilder = {
@@ -270,43 +197,93 @@ describe('TypeormEntryRepository - Analytics', () => {
         .fn()
         .mockReturnValue(mockQueryBuilder);
 
-      const result = await repository.getCurrentBalance(userId);
+      // Act
+      const result = await repository.getFixedEntriesSummary(userId);
 
-      expect(result).toBe(4500);
-      expect(mockLogger.logBusinessEvent).toHaveBeenCalledWith(
-        expect.objectContaining({
-          event: 'current_balance_calculated',
-          userId,
-          metadata: expect.objectContaining({
-            totalIncome: 8000,
-            totalExpenses: 3500,
-            currentBalance: 4500,
-          }),
+      // Assert
+      expect(result).toEqual({
+        fixedIncome: 0, // parseFloat(undefined || '0')
+        fixedExpenses: 0, // parseFloat(undefined || '0')
+        fixedNetFlow: 0,
+        entriesCount: 0, // parseInt(undefined || '0')
+      });
+
+      expect(mockLogger.logBusinessEvent).toHaveBeenCalledWith({
+        event: 'fixed_entries_summary_calculated',
+        userId,
+        metadata: expect.objectContaining({
+          fixedIncome: 0,
+          fixedExpenses: 0,
+          fixedNetFlow: 0,
+          entriesCount: 0,
         }),
-      );
-      expect(mockMetrics.recordTransaction).toHaveBeenCalledWith(
-        'get_current_balance',
-        'success',
-      );
+      });
     });
 
-    it('should handle null result from database', async () => {
+    it('should handle empty string values in database result', async () => {
+      // This test ensures parseFloat and parseInt handle empty strings correctly
       const userId = 'test-user-id';
+      const mockResult = {
+        fixedIncome: '', // Empty string
+        fixedExpenses: '', // Empty string
+        entriesCount: '', // Empty string
+      };
+
       const mockQueryBuilder = {
         select: jest.fn().mockReturnThis(),
         addSelect: jest.fn().mockReturnThis(),
         where: jest.fn().mockReturnThis(),
         andWhere: jest.fn().mockReturnThis(),
-        getRawOne: jest.fn().mockResolvedValue(null),
+        getRawOne: jest.fn().mockResolvedValue(mockResult),
       };
 
       mockRepository.createQueryBuilder = jest
         .fn()
         .mockReturnValue(mockQueryBuilder);
 
-      const result = await repository.getCurrentBalance(userId);
+      // Act
+      const result = await repository.getFixedEntriesSummary(userId);
 
-      expect(result).toBe(0);
+      // Assert
+      expect(result).toEqual({
+        fixedIncome: 0, // parseFloat('' || '0')
+        fixedExpenses: 0, // parseFloat('' || '0')
+        fixedNetFlow: 0,
+        entriesCount: 0, // parseInt('' || '0')
+      });
+    });
+
+    it('should handle errors when getting fixed entries summary', async () => {
+      // Arrange
+      const userId = 'test-user-id';
+      const error = new Error('Database error');
+
+      const mockQueryBuilder = {
+        select: jest.fn().mockReturnThis(),
+        addSelect: jest.fn().mockReturnThis(),
+        where: jest.fn().mockReturnThis(),
+        andWhere: jest.fn().mockReturnThis(),
+        getRawOne: jest.fn().mockRejectedValue(error),
+      };
+
+      mockRepository.createQueryBuilder = jest
+        .fn()
+        .mockReturnValue(mockQueryBuilder);
+
+      // Act & Assert
+      await expect(repository.getFixedEntriesSummary(userId)).rejects.toThrow(
+        error,
+      );
+
+      expect(mockLogger.error).toHaveBeenCalledWith(
+        `Failed to get fixed entries summary for user ${userId}`,
+        error.stack,
+      );
+
+      expect(mockMetrics.recordApiError).toHaveBeenCalledWith(
+        'get_fixed_entries_summary',
+        error.message,
+      );
     });
   });
 });

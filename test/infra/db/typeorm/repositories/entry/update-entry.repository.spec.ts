@@ -6,7 +6,7 @@ import { EntryEntity } from '@infra/db/typeorm/entities/entry.entity';
 import { ContextAwareLoggerService } from '@infra/logging/context-aware-logger.service';
 import { FinancialMetricsService } from '@infra/metrics/financial-metrics.service';
 
-describe('TypeormEntryRepository - Update & Delete', () => {
+describe('TypeormEntryRepository - Update Entry', () => {
   let repository: TypeormEntryRepository;
   let testingModule: TestingModule;
   let mockRepository: jest.Mocked<Repository<EntryEntity>>;
@@ -29,13 +29,8 @@ describe('TypeormEntryRepository - Update & Delete', () => {
 
   beforeEach(async () => {
     mockRepository = {
-      create: jest.fn(),
-      save: jest.fn(),
-      findOne: jest.fn(),
-      find: jest.fn(),
       update: jest.fn(),
-      delete: jest.fn(),
-      createQueryBuilder: jest.fn(),
+      findOne: jest.fn(),
     } as any;
 
     mockLogger = {
@@ -90,10 +85,15 @@ describe('TypeormEntryRepository - Update & Delete', () => {
         amount: 2000,
       };
 
-      const updatedEntity = { ...mockEntryEntity, ...updateData };
-
-      mockRepository.update.mockResolvedValue({ affected: 1 } as any);
-      mockRepository.findOne.mockResolvedValue(updatedEntity);
+      mockRepository.update.mockResolvedValue({
+        affected: 1,
+        generatedMaps: [],
+        raw: {},
+      });
+      mockRepository.findOne.mockResolvedValue({
+        ...mockEntryEntity,
+        ...updateData,
+      });
 
       const result = await repository.update('entry-1', updateData);
 
@@ -102,71 +102,49 @@ describe('TypeormEntryRepository - Update & Delete', () => {
         where: { id: 'entry-1' },
         relations: ['user', 'category'],
       });
-      expect(result.description).toBe('Updated Entry');
-      expect(result.amount).toBe(2000);
+      expect(result.description).toBe(updateData.description);
+      expect(result.amount).toBe(updateData.amount);
     });
 
     it('should throw error when entry not found after update', async () => {
-      const updateData = { description: 'Updated Entry' };
-
-      mockRepository.update.mockResolvedValue({ affected: 1 } as any);
+      mockRepository.update.mockResolvedValue({
+        affected: 1,
+        generatedMaps: [],
+        raw: {},
+      });
       mockRepository.findOne.mockResolvedValue(null);
 
-      await expect(repository.update('entry-1', updateData)).rejects.toThrow(
+      await expect(repository.update('non-existent', {})).rejects.toThrow(
         'Entry not found',
       );
     });
-  });
 
-  describe('delete', () => {
-    it('should delete an entry', async () => {
-      mockRepository.delete.mockResolvedValue({ affected: 1 } as any);
+    it('should handle partial updates with all fields', async () => {
+      const updateData = {
+        userId: 'user-456',
+        description: 'New Description',
+        amount: 1500,
+        date: new Date('2024-02-01'),
+        type: 'EXPENSE' as const,
+        isFixed: true,
+        categoryId: 'category-123',
+      };
 
-      await repository.delete('entry-1');
-
-      expect(mockRepository.delete).toHaveBeenCalledWith('entry-1');
-    });
-
-    it('should throw error when entry not found', async () => {
-      mockRepository.delete.mockResolvedValue({ affected: 0 } as any);
-
-      await expect(repository.delete('entry-1')).rejects.toThrow(
-        'Entry not found',
-      );
-    });
-  });
-
-  describe('softDelete', () => {
-    it('should soft delete an entry and return deletedAt timestamp', async () => {
-      // Create a fixed date to avoid timing issues
-      const fixedDate = new Date('2024-01-15T10:00:00.000Z');
-      const softDeletedEntity = { ...mockEntryEntity, deletedAt: fixedDate };
-
-      mockRepository.update.mockResolvedValue({ affected: 1 } as any);
-      mockRepository.findOne.mockResolvedValue(softDeletedEntity);
-
-      // Mock Date constructor to return our fixed date
-      const dateSpy = jest
-        .spyOn(global, 'Date')
-        .mockImplementation(() => fixedDate as any);
-
-      const result = await repository.softDelete('entry-1');
-
-      // Restore original Date constructor
-      dateSpy.mockRestore();
-
-      expect(mockRepository.update).toHaveBeenCalledWith('entry-1', {
-        deletedAt: fixedDate,
+      mockRepository.update.mockResolvedValue({
+        affected: 1,
+        generatedMaps: [],
+        raw: {},
       });
-      expect(result).toEqual(fixedDate);
-    });
+      mockRepository.findOne.mockResolvedValue({
+        ...mockEntryEntity,
+        ...updateData,
+      });
 
-    it('should throw error when entry not found', async () => {
-      mockRepository.update.mockResolvedValue({ affected: 0 } as any);
+      const result = await repository.update('entry-1', updateData);
 
-      await expect(repository.softDelete('entry-1')).rejects.toThrow(
-        'Entry not found',
-      );
+      expect(mockRepository.update).toHaveBeenCalledWith('entry-1', updateData);
+      expect(result.userId).toBe(updateData.userId);
+      expect(result.type).toBe(updateData.type);
     });
   });
 });

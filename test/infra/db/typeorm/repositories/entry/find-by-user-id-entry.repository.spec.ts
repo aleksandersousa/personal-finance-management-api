@@ -6,7 +6,7 @@ import { EntryEntity } from '@infra/db/typeorm/entities/entry.entity';
 import { ContextAwareLoggerService } from '@infra/logging/context-aware-logger.service';
 import { FinancialMetricsService } from '@infra/metrics/financial-metrics.service';
 
-describe('TypeormEntryRepository - Create Entry', () => {
+describe('TypeormEntryRepository - Find By User ID', () => {
   let repository: TypeormEntryRepository;
   let testingModule: TestingModule;
   let mockRepository: jest.Mocked<Repository<EntryEntity>>;
@@ -29,8 +29,7 @@ describe('TypeormEntryRepository - Create Entry', () => {
 
   beforeEach(async () => {
     mockRepository = {
-      create: jest.fn(),
-      save: jest.fn(),
+      find: jest.fn(),
     } as any;
 
     mockLogger = {
@@ -78,35 +77,19 @@ describe('TypeormEntryRepository - Create Entry', () => {
     jest.clearAllMocks();
   });
 
-  describe('create', () => {
-    it('should create and save an entry', async () => {
-      const createData = {
-        userId: 'user-123',
-        description: 'Test Entry',
-        amount: 1000,
-        date: new Date('2024-01-15'),
-        type: 'INCOME' as const,
-        isFixed: false,
-        categoryId: null,
-      };
+  describe('findByUserId', () => {
+    it('should find entries by user id', async () => {
+      const mockEntries = [mockEntryEntity];
+      mockRepository.find.mockResolvedValue(mockEntries);
 
-      mockRepository.create.mockReturnValue(mockEntryEntity);
-      mockRepository.save.mockResolvedValue(mockEntryEntity);
+      const result = await repository.findByUserId('user-123');
 
-      const result = await repository.create(createData);
-
-      expect(mockRepository.create).toHaveBeenCalledWith({
-        userId: createData.userId,
-        description: createData.description,
-        amount: createData.amount,
-        date: createData.date,
-        type: createData.type,
-        isFixed: createData.isFixed,
-        categoryId: createData.categoryId,
+      expect(mockRepository.find).toHaveBeenCalledWith({
+        where: { userId: 'user-123' },
+        relations: ['user', 'category'],
+        order: { date: 'DESC' },
       });
-      expect(mockRepository.save).toHaveBeenCalledWith(mockEntryEntity);
-      expect(result.id).toBe(mockEntryEntity.id);
-      expect(result.amount).toBe(Number(mockEntryEntity.amount));
+      expect(result).toHaveLength(1);
     });
   });
 });

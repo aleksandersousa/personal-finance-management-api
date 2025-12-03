@@ -6,7 +6,7 @@ import { EntryEntity } from '@infra/db/typeorm/entities/entry.entity';
 import { ContextAwareLoggerService } from '@infra/logging/context-aware-logger.service';
 import { FinancialMetricsService } from '@infra/metrics/financial-metrics.service';
 
-describe('TypeormEntryRepository - Create Entry', () => {
+describe('TypeormEntryRepository - Find By ID', () => {
   let repository: TypeormEntryRepository;
   let testingModule: TestingModule;
   let mockRepository: jest.Mocked<Repository<EntryEntity>>;
@@ -29,8 +29,7 @@ describe('TypeormEntryRepository - Create Entry', () => {
 
   beforeEach(async () => {
     mockRepository = {
-      create: jest.fn(),
-      save: jest.fn(),
+      findOne: jest.fn(),
     } as any;
 
     mockLogger = {
@@ -78,35 +77,37 @@ describe('TypeormEntryRepository - Create Entry', () => {
     jest.clearAllMocks();
   });
 
-  describe('create', () => {
-    it('should create and save an entry', async () => {
-      const createData = {
-        userId: 'user-123',
-        description: 'Test Entry',
-        amount: 1000,
-        date: new Date('2024-01-15'),
-        type: 'INCOME' as const,
-        isFixed: false,
-        categoryId: null,
-      };
+  describe('findById', () => {
+    it('should find an entry by id', async () => {
+      mockRepository.findOne.mockResolvedValue(mockEntryEntity);
 
-      mockRepository.create.mockReturnValue(mockEntryEntity);
-      mockRepository.save.mockResolvedValue(mockEntryEntity);
+      const result = await repository.findById('entry-1');
 
-      const result = await repository.create(createData);
-
-      expect(mockRepository.create).toHaveBeenCalledWith({
-        userId: createData.userId,
-        description: createData.description,
-        amount: createData.amount,
-        date: createData.date,
-        type: createData.type,
-        isFixed: createData.isFixed,
-        categoryId: createData.categoryId,
+      expect(mockRepository.findOne).toHaveBeenCalledWith({
+        where: { id: 'entry-1' },
+        relations: ['user', 'category'],
       });
-      expect(mockRepository.save).toHaveBeenCalledWith(mockEntryEntity);
-      expect(result.id).toBe(mockEntryEntity.id);
-      expect(result.amount).toBe(Number(mockEntryEntity.amount));
+      expect(result).toEqual({
+        id: mockEntryEntity.id,
+        userId: mockEntryEntity.userId,
+        description: mockEntryEntity.description,
+        amount: Number(mockEntryEntity.amount),
+        date: mockEntryEntity.date,
+        type: mockEntryEntity.type,
+        isFixed: mockEntryEntity.isFixed,
+        categoryId: mockEntryEntity.categoryId,
+        deletedAt: mockEntryEntity.deletedAt,
+        createdAt: mockEntryEntity.createdAt,
+        updatedAt: mockEntryEntity.updatedAt,
+      });
+    });
+
+    it('should return null when entry not found', async () => {
+      mockRepository.findOne.mockResolvedValue(null);
+
+      const result = await repository.findById('non-existent');
+
+      expect(result).toBeNull();
     });
   });
 });

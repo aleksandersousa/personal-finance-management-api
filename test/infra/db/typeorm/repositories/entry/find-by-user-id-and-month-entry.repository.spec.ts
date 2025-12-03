@@ -6,7 +6,7 @@ import { EntryEntity } from '@infra/db/typeorm/entities/entry.entity';
 import { ContextAwareLoggerService } from '@infra/logging/context-aware-logger.service';
 import { FinancialMetricsService } from '@infra/metrics/financial-metrics.service';
 
-describe('TypeormEntryRepository - Find Entries', () => {
+describe('TypeormEntryRepository - Find By User ID And Month', () => {
   let repository: TypeormEntryRepository;
   let testingModule: TestingModule;
   let mockRepository: jest.Mocked<Repository<EntryEntity>>;
@@ -34,22 +34,10 @@ describe('TypeormEntryRepository - Find Entries', () => {
       andWhere: jest.fn().mockReturnThis(),
       leftJoinAndSelect: jest.fn().mockReturnThis(),
       orderBy: jest.fn().mockReturnThis(),
-      skip: jest.fn().mockReturnThis(),
-      take: jest.fn().mockReturnThis(),
-      getCount: jest.fn(),
       getMany: jest.fn(),
-      select: jest.fn().mockReturnThis(),
-      addSelect: jest.fn().mockReturnThis(),
-      getRawOne: jest.fn(),
     } as any;
 
     mockRepository = {
-      create: jest.fn(),
-      save: jest.fn(),
-      findOne: jest.fn(),
-      find: jest.fn(),
-      update: jest.fn(),
-      delete: jest.fn(),
       createQueryBuilder: jest.fn().mockReturnValue(mockQueryBuilder),
     } as any;
 
@@ -98,56 +86,6 @@ describe('TypeormEntryRepository - Find Entries', () => {
     jest.clearAllMocks();
   });
 
-  describe('findById', () => {
-    it('should find an entry by id', async () => {
-      mockRepository.findOne.mockResolvedValue(mockEntryEntity);
-
-      const result = await repository.findById('entry-1');
-
-      expect(mockRepository.findOne).toHaveBeenCalledWith({
-        where: { id: 'entry-1' },
-        relations: ['user', 'category'],
-      });
-      expect(result).toEqual({
-        id: mockEntryEntity.id,
-        userId: mockEntryEntity.userId,
-        description: mockEntryEntity.description,
-        amount: Number(mockEntryEntity.amount),
-        date: mockEntryEntity.date,
-        type: mockEntryEntity.type,
-        isFixed: mockEntryEntity.isFixed,
-        categoryId: mockEntryEntity.categoryId,
-        deletedAt: mockEntryEntity.deletedAt,
-        createdAt: mockEntryEntity.createdAt,
-        updatedAt: mockEntryEntity.updatedAt,
-      });
-    });
-
-    it('should return null when entry not found', async () => {
-      mockRepository.findOne.mockResolvedValue(null);
-
-      const result = await repository.findById('non-existent');
-
-      expect(result).toBeNull();
-    });
-  });
-
-  describe('findByUserId', () => {
-    it('should find entries by user id', async () => {
-      const mockEntries = [mockEntryEntity];
-      mockRepository.find.mockResolvedValue(mockEntries);
-
-      const result = await repository.findByUserId('user-123');
-
-      expect(mockRepository.find).toHaveBeenCalledWith({
-        where: { userId: 'user-123' },
-        relations: ['user', 'category'],
-        order: { date: 'DESC' },
-      });
-      expect(result).toHaveLength(1);
-    });
-  });
-
   describe('findByUserIdAndMonth', () => {
     it('should find entries by user id and month', async () => {
       const mockEntries = [mockEntryEntity];
@@ -159,6 +97,26 @@ describe('TypeormEntryRepository - Find Entries', () => {
       expect(mockQueryBuilder.where).toHaveBeenCalledWith(
         'entry.userId = :userId',
         { userId: 'user-123' },
+      );
+      expect(mockQueryBuilder.andWhere).toHaveBeenCalledWith(
+        'entry.date >= :startDate',
+        expect.any(Object),
+      );
+      expect(mockQueryBuilder.andWhere).toHaveBeenCalledWith(
+        'entry.date <= :endDate',
+        expect.any(Object),
+      );
+      expect(mockQueryBuilder.leftJoinAndSelect).toHaveBeenCalledWith(
+        'entry.user',
+        'user',
+      );
+      expect(mockQueryBuilder.leftJoinAndSelect).toHaveBeenCalledWith(
+        'entry.category',
+        'category',
+      );
+      expect(mockQueryBuilder.orderBy).toHaveBeenCalledWith(
+        'entry.date',
+        'DESC',
       );
       expect(mockQueryBuilder.getMany).toHaveBeenCalled();
       expect(result).toHaveLength(1);

@@ -6,31 +6,16 @@ import { EntryEntity } from '@infra/db/typeorm/entities/entry.entity';
 import { ContextAwareLoggerService } from '@infra/logging/context-aware-logger.service';
 import { FinancialMetricsService } from '@infra/metrics/financial-metrics.service';
 
-describe('TypeormEntryRepository - Create Entry', () => {
+describe('TypeormEntryRepository - Delete Entry', () => {
   let repository: TypeormEntryRepository;
   let testingModule: TestingModule;
   let mockRepository: jest.Mocked<Repository<EntryEntity>>;
   let mockLogger: jest.Mocked<ContextAwareLoggerService>;
   let mockMetrics: jest.Mocked<FinancialMetricsService>;
 
-  const mockEntryEntity: EntryEntity = {
-    id: 'entry-1',
-    userId: 'user-123',
-    description: 'Test Entry',
-    amount: 1000,
-    date: new Date('2024-01-15'),
-    type: 'INCOME',
-    isFixed: false,
-    categoryId: null,
-    deletedAt: null,
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  } as EntryEntity;
-
   beforeEach(async () => {
     mockRepository = {
-      create: jest.fn(),
-      save: jest.fn(),
+      delete: jest.fn(),
     } as any;
 
     mockLogger = {
@@ -78,35 +63,21 @@ describe('TypeormEntryRepository - Create Entry', () => {
     jest.clearAllMocks();
   });
 
-  describe('create', () => {
-    it('should create and save an entry', async () => {
-      const createData = {
-        userId: 'user-123',
-        description: 'Test Entry',
-        amount: 1000,
-        date: new Date('2024-01-15'),
-        type: 'INCOME' as const,
-        isFixed: false,
-        categoryId: null,
-      };
+  describe('delete', () => {
+    it('should delete an entry', async () => {
+      mockRepository.delete.mockResolvedValue({ affected: 1, raw: {} });
 
-      mockRepository.create.mockReturnValue(mockEntryEntity);
-      mockRepository.save.mockResolvedValue(mockEntryEntity);
+      await expect(repository.delete('entry-1')).resolves.not.toThrow();
 
-      const result = await repository.create(createData);
+      expect(mockRepository.delete).toHaveBeenCalledWith('entry-1');
+    });
 
-      expect(mockRepository.create).toHaveBeenCalledWith({
-        userId: createData.userId,
-        description: createData.description,
-        amount: createData.amount,
-        date: createData.date,
-        type: createData.type,
-        isFixed: createData.isFixed,
-        categoryId: createData.categoryId,
-      });
-      expect(mockRepository.save).toHaveBeenCalledWith(mockEntryEntity);
-      expect(result.id).toBe(mockEntryEntity.id);
-      expect(result.amount).toBe(Number(mockEntryEntity.amount));
+    it('should throw error when entry not found', async () => {
+      mockRepository.delete.mockResolvedValue({ affected: 0, raw: {} });
+
+      await expect(repository.delete('non-existent')).rejects.toThrow(
+        'Entry not found',
+      );
     });
   });
 });
