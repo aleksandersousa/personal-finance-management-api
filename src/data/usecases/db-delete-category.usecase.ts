@@ -4,7 +4,7 @@ import {
   DeleteCategoryResponse,
   DeleteCategoryUseCase,
 } from '@domain/usecases/delete-category.usecase';
-import { CategoryRepository } from '@data/protocols/category-repository';
+import { CategoryRepository } from '@/data/protocols/repositories/category-repository';
 
 @Injectable()
 export class DbDeleteCategoryUseCase implements DeleteCategoryUseCase {

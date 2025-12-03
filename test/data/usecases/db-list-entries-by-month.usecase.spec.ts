@@ -1,6 +1,6 @@
 import { DbListEntriesByMonthUseCase } from '@data/usecases/db-list-entries-by-month.usecase';
-import { EntryRepository } from '@data/protocols/entry-repository';
-import { UserRepository } from '@data/protocols/user-repository';
+import { EntryRepository } from '@/data/protocols/repositories/entry-repository';
+import { UserRepository } from '@/data/protocols/repositories/user-repository';
 import { EntryModel } from '@domain/models/entry.model';
 import { UserModel } from '@domain/models/user.model';
 
@@ -30,6 +30,7 @@ describe('DbListEntriesByMonthUseCase', () => {
       create: jest.fn(),
       findByEmail: jest.fn(),
       findById: jest.fn(),
+      update: jest.fn(),
     };
 
     sut = new DbListEntriesByMonthUseCase(

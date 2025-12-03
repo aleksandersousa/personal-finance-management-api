@@ -1,5 +1,5 @@
 import { DbListCategoriesUseCase } from '@data/usecases/db-list-categories.usecase';
-import { CategoryRepository } from '@data/protocols/category-repository';
+import { CategoryRepository } from '@/data/protocols/repositories/category-repository';
 
 export const makeListCategoriesFactory = (
   categoryRepository: CategoryRepository,

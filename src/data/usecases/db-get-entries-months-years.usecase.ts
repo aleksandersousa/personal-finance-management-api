@@ -3,8 +3,8 @@ import {
   GetEntriesMonthsYearsResponse,
   GetEntriesMonthsYearsUseCase,
 } from '@domain/usecases/get-entries-months-years.usecase';
-import { EntryRepository } from '../protocols/entry-repository';
-import { UserRepository } from '../protocols/user-repository';
+import { EntryRepository } from '../protocols/repositories/entry-repository';
+import { UserRepository } from '../protocols/repositories/user-repository';
 import type { Logger } from '../protocols';
 
 export class DbGetEntriesMonthsYearsUseCase

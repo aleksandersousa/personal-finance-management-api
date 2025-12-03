@@ -6,6 +6,7 @@ const mockUser: UserModel = {
   email: 'test@example.com',
   password: 'hashed-password',
   avatarUrl: null,
+  emailVerified: false,
   createdAt: new Date('2024-01-01T00:00:00Z'),
   updatedAt: new Date('2024-01-01T00:00:00Z'),
 };

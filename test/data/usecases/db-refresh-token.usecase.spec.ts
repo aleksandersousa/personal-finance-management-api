@@ -1,6 +1,6 @@
 import { DbRefreshTokenUseCase } from '@data/usecases/db-refresh-token.usecase';
 import { TokenGenerator } from '@data/protocols/token-generator';
-import { UserRepository } from '@data/protocols/user-repository';
+import { UserRepository } from '@/data/protocols/repositories/user-repository';
 
 describe('DbRefreshTokenUseCase', () => {
   let sut: DbRefreshTokenUseCase;
@@ -18,6 +18,7 @@ describe('DbRefreshTokenUseCase', () => {
       create: jest.fn(),
       findByEmail: jest.fn(),
       findById: jest.fn(),
+      update: jest.fn(),
     };
 
     sut = new DbRefreshTokenUseCase(mockTokenGenerator, mockUserRepository);

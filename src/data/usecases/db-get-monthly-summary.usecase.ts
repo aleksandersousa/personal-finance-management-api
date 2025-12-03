@@ -6,8 +6,8 @@ import {
 import {
   EntryRepository,
   MonthlySummaryStats,
-} from '../protocols/entry-repository';
-import { UserRepository } from '../protocols/user-repository';
+} from '../protocols/repositories/entry-repository';
+import { UserRepository } from '../protocols/repositories/user-repository';
 import { Logger } from '../protocols/logger';
 import { Metrics } from '../protocols/metrics';
 

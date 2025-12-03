@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { AddCategoryUseCase } from '@domain/usecases/add-category.usecase';
 import { Category, CategoryCreateData } from '@domain/models/category.model';
-import { CategoryRepository } from '@data/protocols/category-repository';
+import { CategoryRepository } from '@/data/protocols/repositories/category-repository';
 
 @Injectable()
 export class DbAddCategoryUseCase implements AddCategoryUseCase {

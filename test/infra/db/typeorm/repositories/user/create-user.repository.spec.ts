@@ -3,7 +3,7 @@ import { getRepositoryToken } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { TypeormUserRepository } from '@infra/db/typeorm/repositories/typeorm-user.repository';
 import { UserEntity } from '@infra/db/typeorm/entities/user.entity';
-import { CreateUserData } from '@data/protocols/user-repository';
+import { CreateUserData } from '@/data/protocols/repositories/user-repository';
 
 describe('TypeormUserRepository - Create User', () => {
   let repository: TypeormUserRepository;
@@ -49,10 +49,12 @@ describe('TypeormUserRepository - Create User', () => {
       email: 'john@example.com',
       password: 'hashedPassword123',
       avatarUrl: null,
+      emailVerified: false,
       createdAt: new Date('2024-01-01'),
       updatedAt: new Date('2024-01-01'),
       entries: [],
       categories: [],
+      emailVerificationTokens: [],
     };
 
     it('should create and save a new user successfully', async () => {
@@ -72,6 +74,7 @@ describe('TypeormUserRepository - Create User', () => {
         email: mockUserEntity.email,
         password: mockUserEntity.password,
         avatarUrl: mockUserEntity.avatarUrl,
+        emailVerified: mockUserEntity.emailVerified,
         createdAt: mockUserEntity.createdAt,
         updatedAt: mockUserEntity.updatedAt,
       });

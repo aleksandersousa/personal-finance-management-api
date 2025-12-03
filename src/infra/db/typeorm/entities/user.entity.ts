@@ -8,6 +8,7 @@ import {
 } from 'typeorm';
 import { EntryEntity } from './entry.entity';
 import { CategoryEntity } from './category.entity';
+import { EmailVerificationTokenEntity } from './email-verification-token.entity';
 
 @Entity('users')
 export class UserEntity {
@@ -26,11 +27,17 @@ export class UserEntity {
   @Column({ name: 'avatar_url', nullable: true })
   avatarUrl: string;
 
+  @Column({ name: 'email_verified', type: 'boolean', default: false })
+  emailVerified: boolean;
+
   @OneToMany(() => EntryEntity, entry => entry.user)
   entries: EntryEntity[];
 
   @OneToMany(() => CategoryEntity, category => category.user)
   categories: CategoryEntity[];
+
+  @OneToMany(() => EmailVerificationTokenEntity, token => token.user)
+  emailVerificationTokens: EmailVerificationTokenEntity[];
 
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;

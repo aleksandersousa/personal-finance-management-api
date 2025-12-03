@@ -3,7 +3,7 @@ import { getRepositoryToken } from '@nestjs/typeorm';
 import { Repository, SelectQueryBuilder } from 'typeorm';
 import { TypeormEntryRepository } from '@infra/db/typeorm/repositories/typeorm-entry.repository';
 import { EntryEntity } from '@infra/db/typeorm/entities/entry.entity';
-import { FindEntriesByMonthFilters } from '@data/protocols/entry-repository';
+import { FindEntriesByMonthFilters } from '@/data/protocols/repositories/entry-repository';
 import { ContextAwareLoggerService } from '@infra/logging/context-aware-logger.service';
 import { FinancialMetricsService } from '@infra/metrics/financial-metrics.service';
 

@@ -8,7 +8,7 @@ import {
   ForecastSummary,
   ForecastInsights,
 } from '@domain/usecases/predict-cash-flow.usecase';
-import { EntryRepository } from '@data/protocols/entry-repository';
+import { EntryRepository } from '@/data/protocols/repositories/entry-repository';
 import { Logger } from '@data/protocols/logger';
 import { Metrics } from '@data/protocols/metrics';
 import { ForecastCache } from '@data/protocols/cache';
