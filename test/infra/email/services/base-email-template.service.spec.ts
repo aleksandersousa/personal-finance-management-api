@@ -1,5 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { BaseEmailTemplateService } from '@infra/email/services/base-email-template.service';
+import { BaseEmailTemplateService } from '@infra/email/services';
 
 // Mock liquidjs
 const mockRenderFile = jest.fn();

@@ -1,4 +1,4 @@
-import { GeminiAgentProvider } from '@infra/ai/gemini/gemini-agent.provider';
+import { GeminiAgentProvider } from '@infra/ai/gemini';
 import * as fs from 'fs';
 
 // Mock fs module

@@ -4,8 +4,8 @@ import {
   BudgetAlertEmailData,
   TransactionReceiptEmailData,
   FinancialEmailTemplateService,
-} from '@infra/email/services/financial-email-template.service';
-import { BaseEmailTemplateService } from '@infra/email/services/base-email-template.service';
+  BaseEmailTemplateService,
+} from '@infra/email/services';
 
 describe('FinancialEmailTemplateService', () => {
   let service: FinancialEmailTemplateService;

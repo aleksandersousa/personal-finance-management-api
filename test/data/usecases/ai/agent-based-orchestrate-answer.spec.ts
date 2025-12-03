@@ -1,7 +1,6 @@
-import { AgentBasedOrchestrateSqlAnswer } from '@/data/usecases/agent-based-orchestrate-answer';
-import { FetchDataForQuestion } from '@/data/protocols';
-import { SummarizeResults } from '@/data/protocols/summarize-results';
-import { SqlRow } from '@domain/models/sql-agent.model';
+import { AgentBasedOrchestrateSqlAnswer } from '@/data/usecases';
+import { FetchDataForQuestion, SummarizeResults } from '@/data/protocols';
+import { SqlRow } from '@domain/models';
 
 describe('AgentBasedOrchestrateSqlAnswer', () => {
   let sut: AgentBasedOrchestrateSqlAnswer;

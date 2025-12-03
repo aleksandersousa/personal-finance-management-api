@@ -1,4 +1,4 @@
-import { DbResendVerificationEmailUseCase } from '@data/usecases/db-resend-verification-email.usecase';
+import { DbResendVerificationEmailUseCase } from '@data/usecases';
 import {
   UserRepositoryStub,
   EmailVerificationTokenRepositoryStub,

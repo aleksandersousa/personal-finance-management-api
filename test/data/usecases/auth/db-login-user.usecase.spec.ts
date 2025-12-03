@@ -1,4 +1,4 @@
-import { DbLoginUserUseCase } from '@data/usecases/db-login-user.usecase';
+import { DbLoginUserUseCase } from '@data/usecases';
 import { UserRepositoryStub } from '@test/data/mocks/repositories';
 import {
   HasherStub,

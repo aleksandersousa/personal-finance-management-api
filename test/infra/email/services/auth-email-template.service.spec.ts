@@ -4,8 +4,8 @@ import {
   WelcomeEmailData,
   PasswordResetEmailData,
   VerifyEmailData,
-} from '@infra/email/services/auth-email-template.service';
-import { BaseEmailTemplateService } from '@infra/email/services/base-email-template.service';
+  BaseEmailTemplateService,
+} from '@infra/email/services';
 
 describe('AuthEmailTemplateService', () => {
   let service: AuthEmailTemplateService;

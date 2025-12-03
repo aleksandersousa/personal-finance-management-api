@@ -1,5 +1,5 @@
-import { ForecastCacheService } from '../../../src/infra/cache/forecast-cache.service';
-import { MockCashFlowForecastFactory } from '../../domain/mocks/usecases/predict-cash-flow.mock';
+import { ForecastCacheService } from '@infra/cache/forecast-cache.service';
+import { MockCashFlowForecastFactory } from '@test/domain/mocks/usecases/predict-cash-flow.mock';
 
 describe('ForecastCacheService', () => {
   let cacheService: ForecastCacheService;

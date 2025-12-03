@@ -1,6 +1,6 @@
-import { DbRefreshTokenUseCase } from '@data/usecases/db-refresh-token.usecase';
+import { DbRefreshTokenUseCase } from '@data/usecases';
 import { TokenGenerator } from '@data/protocols/token-generator';
-import { UserRepository } from '@/data/protocols/repositories/user-repository';
+import { UserRepository } from '@data/protocols/repositories';
 
 describe('DbRefreshTokenUseCase', () => {
   let sut: DbRefreshTokenUseCase;

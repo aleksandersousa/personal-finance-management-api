@@ -1,5 +1,5 @@
 import { SummarizeResults } from '@/data/protocols';
-import { SqlRow } from '@domain/models/sql-agent.model';
+import { SqlRow } from '@domain/models';
 
 export class GeminiSummarizerProvider implements SummarizeResults {
   private readonly baseUrl: string;

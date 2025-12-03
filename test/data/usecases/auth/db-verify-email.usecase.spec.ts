@@ -1,4 +1,4 @@
-import { DbVerifyEmailUseCase } from '@data/usecases/db-verify-email.usecase';
+import { DbVerifyEmailUseCase } from '@data/usecases';
 import {
   EmailVerificationTokenRepositoryStub,
   UserRepositoryStub,
@@ -9,7 +9,7 @@ import {
   EmailSenderStub,
   AuthEmailTemplateServiceStub,
 } from '@test/data/mocks/protocols';
-import { EmailVerificationTokenModel } from '@domain/models/email-verification-token.model';
+import { EmailVerificationTokenModel } from '@domain/models';
 
 describe('DbVerifyEmailUseCase', () => {
   let sut: DbVerifyEmailUseCase;
