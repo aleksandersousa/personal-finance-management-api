@@ -6,9 +6,11 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { AuthController } from '@presentation/controllers';
 import { UserEntity } from '@infra/db/typeorm/entities/user.entity';
 import { EmailVerificationTokenEntity } from '@infra/db/typeorm/entities/email-verification-token.entity';
+import { PasswordResetTokenEntity } from '@infra/db/typeorm/entities/password-reset-token.entity';
 import {
   makeUserRepository,
   makeEmailVerificationTokenRepository,
+  makePasswordResetTokenRepository,
 } from '@/main/factories/repositories';
 import { BcryptHasher } from '@infra/implementations/bcrypt-hasher';
 import { JwtTokenGenerator } from '@infra/implementations/jwt-token-generator';
@@ -21,6 +23,8 @@ import {
   makeRegisterUserFactory,
   makeVerifyEmailFactory,
   makeResendVerificationEmailFactory,
+  makeRequestPasswordResetFactory,
+  makeResetPasswordFactory,
 } from '../factories';
 import { ContextAwareLoggerService } from '@/infra/logging/context-aware-logger.service';
 import { AuthEmailTemplateService } from '@/infra/email/services';
@@ -28,7 +32,11 @@ import { MailgunEmailSender } from '@/infra/implementations/mailgun-email-sender
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([UserEntity, EmailVerificationTokenEntity]),
+    TypeOrmModule.forFeature([
+      UserEntity,
+      EmailVerificationTokenEntity,
+      PasswordResetTokenEntity,
+    ]),
     PassportModule,
     JwtModule.registerAsync({
       imports: [ConfigModule],
@@ -50,6 +58,11 @@ import { MailgunEmailSender } from '@/infra/implementations/mailgun-email-sender
       provide: 'EmailVerificationTokenRepository',
       useFactory: makeEmailVerificationTokenRepository,
       inject: [getRepositoryToken(EmailVerificationTokenEntity)],
+    },
+    {
+      provide: 'PasswordResetTokenRepository',
+      useFactory: makePasswordResetTokenRepository,
+      inject: [getRepositoryToken(PasswordResetTokenEntity)],
     },
     {
       provide: 'Hasher',
@@ -126,6 +139,28 @@ import { MailgunEmailSender } from '@/infra/implementations/mailgun-email-sender
         'VerificationTokenGenerator',
       ],
     },
+    {
+      provide: 'RequestPasswordResetUseCase',
+      useFactory: makeRequestPasswordResetFactory,
+      inject: [
+        'UserRepository',
+        'PasswordResetTokenRepository',
+        'VerificationTokenGenerator',
+        'EmailSender',
+        'AuthEmailTemplateService',
+        'Logger',
+      ],
+    },
+    {
+      provide: 'ResetPasswordUseCase',
+      useFactory: makeResetPasswordFactory,
+      inject: [
+        'PasswordResetTokenRepository',
+        'UserRepository',
+        'Hasher',
+        'Logger',
+      ],
+    },
   ],
   exports: [
     'RegisterUserUseCase',
@@ -133,6 +168,8 @@ import { MailgunEmailSender } from '@/infra/implementations/mailgun-email-sender
     'RefreshTokenUseCase',
     'VerifyEmailUseCase',
     'ResendVerificationEmailUseCase',
+    'RequestPasswordResetUseCase',
+    'ResetPasswordUseCase',
     JwtStrategy,
     'UserRepository',
   ],

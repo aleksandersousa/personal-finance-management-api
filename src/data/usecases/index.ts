@@ -15,3 +15,5 @@ export * from './db-update-entry.usecase';
 export * from './db-resend-verification-email.usecase';
 export * from './db-verify-email.usecase';
 export * from './agent-based-orchestrate-answer';
+export * from './db-reset-password.usecase';
+export * from './db-request-password-reset.usecase';

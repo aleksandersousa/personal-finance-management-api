@@ -6,6 +6,8 @@ import { LoginUserUseCase } from '@domain/usecases/login-user.usecase';
 import { RefreshTokenUseCase } from '@domain/usecases/refresh-token.usecase';
 import { VerifyEmailUseCase } from '@domain/usecases/verify-email.usecase';
 import { ResendVerificationEmailUseCase } from '@domain/usecases/resend-verification-email.usecase';
+import { RequestPasswordResetUseCase } from '@domain/usecases/request-password-reset.usecase';
+import { ResetPasswordUseCase } from '@domain/usecases/reset-password.usecase';
 import { RegisterUserDto } from '@presentation/dtos/register-user.dto';
 import { LoginUserDto } from '@presentation/dtos/login-user.dto';
 import { RefreshTokenDto } from '@presentation/dtos/refresh-token.dto';
@@ -20,6 +22,8 @@ describe('AuthController', () => {
   let mockRefreshTokenUseCase: jest.Mocked<RefreshTokenUseCase>;
   let mockVerifyEmailUseCase: jest.Mocked<VerifyEmailUseCase>;
   let mockResendVerificationEmailUseCase: jest.Mocked<ResendVerificationEmailUseCase>;
+  let mockRequestPasswordResetUseCase: jest.Mocked<RequestPasswordResetUseCase>;
+  let mockResetPasswordUseCase: jest.Mocked<ResetPasswordUseCase>;
   let mockLogger: jest.Mocked<Logger>;
 
   beforeEach(async () => {
@@ -36,6 +40,12 @@ describe('AuthController', () => {
       execute: jest.fn(),
     };
     mockResendVerificationEmailUseCase = {
+      execute: jest.fn(),
+    };
+    mockRequestPasswordResetUseCase = {
+      execute: jest.fn(),
+    };
+    mockResetPasswordUseCase = {
       execute: jest.fn(),
     };
     mockLogger = {
@@ -71,6 +81,14 @@ describe('AuthController', () => {
         {
           provide: 'ResendVerificationEmailUseCase',
           useValue: mockResendVerificationEmailUseCase,
+        },
+        {
+          provide: 'RequestPasswordResetUseCase',
+          useValue: mockRequestPasswordResetUseCase,
+        },
+        {
+          provide: 'ResetPasswordUseCase',
+          useValue: mockResetPasswordUseCase,
         },
         {
           provide: 'Logger',
