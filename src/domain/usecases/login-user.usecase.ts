@@ -3,6 +3,7 @@ import { UserModel } from '../models/user.model';
 export interface LoginUserRequest {
   email: string;
   password: string;
+  ipAddress?: string;
 }
 
 export interface LoginUserResponse {

@@ -7,10 +7,7 @@ import {
   UseGuards,
   ValidationPipe,
 } from '@nestjs/common';
-import {
-  AskSqlDto,
-  SqlAgentResponseDto,
-} from '@/presentation/dtos/sql-agent.dto';
+import { AskSqlDto, SqlAgentResponseDto } from '@/presentation/dtos';
 import { OrchestrateSqlAnswer } from '@/domain/usecases/orchestrate-sql-answer';
 import { User } from '../decorators/user.decorator';
 import type { UserPayload } from '@/domain/models/user.model';

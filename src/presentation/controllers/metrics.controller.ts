@@ -1,7 +1,7 @@
 import { Controller, Get, Res } from '@nestjs/common';
 import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { Response } from 'express';
-import { FinancialMetricsService } from '../../infra/metrics/financial-metrics.service';
+import { FinancialMetricsService } from '@infra/metrics/financial-metrics.service';
 
 @ApiTags('monitoring')
 @Controller('metrics')

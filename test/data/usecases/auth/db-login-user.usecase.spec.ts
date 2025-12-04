@@ -6,6 +6,7 @@ import {
   LoggerStub,
 } from '@test/data/mocks/protocols';
 import { MockUserFactory } from '@test/domain/mocks/models';
+import { LoginAttemptTracker } from '@infra/cache/login-attempt-tracker.service';
 
 describe('DbLoginUserUseCase', () => {
   let sut: DbLoginUserUseCase;
@@ -13,18 +14,25 @@ describe('DbLoginUserUseCase', () => {
   let hasherStub: HasherStub;
   let tokenGeneratorStub: TokenGeneratorStub;
   let loggerStub: LoggerStub;
+  let loginAttemptTrackerMock: jest.Mocked<LoginAttemptTracker>;
 
   beforeEach(() => {
     userRepositoryStub = new UserRepositoryStub();
     hasherStub = new HasherStub();
     tokenGeneratorStub = new TokenGeneratorStub();
     loggerStub = new LoggerStub();
+    loginAttemptTrackerMock = {
+      checkDelay: jest.fn().mockResolvedValue({ isDelayed: false, key: '' }),
+      incrementAttempts: jest.fn().mockResolvedValue(undefined),
+      resetAllAttempts: jest.fn().mockResolvedValue(undefined),
+    } as any;
 
     sut = new DbLoginUserUseCase(
       userRepositoryStub,
       hasherStub,
       tokenGeneratorStub,
       loggerStub,
+      loginAttemptTrackerMock,
     );
   });
 
@@ -33,6 +41,7 @@ describe('DbLoginUserUseCase', () => {
     hasherStub.clear();
     tokenGeneratorStub.clear();
     loggerStub.clear();
+    jest.clearAllMocks();
   });
 
   describe('execute', () => {
@@ -50,6 +59,7 @@ describe('DbLoginUserUseCase', () => {
     const mockRequest = {
       email: 'john@example.com',
       password: mockPassword,
+      ipAddress: '127.0.0.1',
     };
 
     it('should login user successfully with valid credentials', async () => {

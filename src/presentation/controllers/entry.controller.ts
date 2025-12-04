@@ -32,12 +32,14 @@ import { ListEntriesByMonthUseCase } from '@domain/usecases/list-entries-by-mont
 import { DeleteEntryUseCase } from '@domain/usecases/delete-entry.usecase';
 import { UpdateEntryUseCase } from '@domain/usecases/update-entry.usecase';
 import { GetEntriesMonthsYearsUseCase } from '@domain/usecases/get-entries-months-years.usecase';
-import { CreateEntryDto } from '../dtos/create-entry.dto';
-import { UpdateEntryDto } from '../dtos/update-entry.dto';
-import { EntryResponseDto } from '../dtos/entry-response.dto';
-import { EntryListResponseDto } from '../dtos/entry-list-response.dto';
-import { DeleteEntryResponseDto } from '../dtos/delete-entry-response.dto';
-import { EntriesMonthsYearsResponseDto } from '../dtos/entries-months-years-response.dto';
+import {
+  CreateEntryDto,
+  UpdateEntryDto,
+  EntryResponseDto,
+  EntryListResponseDto,
+  DeleteEntryResponseDto,
+  EntriesMonthsYearsResponseDto,
+} from '../dtos';
 import { JwtAuthGuard } from '../guards/jwt-auth.guard';
 import { User } from '../decorators/user.decorator';
 import { Logger } from '@data/protocols/logger';
