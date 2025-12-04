@@ -605,7 +605,7 @@ describe('CategoryController - List', () => {
       listCategoriesUseCase.execute.mockResolvedValue(expectedResult);
 
       // Act - Test with search parameter that has whitespace
-      const result = await controller.list(
+      await controller.list(
         'all',
         'false',
         '1',

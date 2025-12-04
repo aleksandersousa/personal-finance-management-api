@@ -23,7 +23,7 @@ import { RedisKeyPrefixService } from '@/infra/cache/redis-key-prefix.service';
             const delay = Math.min(times * 50, 2000);
             return delay;
           },
-          maxRetriesPerRequest: 3,
+          maxRetriesPerRequest: null, // Required by BullMQ for blocking commands
         };
 
         if (password) {

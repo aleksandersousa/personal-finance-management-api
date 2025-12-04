@@ -37,6 +37,9 @@
       "@main/*": [
         "src/main/*"
       ],
+      "@workers/*": [
+        "src/workers/*"
+      ],
       "@test/*": [
         "test/*"
       ]

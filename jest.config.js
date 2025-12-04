@@ -11,6 +11,7 @@ module.exports = {
     '!src/**/*.interface.ts',
     '!src/**/*.module.ts',
     '!src/main.ts',
+    '!src/worker.ts',
     // Exclude files that don't need testing
     '!src/main/factories/**', // Factories are DI containers
     '!src/main/config/**', // Simple config files
@@ -23,6 +24,8 @@ module.exports = {
     '!src/**/index.ts', // Index files are just re-exports
     '!src/infra/db/typeorm/migrations/**', // Migrations are database schema changes
     '!src/domain/constants/**', // Constants are constants
+    '!src/infra/queue/constants/**', // Queue constants
+    '!src/infra/queue/types/**', // Queue types/enums
   ],
   coverageDirectory: './coverage',
   testEnvironment: 'node',
@@ -33,6 +36,7 @@ module.exports = {
     '^@infra/(.*)$': '<rootDir>/src/infra/$1',
     '^@presentation/(.*)$': '<rootDir>/src/presentation/$1',
     '^@main/(.*)$': '<rootDir>/src/main/$1',
+    '^@workers/(.*)$': '<rootDir>/src/workers/$1',
     '^@test/(.*)$': '<rootDir>/test/$1',
   },
   setupFilesAfterEnv: ['<rootDir>/test/setup.ts'],

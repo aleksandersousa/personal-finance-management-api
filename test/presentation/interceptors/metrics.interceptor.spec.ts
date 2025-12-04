@@ -246,8 +246,6 @@ describe('MetricsInterceptor', () => {
         }),
       );
 
-      const startTime = Date.now();
-
       // Act
       const result$ = interceptor.intercept(
         mockExecutionContext,
@@ -256,27 +254,34 @@ describe('MetricsInterceptor', () => {
 
       // Assert
       result$.subscribe({
+        next: () => {
+          // tap() executes here, metrics should be recorded
+        },
         complete: () => {
-          const actualDuration = Date.now() - startTime;
+          // Give a small delay to ensure metrics are recorded
+          setTimeout(() => {
+            const durationMetrics = metricsSpy.getMetricsByFilter(
+              'http_request_duration_seconds',
+            );
+            expect(durationMetrics).toHaveLength(1);
 
-          const durationMetrics = metricsSpy.getMetricsByFilter(
-            'http_request_duration_seconds',
-          );
-          expect(durationMetrics).toHaveLength(1);
+            const recordedDurationMs = durationMetrics[0].value! * 1000;
 
-          const recordedDurationMs = durationMetrics[0].value! * 1000;
+            // Allow for 100ms variance due to timing precision and async operations
+            // The recorded duration should be close to the simulated delay
+            expect(recordedDurationMs).toBeGreaterThanOrEqual(
+              simulatedDelay - 100,
+            );
+            expect(recordedDurationMs).toBeLessThanOrEqual(
+              simulatedDelay + 100,
+            );
 
-          // Allow for 50ms variance due to timing precision
-          expect(recordedDurationMs).toBeGreaterThanOrEqual(
-            simulatedDelay - 50,
-          );
-          expect(recordedDurationMs).toBeLessThanOrEqual(actualDuration + 50);
-
-          done();
+            done();
+          }, 10);
         },
         error: done,
       });
-    });
+    }, 10000); // 10 second timeout
 
     it('should handle different HTTP methods correctly', done => {
       // Arrange

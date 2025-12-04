@@ -13,6 +13,7 @@ import {
   corsConfig,
   gracefulShutdown,
 } from './main/config';
+import { BullBoardModule } from './infra/queue/bull-board.module';
 
 async function bootstrap() {
   // Create logs directory if it doesn't exist (handle permission errors gracefully)
@@ -76,6 +77,9 @@ async function bootstrap() {
   // Graceful shutdown handling
   gracefulShutdown(app, logger);
 
+  // Setup Bull Board dashboard (before listening to ensure routes are registered)
+  BullBoardModule.setup(app);
+
   // Start server
   const port = configService.get('PORT') || 3000;
   const host = configService.get('HOST') || '0.0.0.0';
@@ -98,6 +102,7 @@ async function bootstrap() {
   console.log(`📚 Documentation: http://localhost:${port}/${apiPrefix}/docs`);
   console.log(`📊 Metrics: http://localhost:${port}/${apiPrefix}/metrics`);
   console.log(`❤️  Health: http://localhost:${port}/${apiPrefix}/health`);
+  console.log(`📋 Queue Dashboard: http://localhost:${port}/admin/queues`);
   console.log(`🔍 Environment: ${process.env.NODE_ENV || 'development'}`);
   console.log(`📝 Logs: ${logsDir}`);
 
