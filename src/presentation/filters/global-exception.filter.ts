@@ -106,7 +106,7 @@ export class GlobalExceptionFilter implements ExceptionFilter {
     }
 
     // Enhanced error response with trace ID for debugging
-    const errorResponse = {
+    const errorResponse: any = {
       statusCode: status,
       timestamp: new Date().toISOString(),
       path: request.url,
@@ -115,6 +115,20 @@ export class GlobalExceptionFilter implements ExceptionFilter {
       error,
       ...(traceId && { traceId }), // Include trace ID for client debugging
     };
+
+    // Preserve additional properties from exception response (e.g., remainingDelaySeconds)
+    if (exception instanceof HttpException) {
+      const exceptionResponse = exception.getResponse();
+      if (typeof exceptionResponse === 'object' && exceptionResponse !== null) {
+        const responseObj = exceptionResponse as Record<string, unknown>;
+        // Include all properties except message and error (already handled above)
+        Object.keys(responseObj).forEach(key => {
+          if (key !== 'message' && key !== 'error') {
+            errorResponse[key] = responseObj[key];
+          }
+        });
+      }
+    }
 
     response.status(status).json(errorResponse);
   }

@@ -157,6 +157,7 @@ export class AuthController {
         throw new UnauthorizedException(error.message);
       }
       if (error.message.includes('Too many attempts')) {
+        console.log('aqui');
         this.logger.error(
           'Too many login attempts',
           error.stack,
