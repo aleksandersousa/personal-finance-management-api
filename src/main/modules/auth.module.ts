@@ -28,8 +28,8 @@ import {
 } from '../factories';
 import { ContextAwareLoggerService } from '@/infra/logging/context-aware-logger.service';
 import { AuthEmailTemplateService } from '@/infra/email/services';
-import { MailgunEmailSender } from '@/infra/implementations/mailgun-email-sender';
 import { LoginAttemptTracker } from '@/infra/cache/login-attempt-tracker.service';
+import { EmailModule } from './email.module';
 
 @Module({
   imports: [
@@ -47,6 +47,7 @@ import { LoginAttemptTracker } from '@/infra/cache/login-attempt-tracker.service
       }),
       inject: [ConfigService],
     }),
+    EmailModule, // Import EmailModule to use QueuedEmailSender
   ],
   controllers: [AuthController],
   providers: [
@@ -81,10 +82,7 @@ import { LoginAttemptTracker } from '@/infra/cache/login-attempt-tracker.service
       provide: 'Logger',
       useClass: ContextAwareLoggerService,
     },
-    {
-      provide: 'EmailSender',
-      useClass: MailgunEmailSender,
-    },
+    // EmailSender is provided by EmailModule (QueuedEmailSender)
     {
       provide: 'AuthEmailTemplateService',
       useClass: AuthEmailTemplateService,

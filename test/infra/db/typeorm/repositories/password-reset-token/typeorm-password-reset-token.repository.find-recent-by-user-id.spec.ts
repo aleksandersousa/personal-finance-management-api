@@ -35,7 +35,6 @@ describe('TypeormPasswordResetTokenRepository - Find Recent By User Id', () => {
 
   describe('findRecentByUserId', () => {
     const now = new Date();
-    const oneHourAgo = new Date(now.getTime() - 60 * 60 * 1000);
 
     const mockTokenEntities: PasswordResetTokenEntity[] = [
       {
