@@ -1,6 +1,7 @@
 import { Injectable, Inject } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import Redis from 'ioredis';
+import { RedisKeyPrefixService } from './redis-key-prefix.service';
 
 export interface AttemptData {
   count: number;
@@ -15,10 +16,11 @@ export class LoginAttemptTracker {
   constructor(
     @Inject('RedisClient') redis: Redis,
     private readonly configService: ConfigService,
+    private readonly keyPrefixService: RedisKeyPrefixService,
   ) {
     this.redis = redis;
     this.windowTtl = parseInt(
-      this.configService.get<string>('LOGIN_ATTEMPT_WINDOW_TTL', '3600'),
+      this.configService.get<string>('LOGIN_ATTEMPT_WINDOW_TTL'),
     );
   }
 
@@ -39,7 +41,10 @@ export class LoginAttemptTracker {
   }
 
   async getAttemptCount(key: string): Promise<number> {
-    const data = await this.redis.get(`login:attempts:${key}`);
+    const prefixedKey = this.keyPrefixService.prefixKey(
+      `login:attempts:${key}`,
+    );
+    const data = await this.redis.get(prefixedKey);
     if (!data) {
       return 0;
     }
@@ -48,7 +53,8 @@ export class LoginAttemptTracker {
   }
 
   async isDelayed(key: string): Promise<boolean> {
-    const delayExpiry = await this.redis.get(`login:delay:${key}`);
+    const prefixedKey = this.keyPrefixService.prefixKey(`login:delay:${key}`);
+    const delayExpiry = await this.redis.get(prefixedKey);
     if (!delayExpiry) {
       return false;
     }
@@ -57,7 +63,8 @@ export class LoginAttemptTracker {
   }
 
   async getRemainingDelay(key: string): Promise<number> {
-    const delayExpiry = await this.redis.get(`login:delay:${key}`);
+    const prefixedKey = this.keyPrefixService.prefixKey(`login:delay:${key}`);
+    const delayExpiry = await this.redis.get(prefixedKey);
     if (!delayExpiry) {
       return 0;
     }
@@ -67,8 +74,8 @@ export class LoginAttemptTracker {
   }
 
   async incrementAttempt(key: string): Promise<void> {
-    const attemptKey = `login:attempts:${key}`;
-    const delayKey = `login:delay:${key}`;
+    const attemptKey = this.keyPrefixService.prefixKey(`login:attempts:${key}`);
+    const delayKey = this.keyPrefixService.prefixKey(`login:delay:${key}`);
 
     // Get current attempt data
     const currentData = await this.redis.get(attemptKey);
@@ -105,8 +112,10 @@ export class LoginAttemptTracker {
   }
 
   async resetAttempts(key: string): Promise<void> {
-    await this.redis.del(`login:attempts:${key}`);
-    await this.redis.del(`login:delay:${key}`);
+    await this.redis.del(
+      this.keyPrefixService.prefixKey(`login:attempts:${key}`),
+    );
+    await this.redis.del(this.keyPrefixService.prefixKey(`login:delay:${key}`));
   }
 
   async checkDelay(
