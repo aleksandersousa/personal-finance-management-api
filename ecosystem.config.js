@@ -14,7 +14,7 @@ module.exports = {
     {
       name: 'financial-api-worker',
       cwd: '/var/www/financial-management/api/source',
-      script: 'dist/worker.js',
+      script: 'dist/src/worker.js',
       instances: 1,
       exec_mode: 'fork',
       env: {
