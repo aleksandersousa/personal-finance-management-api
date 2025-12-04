@@ -2,6 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { ConfigService } from '@nestjs/config';
 import Redis from 'ioredis';
 import { LoginAttemptTracker } from '@infra/cache/login-attempt-tracker.service';
+import { RedisKeyPrefixService } from '@infra/cache/redis-key-prefix.service';
 
 describe('LoginAttemptTracker', () => {
   let service: LoginAttemptTracker;
@@ -18,7 +19,15 @@ describe('LoginAttemptTracker', () => {
 
     // Mock ConfigService
     mockConfigService = {
-      get: jest.fn().mockReturnValue('3600'),
+      get: jest.fn((key: string) => {
+        if (key === 'LOGIN_ATTEMPT_WINDOW_TTL') {
+          return '3600';
+        }
+        if (key === 'REDIS_KEY_PREFIX') {
+          return undefined; // No prefix for tests
+        }
+        return undefined;
+      }),
     } as any;
 
     const module: TestingModule = await Test.createTestingModule({
@@ -32,6 +41,7 @@ describe('LoginAttemptTracker', () => {
           provide: ConfigService,
           useValue: mockConfigService,
         },
+        RedisKeyPrefixService,
       ],
     }).compile();
 
@@ -206,10 +216,15 @@ describe('LoginAttemptTracker', () => {
 
     it('should return true with remaining delay when email is delayed', async () => {
       const futureTime = Date.now() + 60000;
-      mockRedis.get
-        .mockResolvedValueOnce(futureTime.toString()) // email delay
-        .mockResolvedValueOnce(null) // IP delay check
-        .mockResolvedValueOnce(futureTime.toString()); // getRemainingDelay for email
+      mockRedis.get.mockImplementation((key: string) => {
+        if (key.includes('login:delay:email:test@example.com')) {
+          return Promise.resolve(futureTime.toString());
+        }
+        if (key.includes('login:delay:ip:192.168.1.1')) {
+          return Promise.resolve(null);
+        }
+        return Promise.resolve(null);
+      });
 
       const result = await service.checkDelay(
         'test@example.com',
@@ -224,10 +239,15 @@ describe('LoginAttemptTracker', () => {
 
     it('should return true with remaining delay when IP is delayed', async () => {
       const futureTime = Date.now() + 60000;
-      mockRedis.get
-        .mockResolvedValueOnce(null) // email delay check
-        .mockResolvedValueOnce(futureTime.toString()) // IP delay
-        .mockResolvedValueOnce(futureTime.toString()); // getRemainingDelay for IP
+      mockRedis.get.mockImplementation((key: string) => {
+        if (key.includes('login:delay:email:test@example.com')) {
+          return Promise.resolve(null);
+        }
+        if (key.includes('login:delay:ip:192.168.1.1')) {
+          return Promise.resolve(futureTime.toString());
+        }
+        return Promise.resolve(null);
+      });
 
       const result = await service.checkDelay(
         'test@example.com',
