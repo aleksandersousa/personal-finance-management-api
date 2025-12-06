@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { TypeOrmModule, getRepositoryToken } from '@nestjs/typeorm';
 import { NotificationEntity } from '@infra/db/typeorm/entities/notification.entity';
 import { EntryEntity } from '@infra/db/typeorm/entities/entry.entity';
@@ -16,6 +16,7 @@ import { NotificationWorker } from '@/workers/notification.worker';
 import { EmailModule } from './email.module';
 import { ObservabilityModule } from './observability.module';
 import { AuthModule } from './auth.module';
+import { EntryModule } from './entry.module';
 
 @Module({
   imports: [
@@ -24,6 +25,7 @@ import { AuthModule } from './auth.module';
     EmailModule,
     ObservabilityModule,
     AuthModule,
+    forwardRef(() => EntryModule),
   ],
   providers: [
     {

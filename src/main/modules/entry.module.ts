@@ -94,6 +94,7 @@ import { ContextAwareLoggerService } from '@/infra/logging/context-aware-logger.
     'UpdateEntryUseCase',
     'DeleteEntryUseCase',
     'GetEntriesMonthsYearsUseCase',
+    'EntryRepository',
   ],
 })
 export class EntryModule {}

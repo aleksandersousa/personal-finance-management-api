@@ -181,6 +181,8 @@ import { EmailModule } from './email.module';
     'ResetPasswordUseCase',
     JwtStrategy,
     'UserRepository',
+    'EmailVerificationTokenRepository',
+    'PasswordResetTokenRepository',
   ],
 })
 export class AuthModule {}

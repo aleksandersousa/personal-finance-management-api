@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Inject } from '@nestjs/common';
 import { SendNotificationUseCase } from '@domain/usecases/send-notification.usecase';
 
 export interface NotificationWorkerResult {
@@ -10,6 +10,7 @@ export interface NotificationWorkerResult {
 @Injectable()
 export class NotificationWorker {
   constructor(
+    @Inject('SendNotificationUseCase')
     private readonly sendNotificationUseCase: SendNotificationUseCase,
   ) {}
 
