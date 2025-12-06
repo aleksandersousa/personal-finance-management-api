@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      line-height: 1.6;
+      color: #333;
+      margin: 0;
+      padding: 0;
+      background-color: #f4f4f4;
+    }
+    .container {
+      max-width: 600px;
+      margin: 0 auto;
+      background-color: #ffffff;
+    }
+    .header {
+      background: linear-gradient(135deg, #dc2626 0%, #ef4444 100%);
+      color: white;
+      padding: 40px 30px;
+      text-align: center;
+      border-radius: 10px 10px 0 0;
+    }
+    .header h1 {
+      margin: 0;
+      font-size: 28px;
+    }
+    .content {
+      padding: 40px 30px;
+      background-color: #ffffff;
+    }
+    .content h2 {
+      color: #dc2626;
+      margin-top: 0;
+    }
+    .entry-details {
+      background-color: #fef2f2;
+      border-left: 4px solid #dc2626;
+      padding: 20px;
+      margin: 20px 0;
+      border-radius: 5px;
+    }
+    .entry-details p {
+      margin: 10px 0;
+    }
+    .entry-details strong {
+      color: #991b1b;
+    }
+    .footer {
+      background-color: #f9fafb;
+      padding: 20px 30px;
+      text-align: center;
+      font-size: 12px;
+      color: #6b7280;
+      border-radius: 0 0 10px 10px;
+    }
+    .footer p {
+      margin: 5px 0;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>Lembrete de Despesa 💰</h1>
+    </div>
+    
+    <div class="content">
+      <h2>Olá, {{ userName }}!</h2>
+      
+      <p>Este é um lembrete de que você tem uma despesa programada:</p>
+      
+      <div class="entry-details">
+        <p><strong>Descrição:</strong> {{ entryDescription }}</p>
+        <p><strong>Valor:</strong> {{ entryAmount }}</p>
+        <p><strong>Data de Vencimento:</strong> {{ dueDate }}</p>
+      </div>
+      
+      <p>Não se esqueça de realizar o pagamento até a data de vencimento.</p>
+      
+      <p>Atenciosamente,<br>Equipe do Personal Financial Management</p>
+    </div>
+    
+    <div class="footer">
+      <p>&copy; {{ currentYear }} Personal Financial Management. Todos os direitos reservados.</p>
+      <p>Este é um email automático, por favor não responda.</p>
+    </div>
+  </div>
+</body>
+</html>
+

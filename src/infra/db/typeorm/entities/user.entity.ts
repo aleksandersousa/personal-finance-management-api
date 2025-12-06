@@ -30,6 +30,15 @@ export class UserEntity {
   @Column({ name: 'email_verified', type: 'boolean', default: false })
   emailVerified: boolean;
 
+  @Column({ name: 'notification_enabled', type: 'boolean', default: true })
+  notificationEnabled: boolean;
+
+  @Column({ name: 'notification_time_minutes', type: 'integer', default: 30 })
+  notificationTimeMinutes: number;
+
+  @Column({ name: 'timezone', nullable: true })
+  timezone: string | null;
+
   @OneToMany(() => EntryEntity, entry => entry.user)
   entries: EntryEntity[];
 

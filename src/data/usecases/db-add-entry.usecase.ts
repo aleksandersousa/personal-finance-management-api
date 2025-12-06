@@ -7,6 +7,7 @@ import { EntryRepository } from '../protocols/repositories/entry-repository';
 import { UserRepository } from '../protocols/repositories/user-repository';
 import { CategoryRepository } from '../protocols/repositories/category-repository';
 import { IdGenerator } from '../protocols/id-generator';
+import { CreateNotificationUseCase } from '@domain/usecases/create-notification.usecase';
 
 export class DbAddEntryUseCase implements AddEntryUseCase {
   constructor(
@@ -14,6 +15,7 @@ export class DbAddEntryUseCase implements AddEntryUseCase {
     private readonly userRepository: UserRepository,
     private readonly categoryRepository: CategoryRepository,
     private readonly idGenerator: IdGenerator,
+    private readonly createNotificationUseCase?: CreateNotificationUseCase,
   ) {}
 
   async execute(request: AddEntryRequest): Promise<EntryModel> {
@@ -61,6 +63,25 @@ export class DbAddEntryUseCase implements AddEntryUseCase {
       isFixed: request.isFixed,
       categoryId: request.categoryId,
     });
+
+    // Create notification for EXPENSE entries if user has notifications enabled
+    if (
+      entry.type === 'EXPENSE' &&
+      this.createNotificationUseCase &&
+      user.notificationEnabled !== false
+    ) {
+      try {
+        await this.createNotificationUseCase.execute({
+          entryId: entry.id,
+          userId: entry.userId,
+          entry,
+          user,
+        });
+      } catch (error) {
+        // Log error but don't fail entry creation if notification fails
+        console.error('Failed to create notification for entry:', error);
+      }
+    }
 
     return entry;
   }

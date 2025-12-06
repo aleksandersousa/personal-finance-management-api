@@ -41,6 +41,13 @@ export class EntryEntity {
   @Column({ name: 'category_id', nullable: true })
   categoryId: string | null;
 
+  @Column({
+    name: 'notification_time_minutes',
+    type: 'integer',
+    nullable: true,
+  })
+  notificationTimeMinutes: number | null;
+
   @ManyToOne(() => UserEntity, user => user.entries)
   @JoinColumn({ name: 'user_id' })
   user: UserEntity;

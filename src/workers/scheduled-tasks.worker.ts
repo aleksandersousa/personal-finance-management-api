@@ -1,6 +1,7 @@
 import {
   EmailVerificationTokenRepository,
   PasswordResetTokenRepository,
+  NotificationRepository,
 } from '@data/protocols/repositories';
 
 export interface TokenCleanupOptions {
@@ -13,10 +14,21 @@ export interface TokenCleanupResult {
   error?: string;
 }
 
+export interface NotificationCleanupOptions {
+  olderThanDays?: number;
+}
+
+export interface NotificationCleanupResult {
+  success: boolean;
+  deletedCount: number;
+  error?: string;
+}
+
 export class ScheduledTasksWorker {
   constructor(
     private readonly emailVerificationTokenRepository: EmailVerificationTokenRepository,
     private readonly passwordResetTokenRepository: PasswordResetTokenRepository,
+    private readonly notificationRepository?: NotificationRepository,
   ) {}
 
   async cleanupExpiredTokens(
@@ -49,6 +61,37 @@ export class ScheduledTasksWorker {
       return {
         success: false,
         cleanedTypes,
+        error: error.message,
+      };
+    }
+  }
+
+  async cleanupCancelledNotifications(
+    options: NotificationCleanupOptions,
+  ): Promise<NotificationCleanupResult> {
+    if (!this.notificationRepository) {
+      return {
+        success: false,
+        deletedCount: 0,
+        error: 'NotificationRepository not available',
+      };
+    }
+
+    try {
+      const olderThanDays = options.olderThanDays || 30;
+      const deletedCount =
+        await this.notificationRepository.deleteCancelledOlderThan(
+          olderThanDays,
+        );
+
+      return {
+        success: true,
+        deletedCount,
+      };
+    } catch (error) {
+      return {
+        success: false,
+        deletedCount: 0,
         error: error.message,
       };
     }
