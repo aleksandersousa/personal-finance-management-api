@@ -7,7 +7,7 @@ export interface UserModel {
   emailVerified?: boolean;
   notificationEnabled?: boolean;
   notificationTimeMinutes?: number;
-  timezone?: string | null;
+  timezone?: string;
   createdAt: Date;
   updatedAt: Date;
 }

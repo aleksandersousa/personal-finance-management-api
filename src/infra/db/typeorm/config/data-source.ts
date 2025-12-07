@@ -50,7 +50,7 @@ export const typeOrmConfig = {
     options: `-c search_path=${dbSchema},public`,
   },
   synchronize: configService.get<string>('NODE_ENV') === 'development',
-  logging: configService.get<string>('NODE_ENV') === 'development',
+  logging: false,
   ssl: false,
   autoLoadEntities: true,
 };

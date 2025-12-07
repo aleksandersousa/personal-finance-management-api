@@ -36,8 +36,8 @@ export class UserEntity {
   @Column({ name: 'notification_time_minutes', type: 'integer', default: 30 })
   notificationTimeMinutes: number;
 
-  @Column({ name: 'timezone', nullable: true })
-  timezone: string | null;
+  @Column({ name: 'timezone', default: 'America/Sao_Paulo' })
+  timezone: string;
 
   @OneToMany(() => EntryEntity, entry => entry.user)
   entries: EntryEntity[];

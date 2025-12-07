@@ -72,7 +72,7 @@ export class DbRegisterUserUseCase implements RegisterUserUseCase {
     // Hash password
     const hashedPassword = await this.hasher.hash(request.password);
 
-    // Create user (emailVerified defaults to false)
+    // Create user (emailVerified defaults to false, timezone defaults to America/SaoPaulo)
     const user = await this.userRepository.create({
       name: request.name.trim(),
       email: request.email.toLowerCase(),

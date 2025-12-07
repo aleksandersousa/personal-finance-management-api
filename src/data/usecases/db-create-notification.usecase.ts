@@ -26,29 +26,39 @@ export class DbCreateNotificationUseCase implements CreateNotificationUseCase {
       request.user,
     );
 
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    console.log(`Scheduled time: ${scheduledAt}`);
+    console.log(`new Date(): ${today}`);
+
     // Don't schedule if the time has already passed
-    if (scheduledAt <= new Date()) {
+    if (scheduledAt < today) {
       throw new Error('Cannot schedule notification in the past');
     }
 
-    // Schedule the job in BullMQ first to get the job ID
+    const notification = await this.notificationRepository.create({
+      entryId: request.entryId,
+      userId: request.userId,
+      scheduledAt,
+      jobId: null,
+    });
+
     const { jobId } = await this.notificationScheduler.scheduleNotification(
-      '', // Will be updated after creation
+      notification.id,
       request.entry,
       request.userId,
       scheduledAt,
     );
 
-    // Create notification record with job ID
-    const notification = await this.notificationRepository.create({
-      entryId: request.entryId,
-      userId: request.userId,
-      scheduledAt,
+    // Update notification with job ID
+    const updatedNotification = await this.notificationRepository.updateJobId(
+      notification.id,
       jobId,
-    });
+    );
 
     return {
-      notification,
+      notification: updatedNotification,
     };
   }
 }

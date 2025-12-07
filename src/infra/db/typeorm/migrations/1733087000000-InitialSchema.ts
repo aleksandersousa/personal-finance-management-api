@@ -147,6 +147,14 @@ export class InitialSchema1733087000000 implements MigrationInterface {
       true,
     );
 
+    // Set timezone default value and constraint for users table
+    await queryRunner.query(
+      `ALTER TABLE "${SCHEMA_NAME}"."${TABLE_NAMES.USERS}" ALTER COLUMN timezone SET DEFAULT 'America/Sao_Paulo'`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "${SCHEMA_NAME}"."${TABLE_NAMES.USERS}" ALTER COLUMN timezone SET NOT NULL`,
+    );
+
     // Categories Table
     await queryRunner.createTable(
       new Table({

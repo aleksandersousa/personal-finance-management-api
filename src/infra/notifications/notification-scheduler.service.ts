@@ -1,6 +1,8 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
+import { toZonedTime, fromZonedTime } from 'date-fns-tz';
+import { subMinutes } from 'date-fns';
 import { EntryModel } from '@domain/models/entry.model';
 import { UserModel } from '@domain/models/user.model';
 import { NotificationJobData } from '@domain/contracts';
@@ -17,11 +19,34 @@ export class NotificationSchedulerService {
 
   calculateScheduledTime(entry: EntryModel, user: UserModel): Date {
     const notificationMinutes =
-      entry.notificationTimeMinutes ?? user.notificationTimeMinutes ?? 30;
+      entry.notificationTimeMinutes ?? user.notificationTimeMinutes ?? 5;
 
-    const scheduledAt = new Date(entry.date);
+    // Get user's timezone (default to America/Sao_Paulo if not set)
+    const userTimezone = user.timezone || 'America/Sao_Paulo';
 
-    scheduledAt.setMinutes(scheduledAt.getMinutes() - notificationMinutes);
+    this.logger.log(
+      `Calculating scheduled time: entry.date=${entry.date.toISOString()}, userTimezone=${userTimezone}, notificationMinutes=${notificationMinutes}`,
+    );
+
+    const entryDateInUserTimezone = toZonedTime(entry.date, userTimezone);
+
+    this.logger.log(
+      `Entry date in user timezone: ${entryDateInUserTimezone.toISOString()}`,
+    );
+
+    // Calculate scheduled time in user's timezone (subtract notification minutes)
+    const scheduledAtInUserTimezone = subMinutes(
+      entryDateInUserTimezone,
+      notificationMinutes,
+    );
+
+    this.logger.log(
+      `Scheduled time in user timezone: ${scheduledAtInUserTimezone.toISOString()}`,
+    );
+
+    const scheduledAt = fromZonedTime(scheduledAtInUserTimezone, userTimezone);
+
+    this.logger.log(`Final scheduled time (UTC): ${scheduledAt.toISOString()}`);
 
     return scheduledAt;
   }

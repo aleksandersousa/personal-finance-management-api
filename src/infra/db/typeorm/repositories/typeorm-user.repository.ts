@@ -23,6 +23,9 @@ export class TypeormUserRepository implements UserRepository {
       password: savedUser.password,
       avatarUrl: savedUser.avatarUrl,
       emailVerified: savedUser.emailVerified,
+      notificationEnabled: savedUser.notificationEnabled,
+      notificationTimeMinutes: savedUser.notificationTimeMinutes,
+      timezone: savedUser.timezone,
       createdAt: savedUser.createdAt,
       updatedAt: savedUser.updatedAt,
     };
@@ -44,6 +47,9 @@ export class TypeormUserRepository implements UserRepository {
       password: user.password,
       avatarUrl: user.avatarUrl,
       emailVerified: user.emailVerified,
+      notificationEnabled: user.notificationEnabled,
+      notificationTimeMinutes: user.notificationTimeMinutes,
+      timezone: user.timezone,
       createdAt: user.createdAt,
       updatedAt: user.updatedAt,
     };
@@ -65,6 +71,9 @@ export class TypeormUserRepository implements UserRepository {
       password: user.password,
       avatarUrl: user.avatarUrl,
       emailVerified: user.emailVerified,
+      notificationEnabled: user.notificationEnabled,
+      notificationTimeMinutes: user.notificationTimeMinutes,
+      timezone: user.timezone,
       createdAt: user.createdAt,
       updatedAt: user.updatedAt,
     };
@@ -87,6 +96,9 @@ export class TypeormUserRepository implements UserRepository {
       password: updatedUser.password,
       avatarUrl: updatedUser.avatarUrl,
       emailVerified: updatedUser.emailVerified,
+      notificationEnabled: updatedUser.notificationEnabled,
+      notificationTimeMinutes: updatedUser.notificationTimeMinutes,
+      timezone: updatedUser.timezone,
       createdAt: updatedUser.createdAt,
       updatedAt: updatedUser.updatedAt,
     };
