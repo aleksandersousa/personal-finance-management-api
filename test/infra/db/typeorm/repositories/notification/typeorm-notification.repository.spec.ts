@@ -307,7 +307,10 @@ describe('TypeormNotificationRepository', () => {
       mockRepository.findOne.mockResolvedValue(mockEntity);
 
       // Act
-      const result = await repository.updateJobId('notification-123', 'job-456');
+      const result = await repository.updateJobId(
+        'notification-123',
+        'job-456',
+      );
 
       // Assert
       expect(result.jobId).toBe('job-456');
@@ -371,10 +374,9 @@ describe('TypeormNotificationRepository', () => {
       expect(result).toBe(5);
       expect(mockQueryBuilder.delete).toHaveBeenCalled();
       expect(mockQueryBuilder.from).toHaveBeenCalledWith(NotificationEntity);
-      expect(mockQueryBuilder.where).toHaveBeenCalledWith(
-        'status = :status',
-        { status: NotificationStatus.CANCELLED },
-      );
+      expect(mockQueryBuilder.where).toHaveBeenCalledWith('status = :status', {
+        status: NotificationStatus.CANCELLED,
+      });
       expect(mockQueryBuilder.andWhere).toHaveBeenCalled();
       const transactionMetrics = metricsSpy.getMetricsByFilter(
         'financial_transactions_total',
@@ -400,4 +402,3 @@ describe('TypeormNotificationRepository', () => {
     });
   });
 });
-

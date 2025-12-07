@@ -123,9 +123,7 @@ describe('DbCancelNotificationUseCase', () => {
       const error = new Error('Job not found');
       notificationScheduler.cancelNotification.mockRejectedValue(error);
 
-      const consoleErrorSpy = jest
-        .spyOn(console, 'error')
-        .mockImplementation();
+      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation();
 
       const updateStatusSpy = jest.spyOn(
         notificationRepositoryStub,
@@ -156,10 +154,9 @@ describe('DbCancelNotificationUseCase', () => {
       );
 
       // Act & Assert
-      await expect(
-        useCase.execute({ entryId: 'entry-123' }),
-      ).rejects.toThrow('Database connection failed');
+      await expect(useCase.execute({ entryId: 'entry-123' })).rejects.toThrow(
+        'Database connection failed',
+      );
     });
   });
 });
-

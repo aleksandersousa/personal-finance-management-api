@@ -66,8 +66,7 @@ export class NotificationRepositoryStub implements NotificationRepository {
     }
     return Array.from(this.notifications.values()).filter(
       n =>
-        n.status === NotificationStatus.PENDING &&
-        n.scheduledAt <= beforeDate,
+        n.status === NotificationStatus.PENDING && n.scheduledAt <= beforeDate,
     );
   }
 
@@ -185,4 +184,3 @@ export class NotificationRepositoryStub implements NotificationRepository {
     return Array.from(this.notifications.values());
   }
 }
-

@@ -112,15 +112,15 @@ describe('EntryNotificationEmailService', () => {
           currentYear: expect.any(Number),
         }),
       );
-      
+
       // Verify entryDate and dueDate are the same
       const templateData = mockRenderFile.mock.calls[0][1];
       expect(templateData.entryDate).toBe(templateData.dueDate);
-      
+
       // Verify amount formatting (check it contains the expected value)
       expect(templateData.entryAmount).toContain('150,00');
       expect(templateData.entryAmount).toMatch(/R\$\s*150,00/);
-      
+
       expect(mockRenderFile).toHaveBeenNthCalledWith(
         2,
         'entry-notification.txt.liquid',
@@ -150,4 +150,3 @@ describe('EntryNotificationEmailService', () => {
     });
   });
 });
-

@@ -138,7 +138,10 @@ describe('DbSendNotificationUseCase', () => {
         updatedAt: new Date('2024-01-01'),
       };
 
-      notificationRepositoryStub.seed([sentNotification, cancelledNotification]);
+      notificationRepositoryStub.seed([
+        sentNotification,
+        cancelledNotification,
+      ]);
 
       // Act & Assert
       await expect(
@@ -284,4 +287,3 @@ describe('DbSendNotificationUseCase', () => {
     });
   });
 });
-
