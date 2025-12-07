@@ -71,6 +71,9 @@ describe('TypeormUserRepository - Find By ID', () => {
         password: mockUserEntity.password,
         avatarUrl: mockUserEntity.avatarUrl,
         emailVerified: mockUserEntity.emailVerified,
+        notificationEnabled: mockUserEntity.notificationEnabled,
+        notificationTimeMinutes: mockUserEntity.notificationTimeMinutes,
+        timezone: mockUserEntity.timezone,
         createdAt: mockUserEntity.createdAt,
         updatedAt: mockUserEntity.updatedAt,
       });

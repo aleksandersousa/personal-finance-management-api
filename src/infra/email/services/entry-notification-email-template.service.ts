@@ -22,7 +22,7 @@ export class EntryNotificationEmailService extends BaseEmailTemplateService {
     const formattedAmount = new Intl.NumberFormat('pt-BR', {
       style: 'currency',
       currency: 'BRL',
-    }).format(data.entry.amount);
+    }).format(data.entry.amount / 100);
 
     const formattedDate = new Intl.DateTimeFormat('pt-BR', {
       day: '2-digit',

@@ -82,6 +82,9 @@ describe('TypeormUserRepository - Update User', () => {
         password: updatedUserEntity.password,
         avatarUrl: updatedUserEntity.avatarUrl,
         emailVerified: updatedUserEntity.emailVerified,
+        notificationEnabled: updatedUserEntity.notificationEnabled,
+        notificationTimeMinutes: updatedUserEntity.notificationTimeMinutes,
+        timezone: updatedUserEntity.timezone,
         createdAt: updatedUserEntity.createdAt,
         updatedAt: updatedUserEntity.updatedAt,
       });
