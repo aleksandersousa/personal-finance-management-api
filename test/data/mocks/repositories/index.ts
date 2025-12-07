@@ -3,3 +3,4 @@ export * from './email-verification-token-repository.stub';
 export * from './password-reset-token-repository.stub';
 export * from './category-repository.stub';
 export * from './entry-repository.stub';
+export * from './notification-repository.stub';

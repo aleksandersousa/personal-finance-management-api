@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { TypeOrmModule, getRepositoryToken } from '@nestjs/typeorm';
 import { EntryController } from '@presentation/controllers/entry.controller';
 import { EntryEntity } from '@infra/db/typeorm/entities/entry.entity';
@@ -10,6 +10,7 @@ import {
 import { UuidGenerator } from '@infra/implementations/uuid-generator';
 import { AuthModule } from './auth.module';
 import { ObservabilityModule } from './observability.module';
+import { NotificationModule } from './notification.module';
 import {
   makeAddEntryFactory,
   makeDeleteEntryFactory,
@@ -24,6 +25,7 @@ import { ContextAwareLoggerService } from '@/infra/logging/context-aware-logger.
     TypeOrmModule.forFeature([EntryEntity, CategoryEntity]),
     AuthModule,
     ObservabilityModule,
+    forwardRef(() => NotificationModule),
   ],
   controllers: [EntryController],
   providers: [
@@ -53,6 +55,7 @@ import { ContextAwareLoggerService } from '@/infra/logging/context-aware-logger.
         'UserRepository',
         'CategoryRepository',
         'IdGenerator',
+        { token: 'CreateNotificationUseCase', optional: true },
       ],
     },
     {
@@ -63,12 +66,21 @@ import { ContextAwareLoggerService } from '@/infra/logging/context-aware-logger.
     {
       provide: 'UpdateEntryUseCase',
       useFactory: makeUpdateEntryFactory,
-      inject: ['EntryRepository', 'UserRepository', 'CategoryRepository'],
+      inject: [
+        'EntryRepository',
+        'UserRepository',
+        'CategoryRepository',
+        { token: 'CreateNotificationUseCase', optional: true },
+        { token: 'CancelNotificationUseCase', optional: true },
+      ],
     },
     {
       provide: 'DeleteEntryUseCase',
       useFactory: makeDeleteEntryFactory,
-      inject: ['EntryRepository'],
+      inject: [
+        'EntryRepository',
+        { token: 'CancelNotificationUseCase', optional: true },
+      ],
     },
     {
       provide: 'GetEntriesMonthsYearsUseCase',
@@ -82,6 +94,7 @@ import { ContextAwareLoggerService } from '@/infra/logging/context-aware-logger.
     'UpdateEntryUseCase',
     'DeleteEntryUseCase',
     'GetEntriesMonthsYearsUseCase',
+    'EntryRepository',
   ],
 })
 export class EntryModule {}

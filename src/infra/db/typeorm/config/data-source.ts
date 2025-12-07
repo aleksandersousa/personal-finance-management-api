@@ -5,6 +5,7 @@ import { UserEntity } from '../entities/user.entity';
 import { EntryEntity } from '../entities/entry.entity';
 import { CategoryEntity } from '../entities/category.entity';
 import { EmailVerificationTokenEntity } from '../entities/email-verification-token.entity';
+import { NotificationEntity } from '../entities/notification.entity';
 
 const configService = new ConfigService();
 const dbSchema = configService.get<string>('DB_SCHEMA') || 'financial';
@@ -20,6 +21,7 @@ export const AppDataSource = new DataSource({
     EntryEntity,
     CategoryEntity,
     EmailVerificationTokenEntity,
+    NotificationEntity,
   ],
   migrations: ['dist/src/infra/db/typeorm/migrations/*.js'],
   migrationsTableName: 'migrations',
@@ -40,6 +42,7 @@ export const typeOrmConfig = {
     EntryEntity,
     CategoryEntity,
     EmailVerificationTokenEntity,
+    NotificationEntity,
   ],
   migrations: ['dist/src/infra/db/typeorm/migrations/*.js'],
   migrationsTableName: 'migrations',
@@ -47,7 +50,7 @@ export const typeOrmConfig = {
     options: `-c search_path=${dbSchema},public`,
   },
   synchronize: configService.get<string>('NODE_ENV') === 'development',
-  logging: configService.get<string>('NODE_ENV') === 'development',
+  logging: false,
   ssl: false,
   autoLoadEntities: true,
 };

@@ -10,6 +10,7 @@ export interface EntryModel {
   isFixed: boolean;
   categoryId?: string | null;
   categoryName?: string | null;
+  notificationTimeMinutes?: number | null;
   createdAt: Date;
   updatedAt: Date;
   deletedAt?: Date | null;

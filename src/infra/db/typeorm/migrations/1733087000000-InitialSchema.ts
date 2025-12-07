@@ -1,5 +1,6 @@
 import { SCHEMA_NAME, TABLE_NAMES } from '@/domain/constants';
 import { CategoryType } from '@/domain/models';
+import { NotificationStatus } from '@/domain/models/notification.model';
 import {
   MigrationInterface,
   QueryRunner,
@@ -16,7 +17,7 @@ export class InitialSchema1733087000000 implements MigrationInterface {
 
     await this.createTables(queryRunner);
 
-    await this.createIndices(queryRunner);
+    await this.createIndexes(queryRunner);
 
     await this.createTriggers(queryRunner);
   }
@@ -53,6 +54,10 @@ export class InitialSchema1733087000000 implements MigrationInterface {
       true,
     );
     await queryRunner.dropTable(`${SCHEMA_NAME}.${TABLE_NAMES.USERS}`, true);
+    await queryRunner.dropTable(
+      `${SCHEMA_NAME}.${TABLE_NAMES.NOTIFICATIONS}`,
+      true,
+    );
 
     // Drop Schema
     await queryRunner.dropSchema(SCHEMA_NAME, true);
@@ -111,6 +116,23 @@ export class InitialSchema1733087000000 implements MigrationInterface {
             isNullable: false,
           },
           {
+            name: 'notification_enabled',
+            type: 'boolean',
+            default: true,
+            isNullable: true,
+          },
+          {
+            name: 'notification_time_minutes',
+            type: 'integer',
+            default: 30,
+            isNullable: false,
+          },
+          {
+            name: 'timezone',
+            type: 'varchar',
+            isNullable: true,
+          },
+          {
             name: 'created_at',
             type: 'timestamp',
             default: 'now()',
@@ -123,6 +145,14 @@ export class InitialSchema1733087000000 implements MigrationInterface {
         ],
       }),
       true,
+    );
+
+    // Set timezone default value and constraint for users table
+    await queryRunner.query(
+      `ALTER TABLE "${SCHEMA_NAME}"."${TABLE_NAMES.USERS}" ALTER COLUMN timezone SET DEFAULT 'America/Sao_Paulo'`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "${SCHEMA_NAME}"."${TABLE_NAMES.USERS}" ALTER COLUMN timezone SET NOT NULL`,
     );
 
     // Categories Table
@@ -259,6 +289,11 @@ export class InitialSchema1733087000000 implements MigrationInterface {
             isNullable: false,
           },
           {
+            name: 'notification_time_minutes',
+            type: 'integer',
+            isNullable: true,
+          },
+          {
             name: 'deleted_at',
             type: 'timestamp',
             isNullable: true,
@@ -288,6 +323,85 @@ export class InitialSchema1733087000000 implements MigrationInterface {
             referencedColumnNames: ['id'],
             referencedTableName: `${SCHEMA_NAME}.${TABLE_NAMES.CATEGORIES}`,
             onDelete: 'SET NULL',
+          }),
+        ],
+      }),
+      true,
+    );
+
+    // Notifications Table
+    await queryRunner.createTable(
+      new Table({
+        schema: SCHEMA_NAME,
+        name: TABLE_NAMES.NOTIFICATIONS,
+        columns: [
+          {
+            name: 'id',
+            type: 'uuid',
+            isPrimary: true,
+            default: 'public.uuid_generate_v4()',
+          },
+          {
+            name: 'entry_id',
+            type: 'uuid',
+            isNullable: false,
+          },
+          {
+            name: 'user_id',
+            type: 'uuid',
+            isNullable: false,
+          },
+          {
+            name: 'scheduled_at',
+            type: 'timestamp',
+            isNullable: false,
+          },
+          {
+            name: 'sent_at',
+            type: 'timestamp',
+            isNullable: true,
+          },
+          {
+            name: 'status',
+            type: 'enum',
+            enum: Object.values(NotificationStatus),
+            isNullable: false,
+          },
+          {
+            name: 'job_id',
+            type: 'varchar',
+            isNullable: true,
+          },
+          {
+            name: 'created_at',
+            type: 'timestamp',
+            default: 'now()',
+          },
+          {
+            name: 'updated_at',
+            type: 'timestamp',
+            default: 'now()',
+          },
+          {
+            name: 'deleted_at',
+            type: 'timestamp',
+            isNullable: true,
+          },
+        ],
+        foreignKeys: [
+          new TableForeignKey({
+            name: 'FK_notifications_entries',
+            columnNames: ['entry_id'],
+            referencedColumnNames: ['id'],
+            referencedTableName: `${SCHEMA_NAME}.${TABLE_NAMES.ENTRIES}`,
+            onDelete: 'CASCADE',
+          }),
+          new TableForeignKey({
+            name: 'FK_notifications_users',
+            columnNames: ['user_id'],
+            referencedColumnNames: ['id'],
+            referencedTableName: `${SCHEMA_NAME}.${TABLE_NAMES.USERS}`,
+            onDelete: 'CASCADE',
           }),
         ],
       }),
@@ -399,7 +513,8 @@ export class InitialSchema1733087000000 implements MigrationInterface {
     );
   }
 
-  private async createIndices(queryRunner: QueryRunner): Promise<void> {
+  private async createIndexes(queryRunner: QueryRunner): Promise<void> {
+    // Entries Table Indexes
     await queryRunner.createIndex(
       `${SCHEMA_NAME}.${TABLE_NAMES.ENTRIES}`,
       new TableIndex({
@@ -435,6 +550,8 @@ export class InitialSchema1733087000000 implements MigrationInterface {
         columnNames: ['user_id'],
       }),
     );
+
+    // Email Verification Tokens Table Indexes
     await queryRunner.createIndex(
       `${SCHEMA_NAME}.${TABLE_NAMES.EMAIL_VERIFICATION_TOKENS}`,
       new TableIndex({
@@ -461,6 +578,37 @@ export class InitialSchema1733087000000 implements MigrationInterface {
       new TableIndex({
         name: 'IDX_password_reset_tokens_token',
         columnNames: ['token'],
+      }),
+    );
+
+    // Notifications Table Indexes
+    // Create indices for notifications table
+    await queryRunner.createIndex(
+      `${SCHEMA_NAME}.${TABLE_NAMES.NOTIFICATIONS}`,
+      new TableIndex({
+        name: 'IDX_notifications_entry_id',
+        columnNames: ['entry_id'],
+      }),
+    );
+    await queryRunner.createIndex(
+      `${SCHEMA_NAME}.${TABLE_NAMES.NOTIFICATIONS}`,
+      new TableIndex({
+        name: 'IDX_notifications_user_id',
+        columnNames: ['user_id'],
+      }),
+    );
+    await queryRunner.createIndex(
+      `${SCHEMA_NAME}.${TABLE_NAMES.NOTIFICATIONS}`,
+      new TableIndex({
+        name: 'IDX_notifications_status',
+        columnNames: ['status'],
+      }),
+    );
+    await queryRunner.createIndex(
+      `${SCHEMA_NAME}.${TABLE_NAMES.NOTIFICATIONS}`,
+      new TableIndex({
+        name: 'IDX_notifications_scheduled_at',
+        columnNames: ['scheduled_at'],
       }),
     );
   }

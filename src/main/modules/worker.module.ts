@@ -6,6 +6,7 @@ import { RedisModule } from './redis.module';
 import { AppQueueModule } from './queue.module';
 import { EmailModule } from './email.module';
 import { AuthModule } from './auth.module';
+import { NotificationModule } from './notification.module';
 import { typeOrmConfig } from '@infra/db/typeorm/config/data-source';
 
 @Module({
@@ -35,6 +36,9 @@ import { typeOrmConfig } from '@infra/db/typeorm/config/data-source';
 
     // Auth Module (needed for token repositories)
     AuthModule,
+
+    // Notification Module (needed for notification cleanup)
+    NotificationModule,
   ],
   providers: [],
 })

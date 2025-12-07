@@ -5,6 +5,9 @@ export interface UserModel {
   password?: string;
   avatarUrl?: string;
   emailVerified?: boolean;
+  notificationEnabled?: boolean;
+  notificationTimeMinutes?: number;
+  timezone?: string;
   createdAt: Date;
   updatedAt: Date;
 }

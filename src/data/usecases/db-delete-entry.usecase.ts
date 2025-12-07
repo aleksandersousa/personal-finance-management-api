@@ -4,9 +4,13 @@ import {
   DeleteEntryUseCase,
 } from '@domain/usecases/delete-entry.usecase';
 import { EntryRepository } from '../protocols/repositories/entry-repository';
+import { CancelNotificationUseCase } from '@domain/usecases/cancel-notification.usecase';
 
 export class DbDeleteEntryUseCase implements DeleteEntryUseCase {
-  constructor(private readonly entryRepository: EntryRepository) {}
+  constructor(
+    private readonly entryRepository: EntryRepository,
+    private readonly cancelNotificationUseCase?: CancelNotificationUseCase,
+  ) {}
 
   async execute(request: DeleteEntryRequest): Promise<DeleteEntryResponse> {
     // Validate input
@@ -32,6 +36,18 @@ export class DbDeleteEntryUseCase implements DeleteEntryUseCase {
     // Verify ownership
     if (entry.userId !== request.userId) {
       throw new Error('User does not own this entry');
+    }
+
+    // Cancel notification before deleting entry
+    if (this.cancelNotificationUseCase) {
+      try {
+        await this.cancelNotificationUseCase.execute({
+          entryId: request.entryId,
+        });
+      } catch (error) {
+        // Log error but don't fail deletion if notification cancellation fails
+        console.error('Failed to cancel notification:', error);
+      }
     }
 
     // Perform soft delete
