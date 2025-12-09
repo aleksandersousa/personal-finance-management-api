@@ -95,7 +95,7 @@ describe('TypeormEntryRepository - Get Fixed Entries Summary', () => {
         'fixedIncome',
       );
       expect(mockQueryBuilder.addSelect).toHaveBeenCalledWith(
-        "SUM(CASE WHEN entry.type = 'EXPENSE' AND entry.isFixed = true THEN entry.amount ELSE 0 END)",
+        "SUM(CASE WHEN entry.type = 'EXPENSE' AND entry.isFixed = true AND (entry.isPaid = false OR entry.isPaid IS NULL) THEN entry.amount ELSE 0 END)",
         'fixedExpenses',
       );
       expect(mockQueryBuilder.addSelect).toHaveBeenCalledWith(

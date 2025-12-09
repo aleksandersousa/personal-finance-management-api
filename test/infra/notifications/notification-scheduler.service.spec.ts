@@ -58,6 +58,7 @@ describe('NotificationSchedulerService', () => {
       isFixed: false,
       createdAt: new Date('2024-01-01'),
       updatedAt: new Date('2024-01-01'),
+      isPaid: true,
     };
 
     const baseUser: UserModel = {
@@ -186,6 +187,7 @@ describe('NotificationSchedulerService', () => {
       isFixed: false,
       createdAt: new Date('2024-01-01'),
       updatedAt: new Date('2024-01-01'),
+      isPaid: true,
     };
 
     it('should schedule notification successfully', async () => {

@@ -44,6 +44,7 @@ describe('TypeormEntryRepository - Get Category Summary For Month', () => {
       andWhere: jest.fn().mockReturnThis(),
       leftJoin: jest.fn().mockReturnThis(),
       select: jest.fn().mockReturnThis(),
+      addSelect: jest.fn().mockReturnThis(),
       groupBy: jest.fn().mockReturnThis(),
       orderBy: jest.fn().mockReturnThis(),
       getRawMany: jest.fn(),
@@ -117,13 +118,17 @@ describe('TypeormEntryRepository - Get Category Summary For Month', () => {
         'entry.category',
         'category',
       );
-      expect(mockQueryBuilder.select).toHaveBeenCalledWith([
-        'entry.categoryId',
-        'category.name',
-        'entry.type',
-        'SUM(entry.amount)',
+      expect(mockQueryBuilder.select).toHaveBeenCalledWith('entry.categoryId');
+      expect(mockQueryBuilder.addSelect).toHaveBeenCalledWith('category.name');
+      expect(mockQueryBuilder.addSelect).toHaveBeenCalledWith('entry.type');
+      expect(mockQueryBuilder.addSelect).toHaveBeenCalledWith(
+        "SUM(CASE WHEN entry.type = 'EXPENSE' AND (entry.isPaid = false OR entry.isPaid IS NULL) THEN entry.amount WHEN entry.type = 'INCOME' THEN entry.amount ELSE 0 END)",
+        'sum',
+      );
+      expect(mockQueryBuilder.addSelect).toHaveBeenCalledWith(
         'COUNT(*)',
-      ]);
+        'count',
+      );
 
       expect(mockQueryBuilder.where).toHaveBeenCalledWith(
         'entry.userId = :userId',
@@ -143,11 +148,14 @@ describe('TypeormEntryRepository - Get Category Summary For Month', () => {
       expect(mockQueryBuilder.andWhere).toHaveBeenCalledWith(
         'entry.categoryId IS NOT NULL',
       );
+      expect(mockQueryBuilder.andWhere).toHaveBeenCalledWith(
+        "(entry.type = 'INCOME' OR (entry.type = 'EXPENSE' AND (entry.isPaid = false OR entry.isPaid IS NULL)))",
+      );
       expect(mockQueryBuilder.groupBy).toHaveBeenCalledWith(
         'entry.categoryId, category.name, entry.type',
       );
       expect(mockQueryBuilder.orderBy).toHaveBeenCalledWith(
-        'SUM(entry.amount)',
+        "SUM(CASE WHEN entry.type = 'EXPENSE' AND (entry.isPaid = false OR entry.isPaid IS NULL) THEN entry.amount WHEN entry.type = 'INCOME' THEN entry.amount ELSE 0 END)",
         'DESC',
       );
 

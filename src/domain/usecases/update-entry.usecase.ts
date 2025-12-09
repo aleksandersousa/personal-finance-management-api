@@ -9,6 +9,7 @@ export interface UpdateEntryRequest {
   type: EntryType;
   isFixed: boolean;
   categoryId?: string;
+  isPaid?: boolean;
 }
 
 export interface UpdateEntryUseCase {

@@ -7,6 +7,7 @@ export interface CreateEntryData {
   type: 'INCOME' | 'EXPENSE';
   isFixed: boolean;
   categoryId: string | null;
+  isPaid?: boolean;
   userId: string;
 }
 
@@ -16,6 +17,7 @@ export interface UpdateEntryData {
   date?: Date;
   type?: 'INCOME' | 'EXPENSE';
   isFixed?: boolean;
+  isPaid?: boolean;
   categoryId?: string | null;
 }
 

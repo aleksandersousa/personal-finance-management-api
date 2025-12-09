@@ -62,6 +62,7 @@ export class DbAddEntryUseCase implements AddEntryUseCase {
       type: request.type,
       isFixed: request.isFixed,
       categoryId: request.categoryId,
+      isPaid: request.isPaid ?? false,
     });
 
     // Create notification for EXPENSE entries if user has notifications enabled

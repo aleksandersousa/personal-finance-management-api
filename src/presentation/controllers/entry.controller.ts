@@ -98,6 +98,7 @@ export class EntryController {
         date: new Date(createEntryDto.date),
         type: createEntryDto.type,
         isFixed: createEntryDto.isFixed,
+        isPaid: createEntryDto.isPaid,
         categoryId: createEntryDto.categoryId,
       });
 
@@ -346,6 +347,7 @@ export class EntryController {
         date: new Date(updateEntryDto.date),
         type: updateEntryDto.type,
         isFixed: updateEntryDto.isFixed,
+        isPaid: updateEntryDto.isPaid,
         categoryId: updateEntryDto.categoryId,
       });
 
@@ -370,6 +372,7 @@ export class EntryController {
       return {
         id: entry.id,
         amount: entry.amount,
+        isPaid: entry.isPaid,
         description: entry.description,
         type: entry.type,
         isFixed: entry.isFixed,

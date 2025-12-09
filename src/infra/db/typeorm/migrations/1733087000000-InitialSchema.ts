@@ -289,6 +289,12 @@ export class InitialSchema1733087000000 implements MigrationInterface {
             isNullable: false,
           },
           {
+            name: 'is_paid',
+            type: 'boolean',
+            default: false,
+            isNullable: false,
+          },
+          {
             name: 'notification_time_minutes',
             type: 'integer',
             isNullable: true,

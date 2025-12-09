@@ -35,6 +35,7 @@ export class TypeormEntryRepository implements EntryRepository {
       type: data.type,
       isFixed: data.isFixed,
       categoryId: data.categoryId,
+      isPaid: data.isPaid ?? false,
     });
     const savedEntry = await this.entryRepository.save(entity);
     return this.mapToModel(savedEntry);
@@ -103,6 +104,7 @@ export class TypeormEntryRepository implements EntryRepository {
       .where('entry.userId = :userId', { userId })
       .andWhere('entry.date >= :startDate', { startDate })
       .andWhere('entry.date <= :endDate', { endDate })
+      .andWhere('entry.isPaid = :isPaid', { isPaid: false })
       .leftJoinAndSelect('entry.user', 'user')
       .leftJoinAndSelect('entry.category', 'category');
 
@@ -151,7 +153,7 @@ export class TypeormEntryRepository implements EntryRepository {
         'totalIncome',
       )
       .addSelect(
-        "SUM(CASE WHEN entry.type = 'EXPENSE' THEN entry.amount ELSE 0 END)",
+        "SUM(CASE WHEN entry.type = 'EXPENSE' AND (entry.isPaid = false OR entry.isPaid IS NULL) THEN entry.amount ELSE 0 END)",
         'totalExpenses',
       )
       .where('entry.userId = :userId', { userId })
@@ -213,6 +215,9 @@ export class TypeormEntryRepository implements EntryRepository {
       }
       if (data.categoryId !== undefined) {
         updateData.categoryId = data.categoryId;
+      }
+      if (data.isPaid !== undefined) {
+        updateData.isPaid = data.isPaid;
       }
 
       await this.entryRepository.update(id, updateData);
@@ -302,7 +307,7 @@ export class TypeormEntryRepository implements EntryRepository {
           'totalIncome',
         )
         .addSelect(
-          "SUM(CASE WHEN entry.type = 'EXPENSE' THEN entry.amount ELSE 0 END)",
+          "SUM(CASE WHEN entry.type = 'EXPENSE' AND (entry.isPaid = false OR entry.isPaid IS NULL) THEN entry.amount ELSE 0 END)",
           'totalExpenses',
         )
         .addSelect(
@@ -314,11 +319,11 @@ export class TypeormEntryRepository implements EntryRepository {
           'dynamicIncome',
         )
         .addSelect(
-          "SUM(CASE WHEN entry.type = 'EXPENSE' AND entry.isFixed = true THEN entry.amount ELSE 0 END)",
+          "SUM(CASE WHEN entry.type = 'EXPENSE' AND entry.isFixed = true AND (entry.isPaid = false OR entry.isPaid IS NULL) THEN entry.amount ELSE 0 END)",
           'fixedExpenses',
         )
         .addSelect(
-          "SUM(CASE WHEN entry.type = 'EXPENSE' AND entry.isFixed = false THEN entry.amount ELSE 0 END)",
+          "SUM(CASE WHEN entry.type = 'EXPENSE' AND entry.isFixed = false AND (entry.isPaid = false OR entry.isPaid IS NULL) THEN entry.amount ELSE 0 END)",
           'dynamicExpenses',
         )
         .addSelect('COUNT(*)', 'totalEntries')
@@ -388,31 +393,39 @@ export class TypeormEntryRepository implements EntryRepository {
 
       // Get all results first to count total (before limiting to top 3)
       // This is acceptable since category summaries are typically small datasets
+      // Exclude paid expenses from calculations
       const allResults = await this.entryRepository
         .createQueryBuilder('entry')
         .leftJoin('entry.category', 'category')
-        .select([
-          'entry.categoryId',
-          'category.name',
-          'entry.type',
-          'SUM(entry.amount)',
-          'COUNT(*)',
-        ])
+        .select('entry.categoryId')
+        .addSelect('category.name')
+        .addSelect('entry.type')
+        .addSelect(
+          "SUM(CASE WHEN entry.type = 'EXPENSE' AND (entry.isPaid = false OR entry.isPaid IS NULL) THEN entry.amount WHEN entry.type = 'INCOME' THEN entry.amount ELSE 0 END)",
+          'sum',
+        )
+        .addSelect('COUNT(*)', 'count')
         .where('entry.userId = :userId', { userId })
         .andWhere('entry.date >= :startDate', { startDate })
         .andWhere('entry.date <= :endDate', { endDate })
         .andWhere('entry.deletedAt IS NULL')
         .andWhere('entry.categoryId IS NOT NULL')
+        .andWhere(
+          "(entry.type = 'INCOME' OR (entry.type = 'EXPENSE' AND (entry.isPaid = false OR entry.isPaid IS NULL)))",
+        )
         .groupBy('entry.categoryId, category.name, entry.type')
-        .orderBy('SUM(entry.amount)', 'DESC')
+        .orderBy(
+          "SUM(CASE WHEN entry.type = 'EXPENSE' AND (entry.isPaid = false OR entry.isPaid IS NULL) THEN entry.amount WHEN entry.type = 'INCOME' THEN entry.amount ELSE 0 END)",
+          'DESC',
+        )
         .getRawMany();
 
-      // Calculate totals by type
+      // Calculate totals by type (count of categories, not sum of amounts)
       const incomeTotal = allResults.filter(
-        result => result.entry_type === 'INCOME',
+        result => result.entry_type === 'INCOME' || result.type === 'INCOME',
       ).length;
       const expenseTotal = allResults.filter(
-        result => result.entry_type === 'EXPENSE',
+        result => result.entry_type === 'EXPENSE' || result.type === 'EXPENSE',
       ).length;
 
       // Take top 3 items
@@ -438,9 +451,10 @@ export class TypeormEntryRepository implements EntryRepository {
       this.metrics.recordTransaction('get_category_summary', 'success');
 
       const items = results.map(result => ({
-        categoryId: result.entry_categoryId,
-        categoryName: result.category_name || 'Unknown Category',
-        type: result.entry_type,
+        categoryId: result.entry_categoryId || result.categoryId,
+        categoryName:
+          result.category_name || result.categoryName || 'Unknown Category',
+        type: result.entry_type || result.type,
         total: parseFloat(result.sum || '0'),
         count: parseInt(result.count || '0'),
       }));
@@ -473,7 +487,7 @@ export class TypeormEntryRepository implements EntryRepository {
           'fixedIncome',
         )
         .addSelect(
-          "SUM(CASE WHEN entry.type = 'EXPENSE' AND entry.isFixed = true THEN entry.amount ELSE 0 END)",
+          "SUM(CASE WHEN entry.type = 'EXPENSE' AND entry.isFixed = true AND (entry.isPaid = false OR entry.isPaid IS NULL) THEN entry.amount ELSE 0 END)",
           'fixedExpenses',
         )
         .addSelect(
@@ -534,7 +548,7 @@ export class TypeormEntryRepository implements EntryRepository {
           'totalIncome',
         )
         .addSelect(
-          "SUM(CASE WHEN entry.type = 'EXPENSE' THEN entry.amount ELSE 0 END)",
+          "SUM(CASE WHEN entry.type = 'EXPENSE' AND (entry.isPaid = false OR entry.isPaid IS NULL) THEN entry.amount ELSE 0 END)",
           'totalExpenses',
         )
         .where('entry.userId = :userId', { userId })
@@ -633,6 +647,7 @@ export class TypeormEntryRepository implements EntryRepository {
       isFixed: entity.isFixed,
       categoryId: entity.categoryId,
       categoryName: entity.category?.name,
+      isPaid: entity.isPaid,
       createdAt: entity.createdAt,
       updatedAt: entity.updatedAt,
       deletedAt: entity.deletedAt,

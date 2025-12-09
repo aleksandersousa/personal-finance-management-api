@@ -366,6 +366,7 @@ describe('EntryController (e2e)', () => {
         userId: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890',
         createdAt: new Date(),
         updatedAt: new Date(),
+        isPaid: true,
       });
 
       // Act

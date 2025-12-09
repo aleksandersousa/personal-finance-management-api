@@ -34,6 +34,7 @@ export class EntryRepositoryStub implements EntryRepository {
 
     const entry: EntryModel = {
       ...data,
+      isPaid: data.isPaid ?? true,
       id,
       createdAt: new Date(),
       updatedAt: new Date(),

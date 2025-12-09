@@ -10,7 +10,7 @@ import {
   IsUUID,
   Min,
 } from 'class-validator';
-import { Type } from 'class-transformer';
+import { Transform, Type } from 'class-transformer';
 import { EntryType } from '@domain/models/entry.model';
 
 export class UpdateEntryDto {
@@ -66,4 +66,15 @@ export class UpdateEntryDto {
   @IsOptional()
   @IsUUID()
   categoryId?: string;
+
+  @ApiProperty({
+    description: 'Whether this entry is paid',
+    example: true,
+  })
+  @Transform(({ value }) =>
+    value === 'true' ? true : value === 'false' ? false : undefined,
+  )
+  @IsOptional()
+  @IsBoolean()
+  isPaid?: boolean;
 }

@@ -11,6 +11,7 @@ export interface EntryModel {
   categoryId?: string | null;
   categoryName?: string | null;
   notificationTimeMinutes?: number | null;
+  isPaid: boolean;
   createdAt: Date;
   updatedAt: Date;
   deletedAt?: Date | null;

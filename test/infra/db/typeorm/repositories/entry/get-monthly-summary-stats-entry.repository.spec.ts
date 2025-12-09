@@ -103,7 +103,7 @@ describe('TypeormEntryRepository - Get Monthly Summary Stats', () => {
         'totalIncome',
       );
       expect(mockQueryBuilder.addSelect).toHaveBeenCalledWith(
-        "SUM(CASE WHEN entry.type = 'EXPENSE' THEN entry.amount ELSE 0 END)",
+        "SUM(CASE WHEN entry.type = 'EXPENSE' AND (entry.isPaid = false OR entry.isPaid IS NULL) THEN entry.amount ELSE 0 END)",
         'totalExpenses',
       );
       expect(mockQueryBuilder.addSelect).toHaveBeenCalledWith(
@@ -115,11 +115,11 @@ describe('TypeormEntryRepository - Get Monthly Summary Stats', () => {
         'dynamicIncome',
       );
       expect(mockQueryBuilder.addSelect).toHaveBeenCalledWith(
-        "SUM(CASE WHEN entry.type = 'EXPENSE' AND entry.isFixed = true THEN entry.amount ELSE 0 END)",
+        "SUM(CASE WHEN entry.type = 'EXPENSE' AND entry.isFixed = true AND (entry.isPaid = false OR entry.isPaid IS NULL) THEN entry.amount ELSE 0 END)",
         'fixedExpenses',
       );
       expect(mockQueryBuilder.addSelect).toHaveBeenCalledWith(
-        "SUM(CASE WHEN entry.type = 'EXPENSE' AND entry.isFixed = false THEN entry.amount ELSE 0 END)",
+        "SUM(CASE WHEN entry.type = 'EXPENSE' AND entry.isFixed = false AND (entry.isPaid = false OR entry.isPaid IS NULL) THEN entry.amount ELSE 0 END)",
         'dynamicExpenses',
       );
       expect(mockQueryBuilder.addSelect).toHaveBeenCalledWith(
