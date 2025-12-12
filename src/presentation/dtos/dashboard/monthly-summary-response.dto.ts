@@ -116,7 +116,8 @@ export class CategoryBreakdownItemDto {
   type: 'INCOME' | 'EXPENSE';
 
   @ApiProperty({
-    description: 'Total paid amount for this category (for expenses, only paid)',
+    description:
+      'Total paid amount for this category (for expenses, only paid)',
     example: 5000.0,
   })
   total: number;

@@ -152,7 +152,8 @@ export class DbGetMonthlySummaryUseCase implements GetMonthlySummaryUseCase {
     previous: MonthlySummaryStats,
   ) {
     const incomeChange = current.totalIncome - previous.totalIncome;
-    const expenseChange = current.totalPaidExpenses - previous.totalPaidExpenses;
+    const expenseChange =
+      current.totalPaidExpenses - previous.totalPaidExpenses;
     const currentBalance = current.totalIncome - current.totalPaidExpenses;
     const previousBalance = previous.totalIncome - previous.totalPaidExpenses;
     const balanceChange = currentBalance - previousBalance;

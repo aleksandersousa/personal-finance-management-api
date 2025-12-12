@@ -260,21 +260,29 @@ export class EntryRepositoryStub implements EntryRepository {
       .reduce((sum, entry) => sum + entry.amount, 0);
 
     const fixedPaidExpenses = entriesForMonth
-      .filter(entry => entry.type === 'EXPENSE' && entry.isFixed && entry.isPaid)
+      .filter(
+        entry => entry.type === 'EXPENSE' && entry.isFixed && entry.isPaid,
+      )
       .reduce((sum, entry) => sum + entry.amount, 0);
 
     const fixedUnpaidExpenses = entriesForMonth
-      .filter(entry => entry.type === 'EXPENSE' && entry.isFixed && !entry.isPaid)
+      .filter(
+        entry => entry.type === 'EXPENSE' && entry.isFixed && !entry.isPaid,
+      )
       .reduce((sum, entry) => sum + entry.amount, 0);
 
     const fixedExpenses = fixedPaidExpenses;
 
     const dynamicPaidExpenses = entriesForMonth
-      .filter(entry => entry.type === 'EXPENSE' && !entry.isFixed && entry.isPaid)
+      .filter(
+        entry => entry.type === 'EXPENSE' && !entry.isFixed && entry.isPaid,
+      )
       .reduce((sum, entry) => sum + entry.amount, 0);
 
     const dynamicUnpaidExpenses = entriesForMonth
-      .filter(entry => entry.type === 'EXPENSE' && !entry.isFixed && !entry.isPaid)
+      .filter(
+        entry => entry.type === 'EXPENSE' && !entry.isFixed && !entry.isPaid,
+      )
       .reduce((sum, entry) => sum + entry.amount, 0);
 
     const dynamicExpenses = dynamicPaidExpenses;
