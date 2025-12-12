@@ -102,6 +102,7 @@ describe('TypeormEntryRepository - Create Entry', () => {
         date: createData.date,
         type: createData.type,
         isFixed: createData.isFixed,
+        isPaid: false,
         categoryId: createData.categoryId,
       });
       expect(mockRepository.save).toHaveBeenCalledWith(mockEntryEntity);

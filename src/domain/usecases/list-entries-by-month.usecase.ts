@@ -11,6 +11,7 @@ export interface ListEntriesByMonthRequest {
   type?: 'INCOME' | 'EXPENSE' | 'all';
   categoryId?: string;
   search?: string;
+  isPaid?: boolean | 'all';
 }
 
 export interface ListEntriesByMonthResponse {

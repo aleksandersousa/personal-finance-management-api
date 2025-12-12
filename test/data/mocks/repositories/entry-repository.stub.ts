@@ -34,6 +34,7 @@ export class EntryRepositoryStub implements EntryRepository {
 
     const entry: EntryModel = {
       ...data,
+      isPaid: data.isPaid ?? true,
       id,
       createdAt: new Date(),
       updatedAt: new Date(),
@@ -240,9 +241,15 @@ export class EntryRepositoryStub implements EntryRepository {
       .filter(entry => entry.type === 'INCOME')
       .reduce((sum, entry) => sum + entry.amount, 0);
 
-    const totalExpenses = entriesForMonth
-      .filter(entry => entry.type === 'EXPENSE')
+    const totalPaidExpenses = entriesForMonth
+      .filter(entry => entry.type === 'EXPENSE' && entry.isPaid)
       .reduce((sum, entry) => sum + entry.amount, 0);
+
+    const totalUnpaidExpenses = entriesForMonth
+      .filter(entry => entry.type === 'EXPENSE' && !entry.isPaid)
+      .reduce((sum, entry) => sum + entry.amount, 0);
+
+    const totalExpenses = totalPaidExpenses;
 
     const fixedIncome = entriesForMonth
       .filter(entry => entry.type === 'INCOME' && entry.isFixed)
@@ -252,21 +259,47 @@ export class EntryRepositoryStub implements EntryRepository {
       .filter(entry => entry.type === 'INCOME' && !entry.isFixed)
       .reduce((sum, entry) => sum + entry.amount, 0);
 
-    const fixedExpenses = entriesForMonth
-      .filter(entry => entry.type === 'EXPENSE' && entry.isFixed)
+    const fixedPaidExpenses = entriesForMonth
+      .filter(
+        entry => entry.type === 'EXPENSE' && entry.isFixed && entry.isPaid,
+      )
       .reduce((sum, entry) => sum + entry.amount, 0);
 
-    const dynamicExpenses = entriesForMonth
-      .filter(entry => entry.type === 'EXPENSE' && !entry.isFixed)
+    const fixedUnpaidExpenses = entriesForMonth
+      .filter(
+        entry => entry.type === 'EXPENSE' && entry.isFixed && !entry.isPaid,
+      )
       .reduce((sum, entry) => sum + entry.amount, 0);
+
+    const fixedExpenses = fixedPaidExpenses;
+
+    const dynamicPaidExpenses = entriesForMonth
+      .filter(
+        entry => entry.type === 'EXPENSE' && !entry.isFixed && entry.isPaid,
+      )
+      .reduce((sum, entry) => sum + entry.amount, 0);
+
+    const dynamicUnpaidExpenses = entriesForMonth
+      .filter(
+        entry => entry.type === 'EXPENSE' && !entry.isFixed && !entry.isPaid,
+      )
+      .reduce((sum, entry) => sum + entry.amount, 0);
+
+    const dynamicExpenses = dynamicPaidExpenses;
 
     return {
       totalIncome,
       totalExpenses,
+      totalPaidExpenses,
+      totalUnpaidExpenses,
       fixedIncome,
       dynamicIncome,
       fixedExpenses,
       dynamicExpenses,
+      fixedPaidExpenses,
+      fixedUnpaidExpenses,
+      dynamicPaidExpenses,
+      dynamicUnpaidExpenses,
       totalEntries: entriesForMonth.length,
       incomeEntries: entriesForMonth.filter(entry => entry.type === 'INCOME')
         .length,
@@ -305,11 +338,18 @@ export class EntryRepositoryStub implements EntryRepository {
           type: entry.type,
           total: 0,
           count: 0,
+          unpaidAmount: 0,
         });
       }
 
       const group = categoryGroups.get(key)!;
-      group.total += entry.amount;
+      if (entry.type === 'EXPENSE' && entry.isPaid) {
+        group.total += entry.amount;
+      } else if (entry.type === 'EXPENSE' && !entry.isPaid) {
+        group.unpaidAmount += entry.amount;
+      } else if (entry.type === 'INCOME') {
+        group.total += entry.amount;
+      }
       group.count += 1;
     });
 

@@ -80,6 +80,7 @@ export class DbUpdateEntryUseCase implements UpdateEntryUseCase {
       type: request.type,
       isFixed: request.isFixed,
       categoryId: request.categoryId,
+      isPaid: request.isPaid,
     });
 
     // Handle notifications for EXPENSE entries

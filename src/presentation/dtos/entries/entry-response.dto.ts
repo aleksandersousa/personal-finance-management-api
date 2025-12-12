@@ -60,6 +60,12 @@ export class EntryResponseDto {
   categoryName?: string;
 
   @ApiProperty({
+    description: 'Whether this entry is paid',
+    example: true,
+  })
+  isPaid: boolean;
+
+  @ApiProperty({
     description: 'Entry creation date',
     example: '2025-01-15T10:00:00Z',
   })

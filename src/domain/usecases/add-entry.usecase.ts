@@ -7,6 +7,7 @@ export interface AddEntryRequest {
   date: Date;
   type: EntryType;
   isFixed: boolean;
+  isPaid?: boolean;
   categoryId?: string;
 }
 

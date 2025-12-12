@@ -48,6 +48,7 @@ describe('EntryNotificationEmailService', () => {
       isFixed: false,
       createdAt: new Date('2024-01-01'),
       updatedAt: new Date('2024-01-01'),
+      isPaid: true,
     };
 
     const mockUser = {

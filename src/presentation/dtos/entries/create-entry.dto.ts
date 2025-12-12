@@ -66,4 +66,12 @@ export class CreateEntryDto {
   @IsOptional()
   @IsUUID()
   categoryId?: string;
+
+  @ApiProperty({
+    description: 'Whether this entry is paid',
+    example: true,
+  })
+  @IsOptional()
+  @IsBoolean()
+  isPaid?: boolean;
 }

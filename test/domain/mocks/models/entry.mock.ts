@@ -14,6 +14,7 @@ export const mockEntry: EntryModel = {
   createdAt: new Date('2025-06-01T10:00:00Z'),
   updatedAt: new Date('2025-06-01T10:00:00Z'),
   deletedAt: null,
+  isPaid: true,
 };
 
 export const mockAddEntryRequest: AddEntryRequest = {

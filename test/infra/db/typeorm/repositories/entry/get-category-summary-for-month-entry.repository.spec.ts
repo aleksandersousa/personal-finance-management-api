@@ -20,6 +20,7 @@ describe('TypeormEntryRepository - Get Category Summary For Month', () => {
       category_name: 'Food',
       entry_type: 'EXPENSE',
       sum: '1500.00',
+      unpaidSum: '0.00',
       count: '5',
     },
     {
@@ -27,6 +28,7 @@ describe('TypeormEntryRepository - Get Category Summary For Month', () => {
       category_name: 'Salary',
       entry_type: 'INCOME',
       sum: '5000.00',
+      unpaidSum: '0.00',
       count: '1',
     },
     {
@@ -34,6 +36,7 @@ describe('TypeormEntryRepository - Get Category Summary For Month', () => {
       category_name: null, // Test null category name
       entry_type: 'EXPENSE',
       sum: '500.00',
+      unpaidSum: '0.00',
       count: '2',
     },
   ];
@@ -44,6 +47,7 @@ describe('TypeormEntryRepository - Get Category Summary For Month', () => {
       andWhere: jest.fn().mockReturnThis(),
       leftJoin: jest.fn().mockReturnThis(),
       select: jest.fn().mockReturnThis(),
+      addSelect: jest.fn().mockReturnThis(),
       groupBy: jest.fn().mockReturnThis(),
       orderBy: jest.fn().mockReturnThis(),
       getRawMany: jest.fn(),
@@ -117,13 +121,21 @@ describe('TypeormEntryRepository - Get Category Summary For Month', () => {
         'entry.category',
         'category',
       );
-      expect(mockQueryBuilder.select).toHaveBeenCalledWith([
-        'entry.categoryId',
-        'category.name',
-        'entry.type',
-        'SUM(entry.amount)',
+      expect(mockQueryBuilder.select).toHaveBeenCalledWith('entry.categoryId');
+      expect(mockQueryBuilder.addSelect).toHaveBeenCalledWith('category.name');
+      expect(mockQueryBuilder.addSelect).toHaveBeenCalledWith('entry.type');
+      expect(mockQueryBuilder.addSelect).toHaveBeenCalledWith(
+        "SUM(CASE WHEN entry.type = 'EXPENSE' AND entry.isPaid = true THEN entry.amount WHEN entry.type = 'INCOME' THEN entry.amount ELSE 0 END)",
+        'sum',
+      );
+      expect(mockQueryBuilder.addSelect).toHaveBeenCalledWith(
+        "SUM(CASE WHEN entry.type = 'EXPENSE' AND (entry.isPaid = false OR entry.isPaid IS NULL) THEN entry.amount ELSE 0 END)",
+        'unpaidSum',
+      );
+      expect(mockQueryBuilder.addSelect).toHaveBeenCalledWith(
         'COUNT(*)',
-      ]);
+        'count',
+      );
 
       expect(mockQueryBuilder.where).toHaveBeenCalledWith(
         'entry.userId = :userId',
@@ -147,7 +159,7 @@ describe('TypeormEntryRepository - Get Category Summary For Month', () => {
         'entry.categoryId, category.name, entry.type',
       );
       expect(mockQueryBuilder.orderBy).toHaveBeenCalledWith(
-        'SUM(entry.amount)',
+        "SUM(CASE WHEN entry.type = 'EXPENSE' AND entry.isPaid = true THEN entry.amount WHEN entry.type = 'INCOME' THEN entry.amount ELSE 0 END)",
         'DESC',
       );
 
@@ -159,6 +171,7 @@ describe('TypeormEntryRepository - Get Category Summary For Month', () => {
             type: 'EXPENSE',
             total: 1500,
             count: 5,
+            unpaidAmount: 0,
           },
           {
             categoryId: 'category-2',
@@ -166,6 +179,7 @@ describe('TypeormEntryRepository - Get Category Summary For Month', () => {
             type: 'INCOME',
             total: 5000,
             count: 1,
+            unpaidAmount: 0,
           },
           {
             categoryId: 'category-3',
@@ -173,6 +187,7 @@ describe('TypeormEntryRepository - Get Category Summary For Month', () => {
             type: 'EXPENSE',
             total: 500,
             count: 2,
+            unpaidAmount: 0,
           },
         ],
         incomeTotal: 1,
@@ -237,6 +252,7 @@ describe('TypeormEntryRepository - Get Category Summary For Month', () => {
           category_name: 'Food',
           entry_type: 'EXPENSE',
           sum: null, // null sum
+          unpaidSum: null, // null unpaidSum
           count: null, // null count
         },
       ];
@@ -257,6 +273,7 @@ describe('TypeormEntryRepository - Get Category Summary For Month', () => {
             type: 'EXPENSE',
             total: 0, // Should convert null to 0
             count: 0, // Should convert null to 0
+            unpaidAmount: 0,
           },
         ],
         incomeTotal: 0,
@@ -305,6 +322,7 @@ describe('TypeormEntryRepository - Get Category Summary For Month', () => {
           category_name: 'Food',
           entry_type: 'EXPENSE',
           sum: undefined,
+          unpaidSum: undefined,
           count: undefined,
         },
       ];
@@ -325,6 +343,7 @@ describe('TypeormEntryRepository - Get Category Summary For Month', () => {
             type: 'EXPENSE',
             total: 0, // Should convert undefined to 0
             count: 0, // Should convert undefined to 0
+            unpaidAmount: 0,
           },
         ],
         incomeTotal: 0,

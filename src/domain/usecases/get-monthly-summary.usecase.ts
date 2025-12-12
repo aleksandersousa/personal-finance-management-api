@@ -8,11 +8,17 @@ export interface GetMonthlySummaryRequest {
 export interface MonthlySummaryData {
   totalIncome: number;
   totalExpenses: number;
+  totalPaidExpenses: number;
+  totalUnpaidExpenses: number;
   balance: number;
   fixedIncome: number;
   dynamicIncome: number;
   fixedExpenses: number;
   dynamicExpenses: number;
+  fixedPaidExpenses: number;
+  fixedUnpaidExpenses: number;
+  dynamicPaidExpenses: number;
+  dynamicUnpaidExpenses: number;
   entriesCount: {
     total: number;
     income: number;
@@ -26,6 +32,7 @@ export interface CategoryBreakdownItem {
   type: 'INCOME' | 'EXPENSE';
   total: number;
   count: number;
+  unpaidAmount: number;
 }
 
 export interface PreviousMonthComparison {

@@ -92,6 +92,7 @@ describe('EntryController - LIST_BY_MONTH', () => {
         'all',
         'all',
         '',
+        'all',
         mockUser,
       );
 
@@ -117,6 +118,7 @@ describe('EntryController - LIST_BY_MONTH', () => {
         type: 'all',
         categoryId: undefined,
         search: undefined,
+        isPaid: 'all',
       });
 
       // Verify business event logging
@@ -175,6 +177,7 @@ describe('EntryController - LIST_BY_MONTH', () => {
         undefined, // type - should use default
         undefined, // category - should use default
         undefined, // search - should use default
+        undefined, // isPaid - should use default
         mockUser,
       );
 
@@ -190,6 +193,7 @@ describe('EntryController - LIST_BY_MONTH', () => {
         type: 'all',
         categoryId: undefined,
         search: undefined,
+        isPaid: 'all',
       });
     });
 
@@ -228,6 +232,7 @@ describe('EntryController - LIST_BY_MONTH', () => {
         'all',
         'all',
         '',
+        'all',
         mockUser,
       );
 
@@ -274,6 +279,7 @@ describe('EntryController - LIST_BY_MONTH', () => {
         'all',
         'all',
         '',
+        'all',
         mockUser,
       );
 
@@ -320,6 +326,7 @@ describe('EntryController - LIST_BY_MONTH', () => {
         'all',
         'all',
         '',
+        'all',
         mockUser,
       );
 
@@ -366,6 +373,7 @@ describe('EntryController - LIST_BY_MONTH', () => {
         'all',
         'all',
         '',
+        'all',
         mockUser,
       );
 
@@ -393,6 +401,7 @@ describe('EntryController - LIST_BY_MONTH', () => {
           'all',
           'all',
           '',
+          'all',
           mockUser,
         ),
       ).rejects.toThrow(
@@ -416,6 +425,7 @@ describe('EntryController - LIST_BY_MONTH', () => {
           'all',
           'all',
           '',
+          'all',
           mockUser,
         ),
       ).rejects.toThrow('Invalid order. Must be one of: asc, desc');
@@ -437,6 +447,7 @@ describe('EntryController - LIST_BY_MONTH', () => {
           'INVALID_TYPE', // Invalid type
           'all',
           '',
+          'all',
           mockUser,
         ),
       ).rejects.toThrow('Invalid type. Must be one of: INCOME, EXPENSE, all');
@@ -457,6 +468,7 @@ describe('EntryController - LIST_BY_MONTH', () => {
           'all',
           'all',
           '',
+          'all',
           mockUser,
         ),
       ).rejects.toThrow('Month must be in YYYY-MM format');
@@ -477,6 +489,7 @@ describe('EntryController - LIST_BY_MONTH', () => {
           'all',
           'all',
           '',
+          'all',
           mockUser,
         ),
       ).rejects.toThrow('Month must be in YYYY-MM format');
@@ -498,6 +511,7 @@ describe('EntryController - LIST_BY_MONTH', () => {
           'all',
           'all',
           '',
+          'all',
           mockUser,
         ),
       ).rejects.toThrow('Invalid year or month value');
@@ -513,6 +527,7 @@ describe('EntryController - LIST_BY_MONTH', () => {
           'all',
           'all',
           '',
+          'all',
           mockUser,
         ),
       ).rejects.toThrow('Invalid year or month value');
@@ -553,6 +568,7 @@ describe('EntryController - LIST_BY_MONTH', () => {
         'INCOME',
         'category-123',
         '',
+        'all',
         mockUser,
       );
 
@@ -568,6 +584,7 @@ describe('EntryController - LIST_BY_MONTH', () => {
         type: 'INCOME',
         categoryId: 'category-123',
         search: undefined,
+        isPaid: 'all',
       });
     });
 
@@ -590,6 +607,7 @@ describe('EntryController - LIST_BY_MONTH', () => {
           'all',
           'all',
           '',
+          'all',
           mockUser,
         ),
       ).rejects.toThrow('Failed to retrieve entries');
@@ -620,6 +638,7 @@ describe('EntryController - LIST_BY_MONTH', () => {
           'all',
           'all',
           '',
+          'all',
           mockUser,
         ),
       ).rejects.toThrow('Invalid parameters provided');
@@ -663,6 +682,7 @@ describe('EntryController - LIST_BY_MONTH', () => {
         'all',
         'all',
         '',
+        'all',
         mockUser,
       );
 
@@ -710,6 +730,7 @@ describe('EntryController - LIST_BY_MONTH', () => {
         'all',
         'all',
         '',
+        'all',
         mockUser,
       );
       expect(listEntriesByMonthUseCase.execute).toHaveBeenCalledWith(
@@ -725,6 +746,7 @@ describe('EntryController - LIST_BY_MONTH', () => {
         'all',
         'all',
         '',
+        'all',
         mockUser,
       );
       expect(listEntriesByMonthUseCase.execute).toHaveBeenCalledWith(
@@ -741,6 +763,7 @@ describe('EntryController - LIST_BY_MONTH', () => {
         'all',
         'all',
         '',
+        'all',
         mockUser,
       );
       expect(listEntriesByMonthUseCase.execute).toHaveBeenCalledWith(
@@ -756,6 +779,7 @@ describe('EntryController - LIST_BY_MONTH', () => {
         'all',
         'all',
         '',
+        'all',
         mockUser,
       );
       expect(listEntriesByMonthUseCase.execute).toHaveBeenCalledWith(
@@ -798,6 +822,7 @@ describe('EntryController - LIST_BY_MONTH', () => {
         'all',
         'all',
         '',
+        'all',
         mockUser,
       );
 
@@ -844,6 +869,7 @@ describe('EntryController - LIST_BY_MONTH', () => {
         'all',
         'all',
         '',
+        'all',
         mockUser,
       );
 
@@ -890,6 +916,7 @@ describe('EntryController - LIST_BY_MONTH', () => {
         'all',
         'all',
         'groceries',
+        'all',
         mockUser,
       );
 
@@ -905,6 +932,7 @@ describe('EntryController - LIST_BY_MONTH', () => {
         type: 'all',
         categoryId: undefined,
         search: 'groceries',
+        isPaid: 'all',
       });
     });
 
@@ -943,6 +971,7 @@ describe('EntryController - LIST_BY_MONTH', () => {
         'all',
         'all',
         '  groceries  ',
+        'all',
         mockUser,
       );
 
@@ -958,6 +987,7 @@ describe('EntryController - LIST_BY_MONTH', () => {
         type: 'all',
         categoryId: undefined,
         search: 'groceries',
+        isPaid: 'all',
       });
     });
 
@@ -996,6 +1026,7 @@ describe('EntryController - LIST_BY_MONTH', () => {
         'all',
         'all',
         '',
+        'all',
         mockUser,
       );
 
@@ -1011,6 +1042,7 @@ describe('EntryController - LIST_BY_MONTH', () => {
         type: 'all',
         categoryId: undefined,
         search: undefined,
+        isPaid: 'all',
       });
     });
   });
