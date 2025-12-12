@@ -8,13 +8,25 @@ export class MonthlySummaryDataDto {
   totalIncome: number;
 
   @ApiProperty({
-    description: 'Total expenses amount for the month',
+    description: 'Total paid expenses amount for the month',
     example: 4200.0,
   })
   totalExpenses: number;
 
   @ApiProperty({
-    description: 'Balance (income - expenses) for the month',
+    description: 'Total paid expenses amount for the month',
+    example: 4200.0,
+  })
+  totalPaidExpenses: number;
+
+  @ApiProperty({
+    description: 'Total unpaid expenses amount for the month',
+    example: 800.0,
+  })
+  totalUnpaidExpenses: number;
+
+  @ApiProperty({
+    description: 'Balance (income - paid expenses) for the month',
     example: 2600.0,
   })
   balance: number;
@@ -32,16 +44,40 @@ export class MonthlySummaryDataDto {
   dynamicIncome: number;
 
   @ApiProperty({
-    description: 'Total fixed expenses for the month',
+    description: 'Total paid fixed expenses for the month',
     example: 2500.0,
   })
   fixedExpenses: number;
 
   @ApiProperty({
-    description: 'Total dynamic expenses for the month',
+    description: 'Total paid dynamic expenses for the month',
     example: 1700.0,
   })
   dynamicExpenses: number;
+
+  @ApiProperty({
+    description: 'Total paid fixed expenses for the month',
+    example: 2500.0,
+  })
+  fixedPaidExpenses: number;
+
+  @ApiProperty({
+    description: 'Total unpaid fixed expenses for the month',
+    example: 300.0,
+  })
+  fixedUnpaidExpenses: number;
+
+  @ApiProperty({
+    description: 'Total paid dynamic expenses for the month',
+    example: 1700.0,
+  })
+  dynamicPaidExpenses: number;
+
+  @ApiProperty({
+    description: 'Total unpaid dynamic expenses for the month',
+    example: 500.0,
+  })
+  dynamicUnpaidExpenses: number;
 
   @ApiProperty({
     description: 'Entries count breakdown',
@@ -80,7 +116,7 @@ export class CategoryBreakdownItemDto {
   type: 'INCOME' | 'EXPENSE';
 
   @ApiProperty({
-    description: 'Total amount for this category',
+    description: 'Total paid amount for this category (for expenses, only paid)',
     example: 5000.0,
   })
   total: number;
@@ -90,6 +126,12 @@ export class CategoryBreakdownItemDto {
     example: 1,
   })
   count: number;
+
+  @ApiProperty({
+    description: 'Unpaid amount for this category (only for expenses)',
+    example: 500.0,
+  })
+  unpaidAmount: number;
 }
 
 export class PreviousMonthComparisonDto {

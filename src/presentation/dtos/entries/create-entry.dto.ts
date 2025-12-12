@@ -10,7 +10,7 @@ import {
   IsUUID,
   Min,
 } from 'class-validator';
-import { Transform, Type } from 'class-transformer';
+import { Type } from 'class-transformer';
 import { EntryType } from '@domain/models/entry.model';
 
 export class CreateEntryDto {
@@ -71,9 +71,6 @@ export class CreateEntryDto {
     description: 'Whether this entry is paid',
     example: true,
   })
-  @Transform(({ value }) =>
-    value === 'true' ? true : value === 'false' ? false : undefined,
-  )
   @IsOptional()
   @IsBoolean()
   isPaid?: boolean;

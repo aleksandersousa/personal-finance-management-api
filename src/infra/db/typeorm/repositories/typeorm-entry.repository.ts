@@ -93,6 +93,7 @@ export class TypeormEntryRepository implements EntryRepository {
       type = 'all',
       categoryId,
       search,
+      isPaid,
     } = filters;
 
     const startDate = new Date(year, month - 1, 1);
@@ -104,7 +105,6 @@ export class TypeormEntryRepository implements EntryRepository {
       .where('entry.userId = :userId', { userId })
       .andWhere('entry.date >= :startDate', { startDate })
       .andWhere('entry.date <= :endDate', { endDate })
-      .andWhere('entry.isPaid = :isPaid', { isPaid: false })
       .leftJoinAndSelect('entry.user', 'user')
       .leftJoinAndSelect('entry.category', 'category');
 
@@ -124,6 +124,13 @@ export class TypeormEntryRepository implements EntryRepository {
     if (search && search.trim()) {
       queryBuilder = queryBuilder.andWhere('entry.description ILIKE :search', {
         search: `%${search.trim()}%`,
+      });
+    }
+
+    // Apply isPaid filter
+    if (isPaid !== undefined && isPaid !== 'all') {
+      queryBuilder = queryBuilder.andWhere('entry.isPaid = :isPaid', {
+        isPaid: isPaid === true,
       });
     }
 
@@ -153,7 +160,7 @@ export class TypeormEntryRepository implements EntryRepository {
         'totalIncome',
       )
       .addSelect(
-        "SUM(CASE WHEN entry.type = 'EXPENSE' AND (entry.isPaid = false OR entry.isPaid IS NULL) THEN entry.amount ELSE 0 END)",
+        "SUM(CASE WHEN entry.type = 'EXPENSE' AND entry.isPaid = true THEN entry.amount ELSE 0 END)",
         'totalExpenses',
       )
       .where('entry.userId = :userId', { userId })
@@ -172,6 +179,12 @@ export class TypeormEntryRepository implements EntryRepository {
     if (search && search.trim()) {
       summaryQuery.andWhere('entry.description ILIKE :search', {
         search: `%${search.trim()}%`,
+      });
+    }
+
+    if (isPaid !== undefined && isPaid !== 'all') {
+      summaryQuery.andWhere('entry.isPaid = :isPaid', {
+        isPaid: isPaid === true,
       });
     }
 
@@ -307,8 +320,16 @@ export class TypeormEntryRepository implements EntryRepository {
           'totalIncome',
         )
         .addSelect(
-          "SUM(CASE WHEN entry.type = 'EXPENSE' AND (entry.isPaid = false OR entry.isPaid IS NULL) THEN entry.amount ELSE 0 END)",
+          "SUM(CASE WHEN entry.type = 'EXPENSE' AND entry.isPaid = true THEN entry.amount ELSE 0 END)",
           'totalExpenses',
+        )
+        .addSelect(
+          "SUM(CASE WHEN entry.type = 'EXPENSE' AND entry.isPaid = true THEN entry.amount ELSE 0 END)",
+          'totalPaidExpenses',
+        )
+        .addSelect(
+          "SUM(CASE WHEN entry.type = 'EXPENSE' AND (entry.isPaid = false OR entry.isPaid IS NULL) THEN entry.amount ELSE 0 END)",
+          'totalUnpaidExpenses',
         )
         .addSelect(
           "SUM(CASE WHEN entry.type = 'INCOME' AND entry.isFixed = true THEN entry.amount ELSE 0 END)",
@@ -319,12 +340,28 @@ export class TypeormEntryRepository implements EntryRepository {
           'dynamicIncome',
         )
         .addSelect(
-          "SUM(CASE WHEN entry.type = 'EXPENSE' AND entry.isFixed = true AND (entry.isPaid = false OR entry.isPaid IS NULL) THEN entry.amount ELSE 0 END)",
+          "SUM(CASE WHEN entry.type = 'EXPENSE' AND entry.isFixed = true AND entry.isPaid = true THEN entry.amount ELSE 0 END)",
           'fixedExpenses',
         )
         .addSelect(
-          "SUM(CASE WHEN entry.type = 'EXPENSE' AND entry.isFixed = false AND (entry.isPaid = false OR entry.isPaid IS NULL) THEN entry.amount ELSE 0 END)",
+          "SUM(CASE WHEN entry.type = 'EXPENSE' AND entry.isFixed = true AND entry.isPaid = true THEN entry.amount ELSE 0 END)",
+          'fixedPaidExpenses',
+        )
+        .addSelect(
+          "SUM(CASE WHEN entry.type = 'EXPENSE' AND entry.isFixed = true AND (entry.isPaid = false OR entry.isPaid IS NULL) THEN entry.amount ELSE 0 END)",
+          'fixedUnpaidExpenses',
+        )
+        .addSelect(
+          "SUM(CASE WHEN entry.type = 'EXPENSE' AND entry.isFixed = false AND entry.isPaid = true THEN entry.amount ELSE 0 END)",
           'dynamicExpenses',
+        )
+        .addSelect(
+          "SUM(CASE WHEN entry.type = 'EXPENSE' AND entry.isFixed = false AND entry.isPaid = true THEN entry.amount ELSE 0 END)",
+          'dynamicPaidExpenses',
+        )
+        .addSelect(
+          "SUM(CASE WHEN entry.type = 'EXPENSE' AND entry.isFixed = false AND (entry.isPaid = false OR entry.isPaid IS NULL) THEN entry.amount ELSE 0 END)",
+          'dynamicUnpaidExpenses',
         )
         .addSelect('COUNT(*)', 'totalEntries')
         .addSelect(
@@ -360,10 +397,16 @@ export class TypeormEntryRepository implements EntryRepository {
       return {
         totalIncome: parseFloat(result?.totalIncome || '0'),
         totalExpenses: parseFloat(result?.totalExpenses || '0'),
+        totalPaidExpenses: parseFloat(result?.totalPaidExpenses || '0'),
+        totalUnpaidExpenses: parseFloat(result?.totalUnpaidExpenses || '0'),
         fixedIncome: parseFloat(result?.fixedIncome || '0'),
         dynamicIncome: parseFloat(result?.dynamicIncome || '0'),
         fixedExpenses: parseFloat(result?.fixedExpenses || '0'),
         dynamicExpenses: parseFloat(result?.dynamicExpenses || '0'),
+        fixedPaidExpenses: parseFloat(result?.fixedPaidExpenses || '0'),
+        fixedUnpaidExpenses: parseFloat(result?.fixedUnpaidExpenses || '0'),
+        dynamicPaidExpenses: parseFloat(result?.dynamicPaidExpenses || '0'),
+        dynamicUnpaidExpenses: parseFloat(result?.dynamicUnpaidExpenses || '0'),
         totalEntries: parseInt(result?.totalEntries || '0'),
         incomeEntries: parseInt(result?.incomeEntries || '0'),
         expenseEntries: parseInt(result?.expenseEntries || '0'),
@@ -393,7 +436,7 @@ export class TypeormEntryRepository implements EntryRepository {
 
       // Get all results first to count total (before limiting to top 3)
       // This is acceptable since category summaries are typically small datasets
-      // Exclude paid expenses from calculations
+      // Count only paid expenses in totals, but track unpaid amounts
       const allResults = await this.entryRepository
         .createQueryBuilder('entry')
         .leftJoin('entry.category', 'category')
@@ -401,8 +444,12 @@ export class TypeormEntryRepository implements EntryRepository {
         .addSelect('category.name')
         .addSelect('entry.type')
         .addSelect(
-          "SUM(CASE WHEN entry.type = 'EXPENSE' AND (entry.isPaid = false OR entry.isPaid IS NULL) THEN entry.amount WHEN entry.type = 'INCOME' THEN entry.amount ELSE 0 END)",
+          "SUM(CASE WHEN entry.type = 'EXPENSE' AND entry.isPaid = true THEN entry.amount WHEN entry.type = 'INCOME' THEN entry.amount ELSE 0 END)",
           'sum',
+        )
+        .addSelect(
+          "SUM(CASE WHEN entry.type = 'EXPENSE' AND (entry.isPaid = false OR entry.isPaid IS NULL) THEN entry.amount ELSE 0 END)",
+          'unpaidSum',
         )
         .addSelect('COUNT(*)', 'count')
         .where('entry.userId = :userId', { userId })
@@ -410,12 +457,9 @@ export class TypeormEntryRepository implements EntryRepository {
         .andWhere('entry.date <= :endDate', { endDate })
         .andWhere('entry.deletedAt IS NULL')
         .andWhere('entry.categoryId IS NOT NULL')
-        .andWhere(
-          "(entry.type = 'INCOME' OR (entry.type = 'EXPENSE' AND (entry.isPaid = false OR entry.isPaid IS NULL)))",
-        )
         .groupBy('entry.categoryId, category.name, entry.type')
         .orderBy(
-          "SUM(CASE WHEN entry.type = 'EXPENSE' AND (entry.isPaid = false OR entry.isPaid IS NULL) THEN entry.amount WHEN entry.type = 'INCOME' THEN entry.amount ELSE 0 END)",
+          "SUM(CASE WHEN entry.type = 'EXPENSE' AND entry.isPaid = true THEN entry.amount WHEN entry.type = 'INCOME' THEN entry.amount ELSE 0 END)",
           'DESC',
         )
         .getRawMany();
@@ -457,6 +501,10 @@ export class TypeormEntryRepository implements EntryRepository {
         type: result.entry_type || result.type,
         total: parseFloat(result.sum || '0'),
         count: parseInt(result.count || '0'),
+        unpaidAmount:
+          result.entry_type === 'EXPENSE' || result.type === 'EXPENSE'
+            ? parseFloat(result.unpaidSum || '0')
+            : 0,
       }));
 
       return {
@@ -487,7 +535,7 @@ export class TypeormEntryRepository implements EntryRepository {
           'fixedIncome',
         )
         .addSelect(
-          "SUM(CASE WHEN entry.type = 'EXPENSE' AND entry.isFixed = true AND (entry.isPaid = false OR entry.isPaid IS NULL) THEN entry.amount ELSE 0 END)",
+          "SUM(CASE WHEN entry.type = 'EXPENSE' AND entry.isFixed = true AND entry.isPaid = true THEN entry.amount ELSE 0 END)",
           'fixedExpenses',
         )
         .addSelect(
@@ -548,7 +596,7 @@ export class TypeormEntryRepository implements EntryRepository {
           'totalIncome',
         )
         .addSelect(
-          "SUM(CASE WHEN entry.type = 'EXPENSE' AND (entry.isPaid = false OR entry.isPaid IS NULL) THEN entry.amount ELSE 0 END)",
+          "SUM(CASE WHEN entry.type = 'EXPENSE' AND entry.isPaid = true THEN entry.amount ELSE 0 END)",
           'totalExpenses',
         )
         .where('entry.userId = :userId', { userId })

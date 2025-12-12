@@ -17,10 +17,16 @@ describe('TypeormEntryRepository - Get Monthly Summary Stats', () => {
   const mockSummaryStats = {
     totalIncome: '5000.00',
     totalExpenses: '3000.00',
+    totalPaidExpenses: '3000.00',
+    totalUnpaidExpenses: '0.00',
     fixedIncome: '4000.00',
     dynamicIncome: '1000.00',
     fixedExpenses: '2000.00',
+    fixedPaidExpenses: '2000.00',
+    fixedUnpaidExpenses: '0.00',
     dynamicExpenses: '1000.00',
+    dynamicPaidExpenses: '1000.00',
+    dynamicUnpaidExpenses: '0.00',
     totalEntries: '10',
     incomeEntries: '4',
     expenseEntries: '6',
@@ -103,8 +109,16 @@ describe('TypeormEntryRepository - Get Monthly Summary Stats', () => {
         'totalIncome',
       );
       expect(mockQueryBuilder.addSelect).toHaveBeenCalledWith(
-        "SUM(CASE WHEN entry.type = 'EXPENSE' AND (entry.isPaid = false OR entry.isPaid IS NULL) THEN entry.amount ELSE 0 END)",
+        "SUM(CASE WHEN entry.type = 'EXPENSE' AND entry.isPaid = true THEN entry.amount ELSE 0 END)",
         'totalExpenses',
+      );
+      expect(mockQueryBuilder.addSelect).toHaveBeenCalledWith(
+        "SUM(CASE WHEN entry.type = 'EXPENSE' AND entry.isPaid = true THEN entry.amount ELSE 0 END)",
+        'totalPaidExpenses',
+      );
+      expect(mockQueryBuilder.addSelect).toHaveBeenCalledWith(
+        "SUM(CASE WHEN entry.type = 'EXPENSE' AND (entry.isPaid = false OR entry.isPaid IS NULL) THEN entry.amount ELSE 0 END)",
+        'totalUnpaidExpenses',
       );
       expect(mockQueryBuilder.addSelect).toHaveBeenCalledWith(
         "SUM(CASE WHEN entry.type = 'INCOME' AND entry.isFixed = true THEN entry.amount ELSE 0 END)",
@@ -115,12 +129,28 @@ describe('TypeormEntryRepository - Get Monthly Summary Stats', () => {
         'dynamicIncome',
       );
       expect(mockQueryBuilder.addSelect).toHaveBeenCalledWith(
-        "SUM(CASE WHEN entry.type = 'EXPENSE' AND entry.isFixed = true AND (entry.isPaid = false OR entry.isPaid IS NULL) THEN entry.amount ELSE 0 END)",
+        "SUM(CASE WHEN entry.type = 'EXPENSE' AND entry.isFixed = true AND entry.isPaid = true THEN entry.amount ELSE 0 END)",
         'fixedExpenses',
       );
       expect(mockQueryBuilder.addSelect).toHaveBeenCalledWith(
-        "SUM(CASE WHEN entry.type = 'EXPENSE' AND entry.isFixed = false AND (entry.isPaid = false OR entry.isPaid IS NULL) THEN entry.amount ELSE 0 END)",
+        "SUM(CASE WHEN entry.type = 'EXPENSE' AND entry.isFixed = true AND entry.isPaid = true THEN entry.amount ELSE 0 END)",
+        'fixedPaidExpenses',
+      );
+      expect(mockQueryBuilder.addSelect).toHaveBeenCalledWith(
+        "SUM(CASE WHEN entry.type = 'EXPENSE' AND entry.isFixed = true AND (entry.isPaid = false OR entry.isPaid IS NULL) THEN entry.amount ELSE 0 END)",
+        'fixedUnpaidExpenses',
+      );
+      expect(mockQueryBuilder.addSelect).toHaveBeenCalledWith(
+        "SUM(CASE WHEN entry.type = 'EXPENSE' AND entry.isFixed = false AND entry.isPaid = true THEN entry.amount ELSE 0 END)",
         'dynamicExpenses',
+      );
+      expect(mockQueryBuilder.addSelect).toHaveBeenCalledWith(
+        "SUM(CASE WHEN entry.type = 'EXPENSE' AND entry.isFixed = false AND entry.isPaid = true THEN entry.amount ELSE 0 END)",
+        'dynamicPaidExpenses',
+      );
+      expect(mockQueryBuilder.addSelect).toHaveBeenCalledWith(
+        "SUM(CASE WHEN entry.type = 'EXPENSE' AND entry.isFixed = false AND (entry.isPaid = false OR entry.isPaid IS NULL) THEN entry.amount ELSE 0 END)",
+        'dynamicUnpaidExpenses',
       );
       expect(mockQueryBuilder.addSelect).toHaveBeenCalledWith(
         'COUNT(*)',
@@ -154,10 +184,16 @@ describe('TypeormEntryRepository - Get Monthly Summary Stats', () => {
       expect(result).toEqual({
         totalIncome: 5000,
         totalExpenses: 3000,
+        totalPaidExpenses: 3000,
+        totalUnpaidExpenses: 0,
         fixedIncome: 4000,
         dynamicIncome: 1000,
         fixedExpenses: 2000,
+        fixedPaidExpenses: 2000,
+        fixedUnpaidExpenses: 0,
         dynamicExpenses: 1000,
+        dynamicPaidExpenses: 1000,
+        dynamicUnpaidExpenses: 0,
         totalEntries: 10,
         incomeEntries: 4,
         expenseEntries: 6,
@@ -203,10 +239,16 @@ describe('TypeormEntryRepository - Get Monthly Summary Stats', () => {
       expect(result).toEqual({
         totalIncome: 0,
         totalExpenses: 0,
+        totalPaidExpenses: 0,
+        totalUnpaidExpenses: 0,
         fixedIncome: 0,
         dynamicIncome: 0,
         fixedExpenses: 0,
+        fixedPaidExpenses: 0,
+        fixedUnpaidExpenses: 0,
         dynamicExpenses: 0,
+        dynamicPaidExpenses: 0,
+        dynamicUnpaidExpenses: 0,
         totalEntries: 0,
         incomeEntries: 0,
         expenseEntries: 0,
@@ -225,10 +267,16 @@ describe('TypeormEntryRepository - Get Monthly Summary Stats', () => {
       expect(result).toEqual({
         totalIncome: 0,
         totalExpenses: 0,
+        totalPaidExpenses: 0,
+        totalUnpaidExpenses: 0,
         fixedIncome: 0,
         dynamicIncome: 0,
         fixedExpenses: 0,
+        fixedPaidExpenses: 0,
+        fixedUnpaidExpenses: 0,
         dynamicExpenses: 0,
+        dynamicPaidExpenses: 0,
+        dynamicUnpaidExpenses: 0,
         totalEntries: 0,
         incomeEntries: 0,
         expenseEntries: 0,

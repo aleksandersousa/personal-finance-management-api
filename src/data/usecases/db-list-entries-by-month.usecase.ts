@@ -60,6 +60,7 @@ export class DbListEntriesByMonthUseCase implements ListEntriesByMonthUseCase {
       type,
       categoryId: request.categoryId,
       search: request.search,
+      isPaid: request.isPaid,
     });
 
     // Calculate pagination metadata

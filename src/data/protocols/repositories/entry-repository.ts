@@ -32,6 +32,7 @@ export interface FindEntriesByMonthFilters {
   type?: 'INCOME' | 'EXPENSE' | 'all';
   categoryId?: string;
   search?: string;
+  isPaid?: boolean | 'all';
 }
 
 export interface FindEntriesByMonthResult {
@@ -44,10 +45,16 @@ export interface FindEntriesByMonthResult {
 export interface MonthlySummaryStats {
   totalIncome: number;
   totalExpenses: number;
+  totalPaidExpenses: number;
+  totalUnpaidExpenses: number;
   fixedIncome: number;
   dynamicIncome: number;
   fixedExpenses: number;
   dynamicExpenses: number;
+  fixedPaidExpenses: number;
+  fixedUnpaidExpenses: number;
+  dynamicPaidExpenses: number;
+  dynamicUnpaidExpenses: number;
   totalEntries: number;
   incomeEntries: number;
   expenseEntries: number;
@@ -59,6 +66,7 @@ export interface CategorySummaryItem {
   type: 'INCOME' | 'EXPENSE';
   total: number;
   count: number;
+  unpaidAmount: number;
 }
 
 export interface CategorySummaryResult {

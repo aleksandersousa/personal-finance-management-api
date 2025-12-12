@@ -54,12 +54,18 @@ export class DbGetMonthlySummaryUseCase implements GetMonthlySummaryUseCase {
         month: `${request.year}-${String(request.month).padStart(2, '0')}`,
         summary: {
           totalIncome: currentStats.totalIncome,
-          totalExpenses: currentStats.totalExpenses,
-          balance: currentStats.totalIncome - currentStats.totalExpenses,
+          totalExpenses: currentStats.totalPaidExpenses,
+          totalPaidExpenses: currentStats.totalPaidExpenses,
+          totalUnpaidExpenses: currentStats.totalUnpaidExpenses,
+          balance: currentStats.totalIncome - currentStats.totalPaidExpenses,
           fixedIncome: currentStats.fixedIncome,
           dynamicIncome: currentStats.dynamicIncome,
-          fixedExpenses: currentStats.fixedExpenses,
-          dynamicExpenses: currentStats.dynamicExpenses,
+          fixedExpenses: currentStats.fixedPaidExpenses,
+          dynamicExpenses: currentStats.dynamicPaidExpenses,
+          fixedPaidExpenses: currentStats.fixedPaidExpenses,
+          fixedUnpaidExpenses: currentStats.fixedUnpaidExpenses,
+          dynamicPaidExpenses: currentStats.dynamicPaidExpenses,
+          dynamicUnpaidExpenses: currentStats.dynamicUnpaidExpenses,
           entriesCount: {
             total: currentStats.totalEntries,
             income: currentStats.incomeEntries,
@@ -146,9 +152,9 @@ export class DbGetMonthlySummaryUseCase implements GetMonthlySummaryUseCase {
     previous: MonthlySummaryStats,
   ) {
     const incomeChange = current.totalIncome - previous.totalIncome;
-    const expenseChange = current.totalExpenses - previous.totalExpenses;
-    const currentBalance = current.totalIncome - current.totalExpenses;
-    const previousBalance = previous.totalIncome - previous.totalExpenses;
+    const expenseChange = current.totalPaidExpenses - previous.totalPaidExpenses;
+    const currentBalance = current.totalIncome - current.totalPaidExpenses;
+    const previousBalance = previous.totalIncome - previous.totalPaidExpenses;
     const balanceChange = currentBalance - previousBalance;
 
     return {
@@ -163,10 +169,10 @@ export class DbGetMonthlySummaryUseCase implements GetMonthlySummaryUseCase {
                 ((incomeChange / previous.totalIncome) * 100).toFixed(2),
               ),
         expense:
-          previous.totalExpenses === 0
+          previous.totalPaidExpenses === 0
             ? 0
             : parseFloat(
-                ((expenseChange / previous.totalExpenses) * 100).toFixed(2),
+                ((expenseChange / previous.totalPaidExpenses) * 100).toFixed(2),
               ),
         balance:
           previousBalance === 0

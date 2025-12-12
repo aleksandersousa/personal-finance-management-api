@@ -201,6 +201,12 @@ export class EntryController {
       'Search term for filtering entries by description (case-insensitive)',
     example: 'groceries',
   })
+  @ApiQuery({
+    name: 'isPaid',
+    required: false,
+    description: 'Filter by paid status: true, false, or all (default: all)',
+    example: 'all',
+  })
   @ApiBadRequestResponse({ description: 'Invalid query parameters' })
   @ApiUnauthorizedResponse({ description: 'Invalid or missing JWT token' })
   async listByMonth(
@@ -212,6 +218,7 @@ export class EntryController {
     @Query('type') type: string = 'all',
     @Query('category') category: string = 'all',
     @Query('search') search: string = '',
+    @Query('isPaid') isPaid: string = 'all',
     @User() user: UserPayload,
   ): Promise<EntryListResponseDto> {
     const startTime = Date.now();
@@ -259,6 +266,14 @@ export class EntryController {
         );
       }
 
+      // Parse isPaid filter
+      let isPaidFilter: boolean | 'all' = 'all';
+      if (isPaid === 'true') {
+        isPaidFilter = true;
+      } else if (isPaid === 'false') {
+        isPaidFilter = false;
+      }
+
       const result = await this.listEntriesByMonthUseCase.execute({
         userId: user.id,
         year,
@@ -270,6 +285,7 @@ export class EntryController {
         type: type as 'INCOME' | 'EXPENSE' | 'all',
         categoryId: category !== 'all' ? category : undefined,
         search: search && search.trim() ? search.trim() : undefined,
+        isPaid: isPaidFilter,
       });
 
       const duration = Date.now() - startTime;

@@ -95,7 +95,7 @@ describe('TypeormEntryRepository - Get Current Balance', () => {
         'totalIncome',
       );
       expect(mockQueryBuilder.addSelect).toHaveBeenCalledWith(
-        "SUM(CASE WHEN entry.type = 'EXPENSE' AND (entry.isPaid = false OR entry.isPaid IS NULL) THEN entry.amount ELSE 0 END)",
+        "SUM(CASE WHEN entry.type = 'EXPENSE' AND entry.isPaid = true THEN entry.amount ELSE 0 END)",
         'totalExpenses',
       );
       expect(mockQueryBuilder.where).toHaveBeenCalledWith(
