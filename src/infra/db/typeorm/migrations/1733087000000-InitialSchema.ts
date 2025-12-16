@@ -273,7 +273,7 @@ export class InitialSchema1733087000000 implements MigrationInterface {
           },
           {
             name: 'date',
-            type: 'timestamp',
+            type: 'timestamptz',
             isNullable: false,
           },
           {
