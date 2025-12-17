@@ -1,7 +1,6 @@
 import type {
   UserRepository,
   EntryRepository,
-  IdGenerator,
   CategoryRepository,
 } from '@/data/protocols';
 import { DbAddEntryUseCase } from '@/data/usecases';
@@ -11,14 +10,12 @@ export const makeAddEntryFactory = (
   entryRepository: EntryRepository,
   userRepository: UserRepository,
   categoryRepository: CategoryRepository,
-  idGenerator: IdGenerator,
   createNotificationUseCase?: CreateNotificationUseCase,
 ) => {
   return new DbAddEntryUseCase(
     entryRepository,
     userRepository,
     categoryRepository,
-    idGenerator,
     createNotificationUseCase,
   );
 };

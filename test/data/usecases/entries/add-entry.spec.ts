@@ -4,7 +4,6 @@ import {
   EntryRepositoryStub,
   UserRepositoryStub,
 } from '@test/data/mocks/repositories';
-import { IdGeneratorStub } from '@test/data/mocks/protocols';
 import {
   MockEntryFactory,
   MockUserFactory,
@@ -17,11 +16,9 @@ describe('DbAddEntryUseCase', () => {
   let entryRepositoryStub: EntryRepositoryStub;
   let userRepositoryStub: UserRepositoryStub;
   let categoryRepositoryStub: CategoryRepositoryStub;
-  let idGeneratorStub: IdGeneratorStub;
 
   beforeEach(() => {
-    idGeneratorStub = new IdGeneratorStub();
-    entryRepositoryStub = new EntryRepositoryStub(idGeneratorStub);
+    entryRepositoryStub = new EntryRepositoryStub();
     userRepositoryStub = new UserRepositoryStub();
     categoryRepositoryStub = new CategoryRepositoryStub();
 
@@ -29,7 +26,6 @@ describe('DbAddEntryUseCase', () => {
       entryRepositoryStub,
       userRepositoryStub,
       categoryRepositoryStub,
-      idGeneratorStub,
     );
   });
 
@@ -37,7 +33,6 @@ describe('DbAddEntryUseCase', () => {
     entryRepositoryStub.clear();
     userRepositoryStub.clear();
     categoryRepositoryStub.clear();
-    idGeneratorStub.clear();
   });
 
   describe('execute', () => {
@@ -240,20 +235,6 @@ describe('DbAddEntryUseCase', () => {
       await expect(sut.execute(mockRequest)).rejects.toThrow(
         'Database connection failed',
       );
-    });
-
-    it('should create entry with generated ID', async () => {
-      // Arrange
-      userRepositoryStub.seed([mockUser]);
-      categoryRepositoryStub.seed([mockCategory]);
-      idGeneratorStub.setPrefix('test-entry');
-
-      // Act
-      const result = await sut.execute(mockRequest);
-
-      // Assert
-      expect(result.id).toContain('test-entry');
-      expect(entryRepositoryStub.hasEntry(result.id)).toBe(true);
     });
 
     it('should create multiple entries with different IDs', async () => {

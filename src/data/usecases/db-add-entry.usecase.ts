@@ -6,7 +6,6 @@ import { EntryModel } from '@domain/models/entry.model';
 import { EntryRepository } from '../protocols/repositories/entry-repository';
 import { UserRepository } from '../protocols/repositories/user-repository';
 import { CategoryRepository } from '../protocols/repositories/category-repository';
-import { IdGenerator } from '../protocols/id-generator';
 import { CreateNotificationUseCase } from '@domain/usecases/create-notification.usecase';
 
 export class DbAddEntryUseCase implements AddEntryUseCase {
@@ -14,7 +13,6 @@ export class DbAddEntryUseCase implements AddEntryUseCase {
     private readonly entryRepository: EntryRepository,
     private readonly userRepository: UserRepository,
     private readonly categoryRepository: CategoryRepository,
-    private readonly idGenerator: IdGenerator,
     private readonly createNotificationUseCase?: CreateNotificationUseCase,
   ) {}
 

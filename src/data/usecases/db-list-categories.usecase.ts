@@ -8,10 +8,14 @@ import {
   CategoryType,
 } from '@domain/models/category.model';
 import { CategoryRepository } from '@/data/protocols/repositories/category-repository';
+import type { Logger } from '../protocols';
 
 @Injectable()
 export class DbListCategoriesUseCase implements ListCategoriesUseCase {
-  constructor(private readonly categoryRepository: CategoryRepository) {}
+  constructor(
+    private readonly categoryRepository: CategoryRepository,
+    private readonly logger: Logger,
+  ) {}
 
   async execute(filters: CategoryListFilters): Promise<CategoryListResponse> {
     // Validate required fields
@@ -32,6 +36,7 @@ export class DbListCategoriesUseCase implements ListCategoriesUseCase {
 
     // Ensure result.data is an array
     if (!Array.isArray(result.data)) {
+      this.logger.error('Invalid repository response: data is not an array');
       throw new Error('Invalid repository response: data is not an array');
     }
 

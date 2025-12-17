@@ -2,14 +2,16 @@ import { DbListCategoriesUseCase } from '@data/usecases';
 import { CategoryRepositoryStub } from '@test/data/mocks/repositories';
 import { MockCategoryFactory } from '@test/domain/mocks/models';
 import { CategoryType } from '@domain/models/category.model';
+import type { LoggerStub } from '@test/data/mocks/protocols';
 
 describe('DbListCategoriesUseCase', () => {
   let useCase: DbListCategoriesUseCase;
   let repositoryStub: CategoryRepositoryStub;
+  let loggerStub: LoggerStub;
 
   beforeEach(() => {
     repositoryStub = new CategoryRepositoryStub();
-    useCase = new DbListCategoriesUseCase(repositoryStub);
+    useCase = new DbListCategoriesUseCase(repositoryStub, loggerStub);
   });
 
   afterEach(() => {
