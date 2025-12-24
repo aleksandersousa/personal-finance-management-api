@@ -87,6 +87,13 @@ export interface MonthYear {
   month: number;
 }
 
+export interface AccumulatedStats {
+  totalAccumulatedIncome: number;
+  totalAccumulatedPaidExpenses: number;
+  previousMonthsUnpaidExpenses: number;
+  accumulatedBalance: number;
+}
+
 export interface EntryRepository {
   create(data: CreateEntryData): Promise<EntryModel>;
   findById(id: string): Promise<EntryModel | null>;
@@ -112,6 +119,11 @@ export interface EntryRepository {
   getFixedEntriesSummary(userId: string): Promise<FixedEntriesSummary>;
   getCurrentBalance(userId: string): Promise<number>;
   getDistinctMonthsYears(userId: string): Promise<MonthYear[]>;
+  getAccumulatedStats(
+    userId: string,
+    year: number,
+    month: number,
+  ): Promise<AccumulatedStats>;
   update(id: string, data: UpdateEntryData): Promise<EntryModel>;
   delete(id: string): Promise<void>;
   softDelete(id: string): Promise<Date>;

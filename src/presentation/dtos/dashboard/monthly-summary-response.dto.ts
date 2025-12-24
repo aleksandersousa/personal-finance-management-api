@@ -190,6 +190,33 @@ export class CategoryBreakdownResultDto {
   expenseTotal: number;
 }
 
+export class AccumulatedSummaryDataDto {
+  @ApiProperty({
+    description: 'Total accumulated income (all time up to month)',
+    example: 68000.0,
+  })
+  totalIncome: number;
+
+  @ApiProperty({
+    description: 'Total accumulated paid expenses (all time up to month)',
+    example: 42000.0,
+  })
+  totalPaidExpenses: number;
+
+  @ApiProperty({
+    description: 'Total unpaid expenses from previous months',
+    example: 1500.0,
+  })
+  previousMonthsUnpaidExpenses: number;
+
+  @ApiProperty({
+    description:
+      'Real balance (accumulated income - accumulated paid expenses)',
+    example: 26000.0,
+  })
+  realBalance: number;
+}
+
 export class MonthlySummaryResponseDto {
   @ApiProperty({
     description: 'Month in YYYY-MM format',
@@ -202,6 +229,12 @@ export class MonthlySummaryResponseDto {
     type: MonthlySummaryDataDto,
   })
   summary: MonthlySummaryDataDto;
+
+  @ApiProperty({
+    description: 'Accumulated summary data (all time totals)',
+    type: AccumulatedSummaryDataDto,
+  })
+  accumulated: AccumulatedSummaryDataDto;
 
   @ApiProperty({
     description: 'Category breakdown (optional)',

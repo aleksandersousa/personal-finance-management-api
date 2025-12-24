@@ -308,7 +308,9 @@ describe('TypeormEntryRepository - Filtered Search', () => {
       // Verify search filter was not applied
       const searchCalls = (
         mockQueryBuilder.andWhere as jest.Mock
-      ).mock.calls.filter(call => call[0]?.includes('ILIKE'));
+      ).mock.calls.filter(
+        call => typeof call[0] === 'string' && call[0]?.includes('ILIKE'),
+      );
       expect(searchCalls).toHaveLength(0);
     });
   });

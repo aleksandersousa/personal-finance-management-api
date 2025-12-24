@@ -68,8 +68,15 @@ export class DbListEntriesByMonthUseCase implements ListEntriesByMonthUseCase {
     const hasNext = page * limit < result.total;
     const hasPrev = page > 1;
 
+    // Flag entries from previous months (fixed entries appearing in current month)
+    const startOfMonth = new Date(request.year, request.month - 1, 1);
+    const entriesWithFlags = result.data.map(entry => ({
+      ...entry,
+      isFromPreviousMonth: entry.isFixed && new Date(entry.date) < startOfMonth,
+    }));
+
     return {
-      data: result.data,
+      data: entriesWithFlags,
       pagination: {
         page,
         limit,

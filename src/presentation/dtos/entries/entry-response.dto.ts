@@ -66,6 +66,14 @@ export class EntryResponseDto {
   isPaid: boolean;
 
   @ApiProperty({
+    description:
+      'Whether this is a fixed entry from a previous month appearing in current month',
+    example: false,
+    required: false,
+  })
+  isFromPreviousMonth?: boolean;
+
+  @ApiProperty({
     description: 'Entry creation date',
     example: '2025-01-15T10:00:00Z',
   })

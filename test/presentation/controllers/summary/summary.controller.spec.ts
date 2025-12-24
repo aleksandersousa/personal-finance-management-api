@@ -85,6 +85,12 @@ describe('SummaryController', () => {
           expenses: 16,
         },
       },
+      accumulated: {
+        totalIncome: 68000,
+        totalPaidExpenses: 42000,
+        previousMonthsUnpaidExpenses: 1500,
+        realBalance: 26000,
+      },
       comparisonWithPrevious: {
         incomeChange: 200,
         expenseChange: -150,

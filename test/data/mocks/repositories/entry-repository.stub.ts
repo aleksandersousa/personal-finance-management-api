@@ -8,6 +8,7 @@ import {
   FixedEntriesSummary,
   MonthlySummaryStats,
   MonthYear,
+  AccumulatedStats,
 } from '@/data/protocols/repositories/entry-repository';
 import { EntryModel } from '@domain/models/entry.model';
 import { IdGenerator } from '@data/protocols/id-generator';
@@ -439,6 +440,54 @@ export class EntryRepositoryStub implements EntryRepository {
       }
       return b.month - a.month; // Descending by month
     });
+  }
+
+  async getAccumulatedStats(
+    userId: string,
+    year: number,
+    month: number,
+  ): Promise<AccumulatedStats> {
+    if (this.shouldFail && this.errorToThrow) {
+      throw this.errorToThrow;
+    }
+
+    const endDate = new Date(year, month, 0); // Last day of the month
+    const userEntries = await this.findByUserId(userId);
+
+    // Filter entries up to the end date
+    const entriesUpToDate = userEntries.filter(
+      entry => new Date(entry.date) <= endDate && !entry.deletedAt,
+    );
+
+    const totalAccumulatedIncome = entriesUpToDate
+      .filter(entry => entry.type === 'INCOME')
+      .reduce((sum, entry) => sum + entry.amount, 0);
+
+    const totalAccumulatedPaidExpenses = entriesUpToDate
+      .filter(entry => entry.type === 'EXPENSE' && entry.isPaid)
+      .reduce((sum, entry) => sum + entry.amount, 0);
+
+    // Calculate unpaid expenses from previous months
+    const startOfCurrentMonth = new Date(year, month - 1, 1);
+    const previousMonthsUnpaidExpenses = userEntries
+      .filter(
+        entry =>
+          entry.type === 'EXPENSE' &&
+          !entry.isPaid &&
+          new Date(entry.date) < startOfCurrentMonth &&
+          !entry.deletedAt,
+      )
+      .reduce((sum, entry) => sum + entry.amount, 0);
+
+    const accumulatedBalance =
+      totalAccumulatedIncome - totalAccumulatedPaidExpenses;
+
+    return {
+      totalAccumulatedIncome,
+      totalAccumulatedPaidExpenses,
+      previousMonthsUnpaidExpenses,
+      accumulatedBalance,
+    };
   }
 
   // =================== Test Utility Methods ===================
