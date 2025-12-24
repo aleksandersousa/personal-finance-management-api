@@ -9,6 +9,7 @@ import {
   Inject,
   NotFoundException,
   Param,
+  Patch,
   Post,
   Put,
   Query,
@@ -32,6 +33,7 @@ import { ListEntriesByMonthUseCase } from '@domain/usecases/list-entries-by-mont
 import { DeleteEntryUseCase } from '@domain/usecases/delete-entry.usecase';
 import { UpdateEntryUseCase } from '@domain/usecases/update-entry.usecase';
 import { GetEntriesMonthsYearsUseCase } from '@domain/usecases/get-entries-months-years.usecase';
+import { ToggleMonthlyPaymentStatusUseCase } from '@domain/usecases/toggle-monthly-payment-status.usecase';
 import {
   CreateEntryDto,
   UpdateEntryDto,
@@ -40,6 +42,8 @@ import {
   DeleteEntryResponseDto,
   EntriesMonthsYearsResponseDto,
 } from '../dtos';
+import { ToggleMonthlyPaymentRequestDto } from '../dtos/entries/toggle-monthly-payment-request.dto';
+import { ToggleMonthlyPaymentResponseDto } from '../dtos/entries/toggle-monthly-payment-response.dto';
 import { JwtAuthGuard } from '../guards/jwt-auth.guard';
 import { User } from '../decorators/user.decorator';
 import { Logger } from '@data/protocols/logger';
@@ -62,6 +66,8 @@ export class EntryController {
     private readonly updateEntryUseCase: UpdateEntryUseCase,
     @Inject('GetEntriesMonthsYearsUseCase')
     private readonly getEntriesMonthsYearsUseCase: GetEntriesMonthsYearsUseCase,
+    @Inject('ToggleMonthlyPaymentStatusUseCase')
+    private readonly toggleMonthlyPaymentStatusUseCase: ToggleMonthlyPaymentStatusUseCase,
     @Inject('Logger')
     private readonly logger: Logger,
     @Inject('Metrics')
@@ -554,6 +560,102 @@ export class EntryController {
         throw new BadRequestException(error.message);
       }
       throw new BadRequestException('Failed to retrieve months and years');
+    }
+  }
+
+  @Patch(':id/payment-status')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Toggle monthly payment status for a fixed entry',
+    description:
+      'Updates the payment status of a fixed entry for a specific month. Only works for fixed entries.',
+  })
+  @ApiParam({
+    name: 'id',
+    description: 'Entry ID',
+    example: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Payment status updated successfully',
+    type: ToggleMonthlyPaymentResponseDto,
+  })
+  @ApiBadRequestResponse({
+    description: 'Validation failed or entry is not fixed',
+  })
+  @ApiUnauthorizedResponse({ description: 'Invalid or missing JWT token' })
+  @ApiNotFoundResponse({ description: 'Entry not found' })
+  @ApiBody({ type: ToggleMonthlyPaymentRequestDto })
+  async toggleMonthlyPaymentStatus(
+    @Param('id') entryId: string,
+    @Body(ValidationPipe) dto: ToggleMonthlyPaymentRequestDto,
+    @User() user: UserPayload,
+  ): Promise<ToggleMonthlyPaymentResponseDto> {
+    const startTime = Date.now();
+
+    try {
+      const result = await this.toggleMonthlyPaymentStatusUseCase.execute({
+        entryId,
+        userId: user.id,
+        year: dto.year,
+        month: dto.month,
+        isPaid: dto.isPaid,
+      });
+
+      const duration = Date.now() - startTime;
+
+      // Log business event
+      this.logger.logBusinessEvent({
+        event: 'monthly_payment_status_toggled',
+        userId: user.id,
+        metadata: {
+          entryId,
+          year: dto.year,
+          month: dto.month,
+          isPaid: dto.isPaid,
+          duration,
+        },
+      });
+
+      // Record success metrics
+      this.metrics.recordHttpRequest(
+        'PATCH',
+        '/entries/:id/payment-status',
+        200,
+        duration,
+      );
+
+      return {
+        entryId: result.entryId,
+        year: result.year,
+        month: result.month,
+        isPaid: result.isPaid,
+        paidAt: result.paidAt,
+      };
+    } catch (error) {
+      const duration = Date.now() - startTime;
+
+      this.logger.error(
+        `Failed to toggle monthly payment status for entry ${entryId}`,
+        error.stack,
+      );
+
+      // Record error metrics
+      this.metrics.recordApiError(
+        'toggle_monthly_payment_status',
+        error.message,
+      );
+
+      if (this.isNotFoundError(error.message)) {
+        throw new NotFoundException(error.message);
+      }
+      if (this.isUnauthorizedError(error.message)) {
+        throw new BadRequestException(error.message);
+      }
+      if (this.isClientError(error.message)) {
+        throw new BadRequestException(error.message);
+      }
+      throw new BadRequestException('Failed to toggle monthly payment status');
     }
   }
 

@@ -6,6 +6,8 @@ import { EntryEntity } from '../entities/entry.entity';
 import { CategoryEntity } from '../entities/category.entity';
 import { EmailVerificationTokenEntity } from '../entities/email-verification-token.entity';
 import { NotificationEntity } from '../entities/notification.entity';
+import { EntryMonthlyPaymentEntity } from '../entities/entry-monthly-payment.entity';
+import { PasswordResetTokenEntity } from '../entities/password-reset-token.entity';
 
 const configService = new ConfigService();
 const dbSchema = configService.get<string>('DB_SCHEMA') || 'financial';
@@ -22,6 +24,8 @@ export const AppDataSource = new DataSource({
     CategoryEntity,
     EmailVerificationTokenEntity,
     NotificationEntity,
+    EntryMonthlyPaymentEntity,
+    PasswordResetTokenEntity,
   ],
   migrations: ['dist/src/infra/db/typeorm/migrations/*.js'],
   migrationsTableName: 'migrations',
@@ -43,6 +47,8 @@ export const typeOrmConfig = {
     CategoryEntity,
     EmailVerificationTokenEntity,
     NotificationEntity,
+    EntryMonthlyPaymentEntity,
+    PasswordResetTokenEntity,
   ],
   migrations: ['dist/src/infra/db/typeorm/migrations/*.js'],
   migrationsTableName: 'migrations',

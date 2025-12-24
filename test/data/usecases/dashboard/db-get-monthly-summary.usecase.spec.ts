@@ -26,6 +26,9 @@ describe('DbGetMonthlySummaryUseCase', () => {
       update: jest.fn(),
       delete: jest.fn(),
       softDelete: jest.fn(),
+      setMonthlyPaymentStatus: jest.fn(),
+      getMonthlyPaymentStatus: jest.fn(),
+      deleteMonthlyPaymentStatuses: jest.fn(),
     };
 
     mockUserRepository = {

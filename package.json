@@ -23,6 +23,7 @@
     "test:ci": "yarn test:all && yarn test:coverage",
     "typeorm": "npx typeorm -d dist/src/infra/db/typeorm/config/data-source.js",
     "schema:drop": "yarn typeorm schema:drop",
+    "migration:create": "yarn typeorm migration:create",
     "migration:generate": "yarn typeorm migration:generate",
     "migration:run": "yarn typeorm migration:run",
     "migration:revert": "yarn typeorm migration:revert",

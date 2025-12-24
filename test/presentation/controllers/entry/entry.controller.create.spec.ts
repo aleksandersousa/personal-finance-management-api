@@ -27,6 +27,7 @@ describe('EntryController - CREATE', () => {
         { provide: 'DeleteEntryUseCase', useValue: {} },
         { provide: 'UpdateEntryUseCase', useValue: {} },
         { provide: 'GetEntriesMonthsYearsUseCase', useValue: {} },
+        { provide: 'ToggleMonthlyPaymentStatusUseCase', useValue: {} },
         { provide: 'Logger', useValue: loggerSpy },
         { provide: 'Metrics', useValue: metricsSpy },
       ],

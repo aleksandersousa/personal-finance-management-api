@@ -1,4 +1,4 @@
-import { Repository, Brackets } from 'typeorm';
+import { Repository, Brackets, In } from 'typeorm';
 import { Injectable, Inject } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import {
@@ -11,9 +11,11 @@ import {
   FixedEntriesSummary,
   MonthYear,
   AccumulatedStats,
+  MonthlyPaymentStatus,
 } from '@/data/protocols/repositories/entry-repository';
 import { EntryModel } from '@domain/models/entry.model';
 import { EntryEntity } from '../entities/entry.entity';
+import { EntryMonthlyPaymentEntity } from '../entities/entry-monthly-payment.entity';
 import type { Logger, Metrics } from '@/data/protocols';
 
 @Injectable()
@@ -21,6 +23,8 @@ export class TypeormEntryRepository implements EntryRepository {
   constructor(
     @InjectRepository(EntryEntity)
     private readonly entryRepository: Repository<EntryEntity>,
+    @InjectRepository(EntryMonthlyPaymentEntity)
+    private readonly monthlyPaymentRepository: Repository<EntryMonthlyPaymentEntity>,
     @Inject('Logger')
     private readonly logger: Logger,
     @Inject('Metrics')
@@ -100,7 +104,6 @@ export class TypeormEntryRepository implements EntryRepository {
     const startDate = new Date(year, month - 1, 1);
     const endDate = new Date(year, month, 0, 23, 59, 59);
 
-    // Build base query
     let queryBuilder = this.entryRepository
       .createQueryBuilder('entry')
       .where('entry.userId = :userId', { userId })
@@ -115,7 +118,15 @@ export class TypeormEntryRepository implements EntryRepository {
         }),
       )
       .leftJoinAndSelect('entry.user', 'user')
-      .leftJoinAndSelect('entry.category', 'category');
+      .leftJoinAndSelect('entry.category', 'category')
+      .leftJoin(
+        'entry_monthly_payments',
+        'payment',
+        'payment.entry_id = entry.id AND payment.year = :year AND payment.month = :month',
+        { year, month },
+      )
+      .addSelect('COALESCE(payment.is_paid, entry.is_paid)', 'entry_isPaid')
+      .addSelect('payment.paid_at', 'entry_paidAt');
 
     // Apply type filter
     if (type !== 'all') {
@@ -161,15 +172,45 @@ export class TypeormEntryRepository implements EntryRepository {
     // Get paginated results
     const entries = await queryBuilder.getMany();
 
+    // Fetch monthly payment statuses for fixed entries
+    const entryIds = entries.filter(e => e.isFixed).map(e => e.id);
+
+    let monthlyPayments: Map<string, EntryMonthlyPaymentEntity> = new Map();
+    if (entryIds.length > 0) {
+      const payments = await this.monthlyPaymentRepository.find({
+        where: {
+          entryId: In(entryIds),
+          year,
+          month,
+        },
+      });
+      payments.forEach(p => monthlyPayments.set(p.entryId, p));
+    }
+
     // Calculate summary - need separate query for totals without pagination
+    const paymentStatusExpr = `
+      CASE 
+        WHEN entry.is_fixed = false THEN entry.is_paid
+        WHEN EXTRACT(YEAR FROM entry.date) = ${year} AND EXTRACT(MONTH FROM entry.date) = ${month} 
+          THEN COALESCE(payment.is_paid, entry.is_paid)
+        ELSE COALESCE(payment.is_paid, false)
+      END
+    `;
+
     const summaryQuery = this.entryRepository
       .createQueryBuilder('entry')
+      .leftJoin(
+        'entry_monthly_payments',
+        'payment',
+        'payment.entry_id = entry.id AND payment.year = :paymentYear AND payment.month = :paymentMonth',
+        { paymentYear: year, paymentMonth: month },
+      )
       .select(
         "SUM(CASE WHEN entry.type = 'INCOME' THEN entry.amount ELSE 0 END)",
         'totalIncome',
       )
       .addSelect(
-        "SUM(CASE WHEN entry.type = 'EXPENSE' AND entry.isPaid = true THEN entry.amount ELSE 0 END)",
+        `SUM(CASE WHEN entry.type = 'EXPENSE' AND (${paymentStatusExpr}) = true THEN entry.amount ELSE 0 END)`,
         'totalExpenses',
       )
       .where('entry.userId = :userId', { userId })
@@ -200,14 +241,41 @@ export class TypeormEntryRepository implements EntryRepository {
     }
 
     if (isPaid !== undefined && isPaid !== 'all') {
-      summaryQuery.andWhere('entry.isPaid = :isPaid', {
-        isPaid: isPaid === true,
+      summaryQuery.andWhere(`(${paymentStatusExpr}) = :isPaidFilter`, {
+        isPaidFilter: isPaid === true,
       });
     }
 
     const summaryResult = await summaryQuery.getRawOne();
 
-    const data = entries.map(this.mapToModel);
+    // Map entries and apply monthly payment status for fixed entries
+    const data = entries.map(entry => {
+      const model = this.mapToModel(entry);
+
+      if (entry.isFixed) {
+        const entryDate = new Date(entry.date);
+        const entryYear = entryDate.getFullYear();
+        const entryMonth = entryDate.getMonth() + 1;
+
+        const isOriginalMonth = entryYear === year && entryMonth === month;
+
+        if (isOriginalMonth) {
+          const monthlyPayment = monthlyPayments.get(entry.id);
+          if (monthlyPayment) {
+            model.isPaid = monthlyPayment.isPaid;
+          }
+        } else {
+          const monthlyPayment = monthlyPayments.get(entry.id);
+          if (monthlyPayment) {
+            model.isPaid = monthlyPayment.isPaid;
+          } else {
+            model.isPaid = false;
+          }
+        }
+      }
+
+      return model;
+    });
 
     return {
       data,
@@ -330,54 +398,70 @@ export class TypeormEntryRepository implements EntryRepository {
       const startDate = new Date(year, month - 1, 1);
       const endDate = new Date(year, month, 0, 23, 59, 59);
 
+      // Build payment status expression that considers monthly payments for fixed entries
+      const paymentStatusExpr = `
+        CASE 
+          WHEN entry.is_fixed = false THEN entry.is_paid
+          WHEN EXTRACT(YEAR FROM entry.date) = :year AND EXTRACT(MONTH FROM entry.date) = :month 
+            THEN COALESCE(payment.is_paid, entry.is_paid)
+          ELSE COALESCE(payment.is_paid, false)
+        END
+      `;
+
       const result = await this.entryRepository
         .createQueryBuilder('entry')
+        .leftJoin(
+          'entry_monthly_payments',
+          'payment',
+          'payment.entry_id = entry.id AND payment.year = :year AND payment.month = :month',
+          { year, month },
+        )
         .select(
           "SUM(CASE WHEN entry.type = 'INCOME' THEN entry.amount ELSE 0 END)",
           'totalIncome',
         )
         .addSelect(
-          "SUM(CASE WHEN entry.type = 'EXPENSE' AND entry.isPaid = true THEN entry.amount ELSE 0 END)",
+          `SUM(CASE WHEN entry.type = 'EXPENSE' AND (${paymentStatusExpr}) = true THEN entry.amount ELSE 0 END)`,
           'totalExpenses',
         )
         .addSelect(
-          "SUM(CASE WHEN entry.type = 'EXPENSE' AND entry.isPaid = true THEN entry.amount ELSE 0 END)",
+          `SUM(CASE WHEN entry.type = 'EXPENSE' AND (${paymentStatusExpr}) = true THEN entry.amount ELSE 0 END)`,
           'totalPaidExpenses',
         )
         .addSelect(
-          "SUM(CASE WHEN entry.type = 'EXPENSE' AND (entry.isPaid = false OR entry.isPaid IS NULL) THEN entry.amount ELSE 0 END)",
+          `SUM(CASE WHEN entry.type = 'EXPENSE' AND (${paymentStatusExpr}) = false THEN entry.amount ELSE 0 END)`,
           'totalUnpaidExpenses',
         )
         .addSelect(
-          "SUM(CASE WHEN entry.type = 'INCOME' AND entry.isFixed = true THEN entry.amount ELSE 0 END)",
+          "SUM(CASE WHEN entry.type = 'INCOME' AND entry.is_fixed = true THEN entry.amount ELSE 0 END)",
           'fixedIncome',
         )
         .addSelect(
-          "SUM(CASE WHEN entry.type = 'INCOME' AND entry.isFixed = false THEN entry.amount ELSE 0 END)",
+          "SUM(CASE WHEN entry.type = 'INCOME' AND entry.is_fixed = false THEN entry.amount ELSE 0 END)",
           'dynamicIncome',
         )
         .addSelect(
-          "SUM(CASE WHEN entry.type = 'EXPENSE' AND entry.isFixed = true AND entry.isPaid = true THEN entry.amount ELSE 0 END)",
+          `SUM(CASE WHEN entry.type = 'EXPENSE' AND entry.is_fixed = true AND (${paymentStatusExpr}) = true THEN entry.amount ELSE 0 END)`,
           'fixedExpenses',
         )
         .addSelect(
-          "SUM(CASE WHEN entry.type = 'EXPENSE' AND entry.isFixed = true AND entry.isPaid = true THEN entry.amount ELSE 0 END)",
+          `SUM(CASE WHEN entry.type = 'EXPENSE' AND entry.is_fixed = true AND (${paymentStatusExpr}) = true THEN entry.amount ELSE 0 END)`,
           'fixedPaidExpenses',
         )
         .addSelect(
-          "SUM(CASE WHEN entry.type = 'EXPENSE' AND entry.isFixed = true AND (entry.isPaid = false OR entry.isPaid IS NULL) THEN entry.amount ELSE 0 END)",
+          `SUM(CASE WHEN entry.type = 'EXPENSE' AND entry.is_fixed = true AND (${paymentStatusExpr}) = false THEN entry.amount ELSE 0 END)`,
           'fixedUnpaidExpenses',
         )
         .addSelect(
-          "SUM(CASE WHEN entry.type = 'EXPENSE' AND entry.isFixed = false AND entry.isPaid = true THEN entry.amount ELSE 0 END)",
+          `SUM(CASE WHEN entry.type = 'EXPENSE' AND entry.is_fixed = false AND (${paymentStatusExpr}) = true THEN entry.amount ELSE 0 END)`,
           'dynamicExpenses',
         )
         .addSelect(
-          "SUM(CASE WHEN entry.type = 'EXPENSE' AND entry.isFixed = false AND entry.isPaid = true THEN entry.amount ELSE 0 END)",
+          `SUM(CASE WHEN entry.type = 'EXPENSE' AND entry.is_fixed = false AND (${paymentStatusExpr}) = true THEN entry.amount ELSE 0 END)`,
           'dynamicPaidExpenses',
         )
         .addSelect(
-          "SUM(CASE WHEN entry.type = 'EXPENSE' AND entry.isFixed = false AND (entry.isPaid = false OR entry.isPaid IS NULL) THEN entry.amount ELSE 0 END)",
+          `SUM(CASE WHEN entry.type = 'EXPENSE' AND entry.is_fixed = false AND (${paymentStatusExpr}) = false THEN entry.amount ELSE 0 END)`,
           'dynamicUnpaidExpenses',
         )
         .addSelect('COUNT(*)', 'totalEntries')
@@ -389,10 +473,18 @@ export class TypeormEntryRepository implements EntryRepository {
           "COUNT(CASE WHEN entry.type = 'EXPENSE' THEN 1 END)",
           'expenseEntries',
         )
-        .where('entry.userId = :userId', { userId })
-        .andWhere('entry.date >= :startDate', { startDate })
-        .andWhere('entry.date <= :endDate', { endDate })
-        .andWhere('entry.deletedAt IS NULL')
+        .where('entry.user_id = :userId', { userId })
+        .andWhere(
+          new Brackets(qb => {
+            qb.where('(entry.date >= :startDate AND entry.date <= :endDate)', {
+              startDate,
+              endDate,
+            }).orWhere('(entry.is_fixed = true AND entry.date <= :endDate)', {
+              endDate,
+            });
+          }),
+        )
+        .andWhere('entry.deleted_at IS NULL')
         .getRawOne();
 
       const duration = Date.now() - startTime;
@@ -712,24 +804,29 @@ export class TypeormEntryRepository implements EntryRepository {
       const startDate = new Date(year, month - 1, 1);
       const endDate = new Date(year, month, 0, 23, 59, 59);
 
-      // Query all entries up to the end of the specified month
       const result = await this.entryRepository
         .createQueryBuilder('entry')
+        .leftJoin(
+          EntryMonthlyPaymentEntity,
+          'payment',
+          'payment.entry_id = entry.id AND payment.year = :year AND payment.month = :month',
+          { year, month },
+        )
         .select(
           "SUM(CASE WHEN entry.type = 'INCOME' AND entry.date <= :endDate THEN entry.amount ELSE 0 END)",
           'totalAccumulatedIncome',
         )
         .addSelect(
-          "SUM(CASE WHEN entry.type = 'EXPENSE' AND entry.isPaid = true AND entry.date <= :endDate THEN entry.amount ELSE 0 END)",
+          "SUM(CASE WHEN entry.type = 'EXPENSE' AND COALESCE(payment.is_paid, entry.is_paid) = true AND entry.date <= :endDate THEN entry.amount ELSE 0 END)",
           'totalAccumulatedPaidExpenses',
         )
         .addSelect(
-          "SUM(CASE WHEN entry.type = 'EXPENSE' AND (entry.isPaid = false OR entry.isPaid IS NULL) AND entry.date < :startDate THEN entry.amount ELSE 0 END)",
+          "SUM(CASE WHEN entry.type = 'EXPENSE' AND COALESCE(payment.is_paid, entry.is_paid) = false AND entry.date <= :endDate THEN entry.amount ELSE 0 END)",
           'previousMonthsUnpaidExpenses',
         )
-        .where('entry.userId = :userId', { userId })
-        .andWhere('entry.deletedAt IS NULL')
-        .setParameters({ startDate, endDate })
+        .where('entry.user_id = :userId', { userId })
+        .andWhere('entry.deleted_at IS NULL')
+        .setParameters({ startDate, endDate, year, month })
         .getRawOne();
 
       const totalAccumulatedIncome = parseFloat(
@@ -777,6 +874,146 @@ export class TypeormEntryRepository implements EntryRepository {
       );
 
       this.metrics.recordApiError('get_accumulated_stats', error.message);
+      throw error;
+    }
+  }
+
+  async setMonthlyPaymentStatus(
+    entryId: string,
+    year: number,
+    month: number,
+    isPaid: boolean,
+  ): Promise<MonthlyPaymentStatus> {
+    const startTime = Date.now();
+
+    try {
+      // Find existing record or create new one
+      let payment = await this.monthlyPaymentRepository.findOne({
+        where: { entryId, year, month },
+      });
+
+      if (payment) {
+        // Update existing record
+        payment.isPaid = isPaid;
+        payment.paidAt = isPaid ? new Date() : null;
+        await this.monthlyPaymentRepository.save(payment);
+      } else {
+        // Create new record
+        payment = this.monthlyPaymentRepository.create({
+          entryId,
+          year,
+          month,
+          isPaid,
+          paidAt: isPaid ? new Date() : null,
+        });
+        await this.monthlyPaymentRepository.save(payment);
+      }
+
+      const duration = Date.now() - startTime;
+
+      this.logger.logBusinessEvent({
+        event: 'monthly_payment_status_updated',
+        metadata: {
+          entryId,
+          year,
+          month,
+          isPaid,
+          duration,
+        },
+      });
+
+      this.metrics.recordTransaction('set_monthly_payment_status', 'success');
+
+      return {
+        entryId: payment.entryId,
+        year: payment.year,
+        month: payment.month,
+        isPaid: payment.isPaid,
+        paidAt: payment.paidAt,
+      };
+    } catch (error) {
+      this.logger.error(
+        `Failed to set monthly payment status for entry ${entryId}`,
+        error.stack,
+      );
+
+      this.metrics.recordApiError('set_monthly_payment_status', error.message);
+      throw error;
+    }
+  }
+
+  async getMonthlyPaymentStatus(
+    entryId: string,
+    year: number,
+    month: number,
+  ): Promise<MonthlyPaymentStatus | null> {
+    const startTime = Date.now();
+
+    try {
+      const payment = await this.monthlyPaymentRepository.findOne({
+        where: { entryId, year, month },
+      });
+
+      const duration = Date.now() - startTime;
+
+      this.logger.debug(
+        `Get monthly payment status for entry ${entryId} (${year}-${month}): ${duration}ms`,
+      );
+
+      this.metrics.recordTransaction('get_monthly_payment_status', 'success');
+
+      if (!payment) {
+        return null;
+      }
+
+      return {
+        entryId: payment.entryId,
+        year: payment.year,
+        month: payment.month,
+        isPaid: payment.isPaid,
+        paidAt: payment.paidAt,
+      };
+    } catch (error) {
+      this.logger.error(
+        `Failed to get monthly payment status for entry ${entryId}`,
+        error.stack,
+      );
+
+      this.metrics.recordApiError('get_monthly_payment_status', error.message);
+      throw error;
+    }
+  }
+
+  async deleteMonthlyPaymentStatuses(entryId: string): Promise<void> {
+    const startTime = Date.now();
+
+    try {
+      await this.monthlyPaymentRepository.delete({ entryId });
+
+      const duration = Date.now() - startTime;
+
+      this.logger.logBusinessEvent({
+        event: 'monthly_payment_statuses_deleted',
+        metadata: {
+          entryId,
+          duration,
+        },
+      });
+
+      this.metrics.recordTransaction(
+        'delete_monthly_payment_statuses',
+        'success',
+      );
+    } catch (error) {
+      this.logger.error(
+        `Failed to delete monthly payment statuses for entry ${entryId}`,
+        error.stack,
+      );
+
+      this.metrics.recordApiError(
+        'delete_monthly_payment_statuses',
+        error.message,
+      );
       throw error;
     }
   }
