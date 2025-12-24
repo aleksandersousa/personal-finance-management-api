@@ -175,7 +175,7 @@ export class TypeormEntryRepository implements EntryRepository {
     // Fetch monthly payment statuses for fixed entries
     const entryIds = entries.filter(e => e.isFixed).map(e => e.id);
 
-    let monthlyPayments: Map<string, EntryMonthlyPaymentEntity> = new Map();
+    const monthlyPayments: Map<string, EntryMonthlyPaymentEntity> = new Map();
     if (entryIds.length > 0) {
       const payments = await this.monthlyPaymentRepository.find({
         where: {
@@ -549,26 +549,40 @@ export class TypeormEntryRepository implements EntryRepository {
       const allResults = await this.entryRepository
         .createQueryBuilder('entry')
         .leftJoin('entry.category', 'category')
+        .leftJoin(
+          EntryMonthlyPaymentEntity,
+          'payment',
+          'payment.entryId = entry.id AND payment.year = :year AND payment.month = :month',
+          { year, month },
+        )
         .select('entry.categoryId')
         .addSelect('category.name')
         .addSelect('entry.type')
         .addSelect(
-          "SUM(CASE WHEN entry.type = 'EXPENSE' AND entry.isPaid = true THEN entry.amount WHEN entry.type = 'INCOME' THEN entry.amount ELSE 0 END)",
+          "SUM(CASE WHEN entry.type = 'EXPENSE' AND COALESCE(payment.isPaid, entry.isPaid) = true THEN entry.amount WHEN entry.type = 'INCOME' THEN entry.amount ELSE 0 END)",
           'sum',
         )
         .addSelect(
-          "SUM(CASE WHEN entry.type = 'EXPENSE' AND (entry.isPaid = false OR entry.isPaid IS NULL) THEN entry.amount ELSE 0 END)",
+          "SUM(CASE WHEN entry.type = 'EXPENSE' AND COALESCE(payment.isPaid, entry.isPaid) = false THEN entry.amount ELSE 0 END)",
           'unpaidSum',
         )
         .addSelect('COUNT(*)', 'count')
         .where('entry.userId = :userId', { userId })
-        .andWhere('entry.date >= :startDate', { startDate })
-        .andWhere('entry.date <= :endDate', { endDate })
+        .andWhere(
+          new Brackets(qb => {
+            qb.where('(entry.date >= :startDate AND entry.date <= :endDate)', {
+              startDate,
+              endDate,
+            }).orWhere('(entry.isFixed = true AND entry.date <= :endDate)', {
+              endDate,
+            });
+          }),
+        )
         .andWhere('entry.deletedAt IS NULL')
         .andWhere('entry.categoryId IS NOT NULL')
         .groupBy('entry.categoryId, category.name, entry.type')
         .orderBy(
-          "SUM(CASE WHEN entry.type = 'EXPENSE' AND entry.isPaid = true THEN entry.amount WHEN entry.type = 'INCOME' THEN entry.amount ELSE 0 END)",
+          "SUM(CASE WHEN entry.type = 'EXPENSE' AND COALESCE(payment.isPaid, entry.isPaid) = true THEN entry.amount WHEN entry.type = 'INCOME' THEN entry.amount ELSE 0 END)",
           'DESC',
         )
         .getRawMany();

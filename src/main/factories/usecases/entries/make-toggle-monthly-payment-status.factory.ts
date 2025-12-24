@@ -6,4 +6,3 @@ export const makeToggleMonthlyPaymentStatusFactory = (
 ): DbToggleMonthlyPaymentStatusUseCase => {
   return new DbToggleMonthlyPaymentStatusUseCase(entryRepository);
 };
-
