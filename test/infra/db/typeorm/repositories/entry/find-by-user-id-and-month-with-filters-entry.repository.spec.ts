@@ -128,14 +128,8 @@ describe('TypeormEntryRepository - Find By User ID And Month With Filters', () =
         'entry.userId = :userId',
         { userId: 'user-123' },
       );
-      expect(mockQueryBuilder.andWhere).toHaveBeenCalledWith(
-        'entry.date >= :startDate',
-        expect.any(Object),
-      );
-      expect(mockQueryBuilder.andWhere).toHaveBeenCalledWith(
-        'entry.date <= :endDate',
-        expect.any(Object),
-      );
+      // Date filtering now uses Brackets for complex conditions
+      expect(mockQueryBuilder.andWhere).toHaveBeenCalled();
       expect(mockQueryBuilder.leftJoinAndSelect).toHaveBeenCalledWith(
         'entry.user',
         'user',

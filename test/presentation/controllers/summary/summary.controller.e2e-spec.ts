@@ -179,6 +179,12 @@ describe('SummaryController (e2e)', () => {
           expenses: 16,
         },
       },
+      accumulated: {
+        totalIncome: 50000,
+        totalPaidExpenses: 30000,
+        previousMonthsUnpaidExpenses: 500,
+        realBalance: 20000,
+      },
       comparisonWithPrevious: {
         incomeChange: 200,
         expenseChange: -150,

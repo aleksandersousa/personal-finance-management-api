@@ -52,9 +52,17 @@ export interface CategoryBreakdownResult {
   expenseTotal: number;
 }
 
+export interface AccumulatedSummaryData {
+  totalIncome: number;
+  totalPaidExpenses: number;
+  previousMonthsUnpaidExpenses: number;
+  realBalance: number;
+}
+
 export interface GetMonthlySummaryResponse {
   month: string;
   summary: MonthlySummaryData;
+  accumulated: AccumulatedSummaryData;
   categoryBreakdown?: CategoryBreakdownResult;
   comparisonWithPrevious: PreviousMonthComparison;
 }

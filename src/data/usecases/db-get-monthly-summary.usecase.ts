@@ -49,6 +49,13 @@ export class DbGetMonthlySummaryUseCase implements GetMonthlySummaryUseCase {
         previousDate.month,
       );
 
+      // Get accumulated stats
+      const accumulatedStats = await this.entryRepository.getAccumulatedStats(
+        request.userId,
+        request.year,
+        request.month,
+      );
+
       // Build response
       const response: GetMonthlySummaryResponse = {
         month: `${request.year}-${String(request.month).padStart(2, '0')}`,
@@ -71,6 +78,13 @@ export class DbGetMonthlySummaryUseCase implements GetMonthlySummaryUseCase {
             income: currentStats.incomeEntries,
             expenses: currentStats.expenseEntries,
           },
+        },
+        accumulated: {
+          totalIncome: accumulatedStats.totalAccumulatedIncome,
+          totalPaidExpenses: accumulatedStats.totalAccumulatedPaidExpenses,
+          previousMonthsUnpaidExpenses:
+            accumulatedStats.previousMonthsUnpaidExpenses,
+          realBalance: accumulatedStats.accumulatedBalance,
         },
         comparisonWithPrevious: this.calculateComparison(
           currentStats,

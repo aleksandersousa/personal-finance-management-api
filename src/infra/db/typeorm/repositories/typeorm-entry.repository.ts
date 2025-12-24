@@ -1,4 +1,4 @@
-import { Repository } from 'typeorm';
+import { Repository, Brackets } from 'typeorm';
 import { Injectable, Inject } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import {
@@ -10,6 +10,7 @@ import {
   CategorySummaryResult,
   FixedEntriesSummary,
   MonthYear,
+  AccumulatedStats,
 } from '@/data/protocols/repositories/entry-repository';
 import { EntryModel } from '@domain/models/entry.model';
 import { EntryEntity } from '../entities/entry.entity';
@@ -103,8 +104,16 @@ export class TypeormEntryRepository implements EntryRepository {
     let queryBuilder = this.entryRepository
       .createQueryBuilder('entry')
       .where('entry.userId = :userId', { userId })
-      .andWhere('entry.date >= :startDate', { startDate })
-      .andWhere('entry.date <= :endDate', { endDate })
+      .andWhere(
+        new Brackets(qb => {
+          qb.where('(entry.date >= :startDate AND entry.date <= :endDate)', {
+            startDate,
+            endDate,
+          }).orWhere('(entry.isFixed = true AND entry.date <= :endDate)', {
+            endDate,
+          });
+        }),
+      )
       .leftJoinAndSelect('entry.user', 'user')
       .leftJoinAndSelect('entry.category', 'category');
 
@@ -164,8 +173,16 @@ export class TypeormEntryRepository implements EntryRepository {
         'totalExpenses',
       )
       .where('entry.userId = :userId', { userId })
-      .andWhere('entry.date >= :startDate', { startDate })
-      .andWhere('entry.date <= :endDate', { endDate });
+      .andWhere(
+        new Brackets(qb => {
+          qb.where('(entry.date >= :startDate AND entry.date <= :endDate)', {
+            startDate,
+            endDate,
+          }).orWhere('(entry.isFixed = true AND entry.date <= :endDate)', {
+            endDate,
+          });
+        }),
+      );
 
     // Apply same filters to summary query
     if (type !== 'all') {
@@ -680,6 +697,86 @@ export class TypeormEntryRepository implements EntryRepository {
       );
 
       this.metrics.recordApiError('get_distinct_months_years', error.message);
+      throw error;
+    }
+  }
+
+  async getAccumulatedStats(
+    userId: string,
+    year: number,
+    month: number,
+  ): Promise<AccumulatedStats> {
+    const startTime = Date.now();
+
+    try {
+      const startDate = new Date(year, month - 1, 1);
+      const endDate = new Date(year, month, 0, 23, 59, 59);
+
+      // Query all entries up to the end of the specified month
+      const result = await this.entryRepository
+        .createQueryBuilder('entry')
+        .select(
+          "SUM(CASE WHEN entry.type = 'INCOME' AND entry.date <= :endDate THEN entry.amount ELSE 0 END)",
+          'totalAccumulatedIncome',
+        )
+        .addSelect(
+          "SUM(CASE WHEN entry.type = 'EXPENSE' AND entry.isPaid = true AND entry.date <= :endDate THEN entry.amount ELSE 0 END)",
+          'totalAccumulatedPaidExpenses',
+        )
+        .addSelect(
+          "SUM(CASE WHEN entry.type = 'EXPENSE' AND (entry.isPaid = false OR entry.isPaid IS NULL) AND entry.date < :startDate THEN entry.amount ELSE 0 END)",
+          'previousMonthsUnpaidExpenses',
+        )
+        .where('entry.userId = :userId', { userId })
+        .andWhere('entry.deletedAt IS NULL')
+        .setParameters({ startDate, endDate })
+        .getRawOne();
+
+      const totalAccumulatedIncome = parseFloat(
+        result?.totalAccumulatedIncome || '0',
+      );
+      const totalAccumulatedPaidExpenses = parseFloat(
+        result?.totalAccumulatedPaidExpenses || '0',
+      );
+      const previousMonthsUnpaidExpenses = parseFloat(
+        result?.previousMonthsUnpaidExpenses || '0',
+      );
+      const accumulatedBalance =
+        totalAccumulatedIncome - totalAccumulatedPaidExpenses;
+
+      const duration = Date.now() - startTime;
+
+      // Log business event
+      this.logger.logBusinessEvent({
+        event: 'accumulated_stats_calculated',
+        userId,
+        metadata: {
+          year,
+          month,
+          totalAccumulatedIncome,
+          totalAccumulatedPaidExpenses,
+          previousMonthsUnpaidExpenses,
+          accumulatedBalance,
+          duration,
+        },
+      });
+
+      // Record metrics
+      this.metrics.recordTransaction('get_accumulated_stats', 'success');
+
+      return {
+        totalAccumulatedIncome,
+        totalAccumulatedPaidExpenses,
+        previousMonthsUnpaidExpenses,
+        accumulatedBalance,
+      };
+    } catch (error) {
+      this.logger.error(
+        `Failed to get accumulated stats for user ${userId}`,
+        error.stack,
+      );
+
+      this.metrics.recordApiError('get_accumulated_stats', error.message);
       throw error;
     }
   }

@@ -19,6 +19,7 @@ describe('DbListEntriesByMonthUseCase', () => {
       getFixedEntriesSummary: jest.fn(),
       getCurrentBalance: jest.fn(),
       getDistinctMonthsYears: jest.fn(),
+      getAccumulatedStats: jest.fn(),
       update: jest.fn(),
       delete: jest.fn(),
       softDelete: jest.fn(),
@@ -61,6 +62,7 @@ describe('DbListEntriesByMonthUseCase', () => {
         isPaid: true,
         createdAt: new Date(),
         updatedAt: new Date(),
+        isFromPreviousMonth: false,
       },
       {
         id: 'entry-2',
@@ -74,6 +76,7 @@ describe('DbListEntriesByMonthUseCase', () => {
         isPaid: false,
         createdAt: new Date(),
         updatedAt: new Date(),
+        isFromPreviousMonth: false,
       },
     ];
 

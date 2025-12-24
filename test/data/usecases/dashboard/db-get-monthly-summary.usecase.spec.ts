@@ -22,6 +22,7 @@ describe('DbGetMonthlySummaryUseCase', () => {
       getFixedEntriesSummary: jest.fn(),
       getCurrentBalance: jest.fn(),
       getDistinctMonthsYears: jest.fn(),
+      getAccumulatedStats: jest.fn(),
       update: jest.fn(),
       delete: jest.fn(),
       softDelete: jest.fn(),
@@ -140,6 +141,13 @@ describe('DbGetMonthlySummaryUseCase', () => {
       expenseEntries: 15,
     };
 
+    const mockAccumulatedStats = {
+      totalAccumulatedIncome: 68000,
+      totalAccumulatedPaidExpenses: 42000,
+      previousMonthsUnpaidExpenses: 1500,
+      accumulatedBalance: 26000,
+    };
+
     it('should generate monthly summary successfully without categories', async () => {
       const request = {
         userId: 'user-123',
@@ -155,6 +163,9 @@ describe('DbGetMonthlySummaryUseCase', () => {
       mockEntryRepository.getMonthlySummaryStats
         .mockResolvedValueOnce(mockSummaryStats) // Current month
         .mockResolvedValueOnce(mockPreviousMonthStats); // Previous month
+      mockEntryRepository.getAccumulatedStats.mockResolvedValue(
+        mockAccumulatedStats,
+      );
 
       const result = await sut.execute(request);
 
@@ -178,6 +189,13 @@ describe('DbGetMonthlySummaryUseCase', () => {
           income: 12,
           expenses: 16,
         },
+      });
+
+      expect(result.accumulated).toEqual({
+        totalIncome: 68000,
+        totalPaidExpenses: 42000,
+        previousMonthsUnpaidExpenses: 1500,
+        realBalance: 26000,
       });
 
       expect(result.categoryBreakdown).toBeUndefined();
@@ -213,6 +231,9 @@ describe('DbGetMonthlySummaryUseCase', () => {
       mockEntryRepository.getMonthlySummaryStats
         .mockResolvedValueOnce(mockSummaryStats) // Current month
         .mockResolvedValueOnce(mockPreviousMonthStats); // Previous month
+      mockEntryRepository.getAccumulatedStats.mockResolvedValue(
+        mockAccumulatedStats,
+      );
       mockEntryRepository.getCategorySummaryForMonth.mockResolvedValue(
         mockCategorySummary,
       );
@@ -237,6 +258,9 @@ describe('DbGetMonthlySummaryUseCase', () => {
       mockEntryRepository.getMonthlySummaryStats
         .mockResolvedValueOnce(mockSummaryStats) // Current: Jan 2024
         .mockResolvedValueOnce(mockPreviousMonthStats); // Previous: Dec 2023
+      mockEntryRepository.getAccumulatedStats.mockResolvedValue(
+        mockAccumulatedStats,
+      );
 
       await sut.execute(request);
 
@@ -262,6 +286,9 @@ describe('DbGetMonthlySummaryUseCase', () => {
       mockEntryRepository.getMonthlySummaryStats
         .mockResolvedValueOnce(mockSummaryStats) // Current: May 2024
         .mockResolvedValueOnce(mockPreviousMonthStats); // Previous: Apr 2024
+      mockEntryRepository.getAccumulatedStats.mockResolvedValue(
+        mockAccumulatedStats,
+      );
 
       await sut.execute(request);
 
@@ -301,6 +328,9 @@ describe('DbGetMonthlySummaryUseCase', () => {
       mockEntryRepository.getMonthlySummaryStats
         .mockResolvedValueOnce(mockSummaryStats) // Current month
         .mockResolvedValueOnce(zeroStats); // Previous month with zeros
+      mockEntryRepository.getAccumulatedStats.mockResolvedValue(
+        mockAccumulatedStats,
+      );
 
       const result = await sut.execute(request);
 
