@@ -552,7 +552,7 @@ export class TypeormEntryRepository implements EntryRepository {
         .leftJoin(
           EntryMonthlyPaymentEntity,
           'payment',
-          'payment.entryId = entry.id AND payment.year = :year AND payment.month = :month',
+          'payment.entry_id = entry.id AND payment.year = :year AND payment.month = :month',
           { year, month },
         )
         .select('entry.categoryId')
@@ -562,12 +562,12 @@ export class TypeormEntryRepository implements EntryRepository {
           `SUM(CASE 
             WHEN entry.type = 'EXPENSE' AND 
               COALESCE(
-                payment.isPaid,
+                payment.is_paid,
                 CASE 
-                  WHEN entry.isFixed = true 
+                  WHEN entry.is_fixed = true 
                     AND (EXTRACT(YEAR FROM entry.date)::int != :year OR EXTRACT(MONTH FROM entry.date)::int != :month)
                   THEN false
-                  ELSE entry.isPaid
+                  ELSE entry.is_paid
                 END
               ) = true 
             THEN entry.amount 
@@ -580,12 +580,12 @@ export class TypeormEntryRepository implements EntryRepository {
           `SUM(CASE 
             WHEN entry.type = 'EXPENSE' AND 
               COALESCE(
-                payment.isPaid,
+                payment.is_paid,
                 CASE 
-                  WHEN entry.isFixed = true 
+                  WHEN entry.is_fixed = true 
                     AND (EXTRACT(YEAR FROM entry.date)::int != :year OR EXTRACT(MONTH FROM entry.date)::int != :month)
                   THEN false
-                  ELSE entry.isPaid
+                  ELSE entry.is_paid
                 END
               ) = false 
             THEN entry.amount 
@@ -600,7 +600,7 @@ export class TypeormEntryRepository implements EntryRepository {
             qb.where('(entry.date >= :startDate AND entry.date <= :endDate)', {
               startDate,
               endDate,
-            }).orWhere('(entry.isFixed = true AND entry.date <= :endDate)', {
+            }).orWhere('(entry.is_fixed = true AND entry.date <= :endDate)', {
               endDate,
             });
           }),
@@ -612,12 +612,12 @@ export class TypeormEntryRepository implements EntryRepository {
           `SUM(CASE 
             WHEN entry.type = 'EXPENSE' AND 
               COALESCE(
-                payment.isPaid,
+                payment.is_paid,
                 CASE 
-                  WHEN entry.isFixed = true 
+                  WHEN entry.is_fixed = true 
                     AND (EXTRACT(YEAR FROM entry.date)::int != :year OR EXTRACT(MONTH FROM entry.date)::int != :month)
                   THEN false
-                  ELSE entry.isPaid
+                  ELSE entry.is_paid
                 END
               ) = true 
             THEN entry.amount 
