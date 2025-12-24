@@ -142,7 +142,7 @@ describe('TypeormEntryRepository - Get Category Summary For Month', () => {
       expect(mockQueryBuilder.leftJoin).toHaveBeenCalledWith(
         EntryMonthlyPaymentEntity,
         'payment',
-        'payment.entryId = entry.id AND payment.year = :year AND payment.month = :month',
+        'payment.entry_id = entry.id AND payment.year = :year AND payment.month = :month',
         { year: 2024, month: 1 },
       );
       expect(mockQueryBuilder.select).toHaveBeenCalledWith('entry.categoryId');
