@@ -11,8 +11,9 @@ import {
 import { EntryType } from '@domain/models/entry.model';
 import { UserEntity } from './user.entity';
 import { CategoryEntity } from './category.entity';
+import { TABLE_NAMES } from '@/domain/constants';
 
-@Entity('entries')
+@Entity(TABLE_NAMES.ENTRIES)
 export class EntryEntity {
   @PrimaryGeneratedColumn('uuid')
   id: string;

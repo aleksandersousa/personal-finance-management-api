@@ -8,6 +8,7 @@ import { DeleteEntryUseCase } from '@domain/usecases/delete-entry.usecase';
 import { ListEntriesByMonthUseCase } from '@domain/usecases/list-entries-by-month.usecase';
 import { UpdateEntryUseCase } from '@domain/usecases/update-entry.usecase';
 import { GetEntriesMonthsYearsUseCase } from '@domain/usecases/get-entries-months-years.usecase';
+import { ToggleMonthlyPaymentStatusUseCase } from '@domain/usecases/toggle-monthly-payment-status.usecase';
 import { LoggerSpy } from '../../../infra/mocks/logging/logger.spy';
 import { MetricsSpy } from '../../../infra/mocks/metrics/metrics.spy';
 import { JwtAuthGuard } from '@presentation/guards/jwt-auth.guard';
@@ -22,6 +23,7 @@ describe('EntryController (e2e)', () => {
   let mockListEntriesByMonthUseCase: jest.Mocked<ListEntriesByMonthUseCase>;
   let mockLoadEntriesMonthsYearsUseCase: jest.Mocked<GetEntriesMonthsYearsUseCase>;
   let mockUpdateEntryUseCase: jest.Mocked<UpdateEntryUseCase>;
+  let mockToggleMonthlyPaymentStatusUseCase: jest.Mocked<ToggleMonthlyPaymentStatusUseCase>;
 
   const createProviders = (
     addEntryUseCase: jest.Mocked<AddEntryUseCase>,
@@ -29,6 +31,7 @@ describe('EntryController (e2e)', () => {
     listEntriesByMonthUseCase: jest.Mocked<ListEntriesByMonthUseCase>,
     updateEntryUseCase: jest.Mocked<UpdateEntryUseCase>,
     getEntriesMonthsYearsUseCase: jest.Mocked<GetEntriesMonthsYearsUseCase>,
+    toggleMonthlyPaymentStatusUseCase: jest.Mocked<ToggleMonthlyPaymentStatusUseCase>,
     logger: LoggerSpy,
     metrics: MetricsSpy,
   ) => [
@@ -51,6 +54,10 @@ describe('EntryController (e2e)', () => {
     {
       provide: 'GetEntriesMonthsYearsUseCase',
       useValue: getEntriesMonthsYearsUseCase,
+    },
+    {
+      provide: 'ToggleMonthlyPaymentStatusUseCase',
+      useValue: toggleMonthlyPaymentStatusUseCase,
     },
     {
       provide: 'Logger',
@@ -80,6 +87,9 @@ describe('EntryController (e2e)', () => {
     mockLoadEntriesMonthsYearsUseCase = {
       execute: jest.fn(),
     };
+    mockToggleMonthlyPaymentStatusUseCase = {
+      execute: jest.fn(),
+    };
 
     const moduleFixture: TestingModule = await Test.createTestingModule({
       imports: [
@@ -95,6 +105,7 @@ describe('EntryController (e2e)', () => {
         mockListEntriesByMonthUseCase,
         mockUpdateEntryUseCase,
         mockLoadEntriesMonthsYearsUseCase,
+        mockToggleMonthlyPaymentStatusUseCase,
         loggerSpy,
         metricsSpy,
       ),
@@ -144,6 +155,7 @@ describe('EntryController (e2e)', () => {
           mockListEntriesByMonthUseCase,
           mockUpdateEntryUseCase,
           mockLoadEntriesMonthsYearsUseCase,
+          mockToggleMonthlyPaymentStatusUseCase,
           loggerSpy,
           metricsSpy,
         ),
@@ -186,6 +198,7 @@ describe('EntryController (e2e)', () => {
           mockListEntriesByMonthUseCase,
           mockUpdateEntryUseCase,
           mockLoadEntriesMonthsYearsUseCase,
+          mockToggleMonthlyPaymentStatusUseCase,
           loggerSpy,
           metricsSpy,
         ),

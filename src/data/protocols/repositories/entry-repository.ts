@@ -94,6 +94,14 @@ export interface AccumulatedStats {
   accumulatedBalance: number;
 }
 
+export interface MonthlyPaymentStatus {
+  entryId: string;
+  year: number;
+  month: number;
+  isPaid: boolean;
+  paidAt: Date | null;
+}
+
 export interface EntryRepository {
   create(data: CreateEntryData): Promise<EntryModel>;
   findById(id: string): Promise<EntryModel | null>;
@@ -127,4 +135,16 @@ export interface EntryRepository {
   update(id: string, data: UpdateEntryData): Promise<EntryModel>;
   delete(id: string): Promise<void>;
   softDelete(id: string): Promise<Date>;
+  setMonthlyPaymentStatus(
+    entryId: string,
+    year: number,
+    month: number,
+    isPaid: boolean,
+  ): Promise<MonthlyPaymentStatus>;
+  getMonthlyPaymentStatus(
+    entryId: string,
+    year: number,
+    month: number,
+  ): Promise<MonthlyPaymentStatus | null>;
+  deleteMonthlyPaymentStatuses(entryId: string): Promise<void>;
 }

@@ -3,6 +3,7 @@ import { getRepositoryToken } from '@nestjs/typeorm';
 import { Repository, SelectQueryBuilder } from 'typeorm';
 import { TypeormEntryRepository } from '@infra/db/typeorm/repositories/typeorm-entry.repository';
 import { EntryEntity } from '@infra/db/typeorm/entities/entry.entity';
+import { EntryMonthlyPaymentEntity } from '@infra/db/typeorm/entities/entry-monthly-payment.entity';
 import { ContextAwareLoggerService } from '@infra/logging/context-aware-logger.service';
 import { FinancialMetricsService } from '@infra/metrics/financial-metrics.service';
 
@@ -10,6 +11,9 @@ describe('TypeormEntryRepository - Get Category Summary For Month', () => {
   let repository: TypeormEntryRepository;
   let testingModule: TestingModule;
   let mockRepository: jest.Mocked<Repository<EntryEntity>>;
+  let mockMonthlyPaymentRepository: jest.Mocked<
+    Repository<EntryMonthlyPaymentEntity>
+  >;
   let mockQueryBuilder: jest.Mocked<SelectQueryBuilder<EntryEntity>>;
   let mockLogger: jest.Mocked<ContextAwareLoggerService>;
   let mockMetrics: jest.Mocked<FinancialMetricsService>;
@@ -57,6 +61,16 @@ describe('TypeormEntryRepository - Get Category Summary For Month', () => {
       createQueryBuilder: jest.fn().mockReturnValue(mockQueryBuilder),
     } as any;
 
+    mockMonthlyPaymentRepository = {
+      create: jest.fn(),
+      save: jest.fn(),
+      findOne: jest.fn(),
+      find: jest.fn(),
+      update: jest.fn(),
+      delete: jest.fn(),
+      createQueryBuilder: jest.fn(),
+    } as any;
+
     mockLogger = {
       log: jest.fn(),
       error: jest.fn(),
@@ -81,6 +95,10 @@ describe('TypeormEntryRepository - Get Category Summary For Month', () => {
         {
           provide: getRepositoryToken(EntryEntity),
           useValue: mockRepository,
+        },
+        {
+          provide: getRepositoryToken(EntryMonthlyPaymentEntity),
+          useValue: mockMonthlyPaymentRepository,
         },
         {
           provide: 'Logger',

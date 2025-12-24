@@ -9,6 +9,7 @@ import {
   MonthlySummaryStats,
   MonthYear,
   AccumulatedStats,
+  MonthlyPaymentStatus,
 } from '@/data/protocols/repositories/entry-repository';
 import { EntryModel } from '@domain/models/entry.model';
 import { IdGenerator } from '@data/protocols/id-generator';
@@ -488,6 +489,43 @@ export class EntryRepositoryStub implements EntryRepository {
       previousMonthsUnpaidExpenses,
       accumulatedBalance,
     };
+  }
+
+  async setMonthlyPaymentStatus(
+    entryId: string,
+    year: number,
+    month: number,
+    isPaid: boolean,
+  ): Promise<MonthlyPaymentStatus> {
+    if (this.shouldFail && this.errorToThrow) {
+      throw this.errorToThrow;
+    }
+
+    return {
+      entryId,
+      year,
+      month,
+      isPaid,
+      paidAt: isPaid ? new Date() : null,
+    };
+  }
+
+  async getMonthlyPaymentStatus(
+    entryId: string,
+    year: number,
+    month: number,
+  ): Promise<MonthlyPaymentStatus | null> {
+    if (this.shouldFail && this.errorToThrow) {
+      throw this.errorToThrow;
+    }
+
+    return null;
+  }
+
+  async deleteMonthlyPaymentStatuses(entryId: string): Promise<void> {
+    if (this.shouldFail && this.errorToThrow) {
+      throw this.errorToThrow;
+    }
   }
 
   // =================== Test Utility Methods ===================

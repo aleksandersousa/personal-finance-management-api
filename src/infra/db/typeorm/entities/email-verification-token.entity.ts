@@ -8,8 +8,9 @@ import {
   Index,
 } from 'typeorm';
 import { UserEntity } from './user.entity';
+import { TABLE_NAMES } from '@/domain/constants';
 
-@Entity('email_verification_tokens')
+@Entity(TABLE_NAMES.EMAIL_VERIFICATION_TOKENS)
 export class EmailVerificationTokenEntity {
   @PrimaryGeneratedColumn('uuid')
   id: string;

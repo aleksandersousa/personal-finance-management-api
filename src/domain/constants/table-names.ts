@@ -7,4 +7,5 @@ export const TABLE_NAMES = {
   EMAIL_VERIFICATION_TOKENS: 'email_verification_tokens',
   PASSWORD_RESET_TOKENS: 'password_reset_tokens',
   NOTIFICATIONS: 'notifications',
+  ENTRY_MONTHLY_PAYMENTS: 'entry_monthly_payments',
 };

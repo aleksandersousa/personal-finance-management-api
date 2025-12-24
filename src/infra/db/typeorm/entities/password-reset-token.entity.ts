@@ -8,8 +8,9 @@ import {
   Index,
 } from 'typeorm';
 import { UserEntity } from './user.entity';
+import { TABLE_NAMES } from '@/domain/constants';
 
-@Entity('password_reset_tokens')
+@Entity(TABLE_NAMES.PASSWORD_RESET_TOKENS)
 export class PasswordResetTokenEntity {
   @PrimaryGeneratedColumn('uuid')
   id: string;

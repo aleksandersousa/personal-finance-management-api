@@ -12,8 +12,9 @@ import {
 import { NotificationStatus } from '@domain/models/notification.model';
 import { UserEntity } from './user.entity';
 import { EntryEntity } from './entry.entity';
+import { TABLE_NAMES } from '@/domain/constants';
 
-@Entity('notifications')
+@Entity(TABLE_NAMES.NOTIFICATIONS)
 export class NotificationEntity {
   @PrimaryGeneratedColumn('uuid')
   id: string;
@@ -25,7 +26,7 @@ export class NotificationEntity {
   userId: string;
 
   @Column({ name: 'scheduled_at', type: 'timestamp' })
-  @Index('IDX_notifications_scheduled_at')
+  @Index(`IDX_${TABLE_NAMES.NOTIFICATIONS}_scheduled_at`)
   scheduledAt: Date;
 
   @Column({ name: 'sent_at', type: 'timestamp', nullable: true })
@@ -36,7 +37,7 @@ export class NotificationEntity {
     enum: NotificationStatus,
     default: NotificationStatus.PENDING,
   })
-  @Index('IDX_notifications_status')
+  @Index(`IDX_${TABLE_NAMES.NOTIFICATIONS}_status`)
   status: NotificationStatus;
 
   @Column({ name: 'job_id', nullable: true })

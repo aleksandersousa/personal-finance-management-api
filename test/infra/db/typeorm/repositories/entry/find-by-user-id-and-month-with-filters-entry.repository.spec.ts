@@ -3,6 +3,7 @@ import { getRepositoryToken } from '@nestjs/typeorm';
 import { Repository, SelectQueryBuilder } from 'typeorm';
 import { TypeormEntryRepository } from '@infra/db/typeorm/repositories/typeorm-entry.repository';
 import { EntryEntity } from '@infra/db/typeorm/entities/entry.entity';
+import { EntryMonthlyPaymentEntity } from '@infra/db/typeorm/entities/entry-monthly-payment.entity';
 import { FindEntriesByMonthFilters } from '@/data/protocols/repositories/entry-repository';
 import { ContextAwareLoggerService } from '@infra/logging/context-aware-logger.service';
 import { FinancialMetricsService } from '@infra/metrics/financial-metrics.service';
@@ -11,6 +12,9 @@ describe('TypeormEntryRepository - Find By User ID And Month With Filters', () =
   let repository: TypeormEntryRepository;
   let testingModule: TestingModule;
   let mockRepository: jest.Mocked<Repository<EntryEntity>>;
+  let mockMonthlyPaymentRepository: jest.Mocked<
+    Repository<EntryMonthlyPaymentEntity>
+  >;
   let mockQueryBuilder: jest.Mocked<SelectQueryBuilder<EntryEntity>>;
   let mockLogger: jest.Mocked<ContextAwareLoggerService>;
   let mockMetrics: jest.Mocked<FinancialMetricsService>;
@@ -46,6 +50,7 @@ describe('TypeormEntryRepository - Find By User ID And Month With Filters', () =
     mockQueryBuilder = {
       where: jest.fn().mockReturnThis(),
       andWhere: jest.fn().mockReturnThis(),
+      leftJoin: jest.fn().mockReturnThis(),
       leftJoinAndSelect: jest.fn().mockReturnThis(),
       orderBy: jest.fn().mockReturnThis(),
       skip: jest.fn().mockReturnThis(),
@@ -59,6 +64,16 @@ describe('TypeormEntryRepository - Find By User ID And Month With Filters', () =
 
     mockRepository = {
       createQueryBuilder: jest.fn().mockReturnValue(mockQueryBuilder),
+    } as any;
+
+    mockMonthlyPaymentRepository = {
+      create: jest.fn(),
+      save: jest.fn(),
+      findOne: jest.fn(),
+      find: jest.fn().mockResolvedValue([]), // Return empty array by default
+      update: jest.fn(),
+      delete: jest.fn(),
+      createQueryBuilder: jest.fn(),
     } as any;
 
     mockLogger = {
@@ -85,6 +100,10 @@ describe('TypeormEntryRepository - Find By User ID And Month With Filters', () =
         {
           provide: getRepositoryToken(EntryEntity),
           useValue: mockRepository,
+        },
+        {
+          provide: getRepositoryToken(EntryMonthlyPaymentEntity),
+          useValue: mockMonthlyPaymentRepository,
         },
         {
           provide: 'Logger',

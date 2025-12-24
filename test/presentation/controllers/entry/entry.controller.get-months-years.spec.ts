@@ -28,6 +28,7 @@ describe('EntryController - GET_MONTHS_YEARS', () => {
           provide: 'GetEntriesMonthsYearsUseCase',
           useValue: getEntriesMonthsYearsUseCase,
         },
+        { provide: 'ToggleMonthlyPaymentStatusUseCase', useValue: {} },
         { provide: 'Logger', useValue: loggerSpy },
         { provide: 'Metrics', useValue: metricsSpy },
       ],

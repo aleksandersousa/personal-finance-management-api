@@ -9,8 +9,9 @@ import {
 import { EntryEntity } from './entry.entity';
 import { CategoryEntity } from './category.entity';
 import { EmailVerificationTokenEntity } from './email-verification-token.entity';
+import { TABLE_NAMES } from '@/domain/constants';
 
-@Entity('users')
+@Entity(TABLE_NAMES.USERS)
 export class UserEntity {
   @PrimaryGeneratedColumn('uuid')
   id: string;
