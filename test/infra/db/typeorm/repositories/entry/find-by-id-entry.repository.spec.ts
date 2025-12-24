@@ -11,7 +11,9 @@ describe('TypeormEntryRepository - Find By ID', () => {
   let repository: TypeormEntryRepository;
   let testingModule: TestingModule;
   let mockRepository: jest.Mocked<Repository<EntryEntity>>;
-  let mockMonthlyPaymentRepository: jest.Mocked<Repository<EntryMonthlyPaymentEntity>>;
+  let mockMonthlyPaymentRepository: jest.Mocked<
+    Repository<EntryMonthlyPaymentEntity>
+  >;
   let mockLogger: jest.Mocked<ContextAwareLoggerService>;
   let mockMetrics: jest.Mocked<FinancialMetricsService>;
 

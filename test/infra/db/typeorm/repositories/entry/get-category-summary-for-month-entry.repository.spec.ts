@@ -1,6 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
-import { Repository, SelectQueryBuilder } from 'typeorm';
+import { Repository, SelectQueryBuilder, Brackets } from 'typeorm';
 import { TypeormEntryRepository } from '@infra/db/typeorm/repositories/typeorm-entry.repository';
 import { EntryEntity } from '@infra/db/typeorm/entities/entry.entity';
 import { EntryMonthlyPaymentEntity } from '@infra/db/typeorm/entities/entry-monthly-payment.entity';
@@ -139,15 +139,21 @@ describe('TypeormEntryRepository - Get Category Summary For Month', () => {
         'entry.category',
         'category',
       );
+      expect(mockQueryBuilder.leftJoin).toHaveBeenCalledWith(
+        EntryMonthlyPaymentEntity,
+        'payment',
+        'payment.entryId = entry.id AND payment.year = :year AND payment.month = :month',
+        { year: 2024, month: 1 },
+      );
       expect(mockQueryBuilder.select).toHaveBeenCalledWith('entry.categoryId');
       expect(mockQueryBuilder.addSelect).toHaveBeenCalledWith('category.name');
       expect(mockQueryBuilder.addSelect).toHaveBeenCalledWith('entry.type');
       expect(mockQueryBuilder.addSelect).toHaveBeenCalledWith(
-        "SUM(CASE WHEN entry.type = 'EXPENSE' AND entry.isPaid = true THEN entry.amount WHEN entry.type = 'INCOME' THEN entry.amount ELSE 0 END)",
+        "SUM(CASE WHEN entry.type = 'EXPENSE' AND COALESCE(payment.isPaid, entry.isPaid) = true THEN entry.amount WHEN entry.type = 'INCOME' THEN entry.amount ELSE 0 END)",
         'sum',
       );
       expect(mockQueryBuilder.addSelect).toHaveBeenCalledWith(
-        "SUM(CASE WHEN entry.type = 'EXPENSE' AND (entry.isPaid = false OR entry.isPaid IS NULL) THEN entry.amount ELSE 0 END)",
+        "SUM(CASE WHEN entry.type = 'EXPENSE' AND COALESCE(payment.isPaid, entry.isPaid) = false THEN entry.amount ELSE 0 END)",
         'unpaidSum',
       );
       expect(mockQueryBuilder.addSelect).toHaveBeenCalledWith(
@@ -159,13 +165,11 @@ describe('TypeormEntryRepository - Get Category Summary For Month', () => {
         'entry.userId = :userId',
         { userId: 'user-123' },
       );
+      // andWhere now uses Brackets for date filtering
       expect(mockQueryBuilder.andWhere).toHaveBeenCalledWith(
-        'entry.date >= :startDate',
-        { startDate: new Date(2024, 0, 1) },
-      );
-      expect(mockQueryBuilder.andWhere).toHaveBeenCalledWith(
-        'entry.date <= :endDate',
-        { endDate: new Date(2024, 1, 0, 23, 59, 59) },
+        expect.objectContaining({
+          '@instanceof': Symbol.for('Brackets'),
+        }),
       );
       expect(mockQueryBuilder.andWhere).toHaveBeenCalledWith(
         'entry.deletedAt IS NULL',
@@ -177,7 +181,7 @@ describe('TypeormEntryRepository - Get Category Summary For Month', () => {
         'entry.categoryId, category.name, entry.type',
       );
       expect(mockQueryBuilder.orderBy).toHaveBeenCalledWith(
-        "SUM(CASE WHEN entry.type = 'EXPENSE' AND entry.isPaid = true THEN entry.amount WHEN entry.type = 'INCOME' THEN entry.amount ELSE 0 END)",
+        "SUM(CASE WHEN entry.type = 'EXPENSE' AND COALESCE(payment.isPaid, entry.isPaid) = true THEN entry.amount WHEN entry.type = 'INCOME' THEN entry.amount ELSE 0 END)",
         'DESC',
       );
 
@@ -323,13 +327,11 @@ describe('TypeormEntryRepository - Get Category Summary For Month', () => {
       // Test June 2024
       await repository.getCategorySummaryForMonth('user-123', 2024, 6);
 
+      // andWhere now uses Brackets for date filtering to include fixed entries
       expect(mockQueryBuilder.andWhere).toHaveBeenCalledWith(
-        'entry.date >= :startDate',
-        { startDate: new Date(2024, 5, 1) }, // June 1st
-      );
-      expect(mockQueryBuilder.andWhere).toHaveBeenCalledWith(
-        'entry.date <= :endDate',
-        { endDate: new Date(2024, 6, 0, 23, 59, 59) }, // June 30th
+        expect.objectContaining({
+          '@instanceof': Symbol.for('Brackets'),
+        }),
       );
     });
 
