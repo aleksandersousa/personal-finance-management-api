@@ -559,11 +559,38 @@ export class TypeormEntryRepository implements EntryRepository {
         .addSelect('category.name')
         .addSelect('entry.type')
         .addSelect(
-          "SUM(CASE WHEN entry.type = 'EXPENSE' AND COALESCE(payment.isPaid, entry.isPaid) = true THEN entry.amount WHEN entry.type = 'INCOME' THEN entry.amount ELSE 0 END)",
+          `SUM(CASE 
+            WHEN entry.type = 'EXPENSE' AND 
+              COALESCE(
+                payment.isPaid,
+                CASE 
+                  WHEN entry.isFixed = true 
+                    AND (EXTRACT(YEAR FROM entry.date)::int != :year OR EXTRACT(MONTH FROM entry.date)::int != :month)
+                  THEN false
+                  ELSE entry.isPaid
+                END
+              ) = true 
+            THEN entry.amount 
+            WHEN entry.type = 'INCOME' THEN entry.amount 
+            ELSE 0 
+          END)`,
           'sum',
         )
         .addSelect(
-          "SUM(CASE WHEN entry.type = 'EXPENSE' AND COALESCE(payment.isPaid, entry.isPaid) = false THEN entry.amount ELSE 0 END)",
+          `SUM(CASE 
+            WHEN entry.type = 'EXPENSE' AND 
+              COALESCE(
+                payment.isPaid,
+                CASE 
+                  WHEN entry.isFixed = true 
+                    AND (EXTRACT(YEAR FROM entry.date)::int != :year OR EXTRACT(MONTH FROM entry.date)::int != :month)
+                  THEN false
+                  ELSE entry.isPaid
+                END
+              ) = false 
+            THEN entry.amount 
+            ELSE 0 
+          END)`,
           'unpaidSum',
         )
         .addSelect('COUNT(*)', 'count')
@@ -582,7 +609,21 @@ export class TypeormEntryRepository implements EntryRepository {
         .andWhere('entry.categoryId IS NOT NULL')
         .groupBy('entry.categoryId, category.name, entry.type')
         .orderBy(
-          "SUM(CASE WHEN entry.type = 'EXPENSE' AND COALESCE(payment.isPaid, entry.isPaid) = true THEN entry.amount WHEN entry.type = 'INCOME' THEN entry.amount ELSE 0 END)",
+          `SUM(CASE 
+            WHEN entry.type = 'EXPENSE' AND 
+              COALESCE(
+                payment.isPaid,
+                CASE 
+                  WHEN entry.isFixed = true 
+                    AND (EXTRACT(YEAR FROM entry.date)::int != :year OR EXTRACT(MONTH FROM entry.date)::int != :month)
+                  THEN false
+                  ELSE entry.isPaid
+                END
+              ) = true 
+            THEN entry.amount 
+            WHEN entry.type = 'INCOME' THEN entry.amount 
+            ELSE 0 
+          END)`,
           'DESC',
         )
         .getRawMany();
