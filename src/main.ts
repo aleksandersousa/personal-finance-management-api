@@ -7,6 +7,7 @@ import { ContextAwareLoggerService } from './infra/logging/context-aware-logger.
 import { FinancialMetricsService } from './infra/metrics/financial-metrics.service';
 import * as fs from 'fs';
 import * as path from 'path';
+import { startTracing, shutdownTracing } from './infra/tracing/opentelemetry';
 import {
   swaggerConfig,
   globalValidation,
@@ -16,6 +17,9 @@ import {
 import { BullBoardModule } from './infra/queue/bull-board.module';
 
 async function bootstrap() {
+  // Initialize distributed tracing (no-op unless TRACING_ENABLED=true)
+  await startTracing();
+
   // Create logs directory if it doesn't exist (handle permission errors gracefully)
   const logsDir = path.join(process.cwd(), 'logs');
   try {
@@ -112,5 +116,8 @@ async function bootstrap() {
 
 bootstrap().catch(error => {
   console.error('💥 Application failed to start:', error);
+  shutdownTracing().catch(() => {
+    // ignore tracing shutdown errors on bootstrap failure
+  });
   process.exit(1);
 });

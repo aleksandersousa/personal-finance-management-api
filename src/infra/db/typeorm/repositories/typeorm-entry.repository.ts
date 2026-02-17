@@ -87,6 +87,10 @@ export class TypeormEntryRepository implements EntryRepository {
   async findByUserIdAndMonthWithFilters(
     filters: FindEntriesByMonthFilters,
   ): Promise<FindEntriesByMonthResult> {
+    const operation = 'find_entries_by_month_with_filters';
+    const table = 'entries';
+    const startTime = Date.now();
+
     const {
       userId,
       year,
@@ -276,6 +280,9 @@ export class TypeormEntryRepository implements EntryRepository {
 
       return model;
     });
+
+    const duration = Date.now() - startTime;
+    this.metrics.recordDbQuery(operation, table, 'success', duration);
 
     return {
       data,
@@ -502,6 +509,12 @@ export class TypeormEntryRepository implements EntryRepository {
 
       // Record metrics
       this.metrics.recordTransaction('get_monthly_summary_stats', 'success');
+      this.metrics.recordDbQuery(
+        'get_monthly_summary_stats',
+        'entries',
+        'success',
+        duration,
+      );
 
       return {
         totalIncome: parseFloat(result?.totalIncome || '0'),
@@ -657,6 +670,12 @@ export class TypeormEntryRepository implements EntryRepository {
 
       // Record metrics
       this.metrics.recordTransaction('get_category_summary', 'success');
+      this.metrics.recordDbQuery(
+        'get_category_summary',
+        'entries',
+        'success',
+        duration,
+      );
 
       const items = results.map(result => ({
         categoryId: result.entry_categoryId || result.categoryId,
@@ -731,6 +750,12 @@ export class TypeormEntryRepository implements EntryRepository {
 
       // Record metrics
       this.metrics.recordTransaction('get_fixed_entries_summary', 'success');
+      this.metrics.recordDbQuery(
+        'get_fixed_entries_summary',
+        'entries',
+        'success',
+        duration,
+      );
 
       return {
         fixedIncome,
@@ -787,6 +812,12 @@ export class TypeormEntryRepository implements EntryRepository {
 
       // Record metrics
       this.metrics.recordTransaction('get_current_balance', 'success');
+      this.metrics.recordDbQuery(
+        'get_current_balance',
+        'entries',
+        'success',
+        duration,
+      );
 
       return currentBalance;
     } catch (error) {
@@ -915,6 +946,12 @@ export class TypeormEntryRepository implements EntryRepository {
 
       // Record metrics
       this.metrics.recordTransaction('get_accumulated_stats', 'success');
+      this.metrics.recordDbQuery(
+        'get_accumulated_stats',
+        'entries',
+        'success',
+        duration,
+      );
 
       return {
         totalAccumulatedIncome,

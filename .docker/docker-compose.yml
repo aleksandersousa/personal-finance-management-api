@@ -66,9 +66,81 @@ services:
     networks:
       - financial-network
 
+  prometheus:
+    image: prom/prometheus:v2.54.1
+    container_name: financial-prometheus
+    restart: unless-stopped
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--storage.tsdb.retention.time=15d'
+    ports:
+      - '9090:9090'
+    networks:
+      - financial-network
+
+  grafana:
+    image: grafana/grafana:11.1.0
+    container_name: financial-grafana
+    restart: unless-stopped
+    environment:
+      - GF_SECURITY_ADMIN_USER=${GRAFANA_ADMIN_USER:-admin}
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD:-admin}
+    volumes:
+      - grafana_data:/var/lib/grafana
+    ports:
+      - '3002:3000'
+    networks:
+      - financial-network
+
+  loki:
+    image: grafana/loki:3.1.1
+    container_name: financial-loki
+    restart: unless-stopped
+    command: -config.file=/etc/loki/config.yml
+    volumes:
+      - ./loki/config.yml:/etc/loki/config.yml:ro
+      - loki_data:/loki
+    ports:
+      - '3100:3100'
+    networks:
+      - financial-network
+
+  promtail:
+    image: grafana/promtail:3.1.1
+    container_name: financial-promtail
+    restart: unless-stopped
+    volumes:
+      - ..:/app
+      - ./promtail/config.yml:/etc/promtail/config.yml:ro
+    command: -config.file=/etc/promtail/config.yml
+    networks:
+      - financial-network
+
+  tempo:
+    image: grafana/tempo:2.6.0
+    container_name: financial-tempo
+    restart: unless-stopped
+    command: [ "-config.file=/etc/tempo/config.yml" ]
+    volumes:
+      - ./tempo/config.yml:/etc/tempo/config.yml:ro
+      - tempo_data:/var/tempo
+    ports:
+      - "3200:3200"   # tempo HTTP API / traces
+      - "4318:4318"   # OTLP HTTP receiver
+    networks:
+      - financial-network
+
 volumes:
   postgres_data:
   redis_data:
+  prometheus_data:
+  grafana_data:
+  loki_data:
+  tempo_data:
 
 networks:
   financial-network:

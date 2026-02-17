@@ -10,6 +10,8 @@ export class FinancialMetricsService implements Metrics {
   private readonly financialTransactionsTotal: Counter<string>;
   private readonly apiErrorsTotal: Counter<string>;
   private readonly activeUsersGauge: Gauge<string>;
+  private readonly dbQueriesTotal: Counter<string>;
+  private readonly dbQueryDuration: Histogram<string>;
 
   constructor() {
     // Clear existing metrics to avoid conflicts
@@ -50,6 +52,20 @@ export class FinancialMetricsService implements Metrics {
       labelNames: ['endpoint', 'error_type'],
     });
 
+    // Database Metrics
+    this.dbQueriesTotal = new Counter({
+      name: 'db_queries_total',
+      help: 'Total number of database queries',
+      labelNames: ['operation', 'table', 'status'],
+    });
+
+    this.dbQueryDuration = new Histogram({
+      name: 'db_query_duration_seconds',
+      help: 'Duration of database queries in seconds',
+      labelNames: ['operation', 'table', 'status'],
+      buckets: [0.01, 0.05, 0.1, 0.25, 0.5, 1, 2, 5],
+    });
+
     // Active Users
     this.activeUsersGauge = new Gauge({
       name: 'financial_active_users',
@@ -64,6 +80,8 @@ export class FinancialMetricsService implements Metrics {
     register.registerMetric(this.financialTransactionsTotal);
     register.registerMetric(this.apiErrorsTotal);
     register.registerMetric(this.activeUsersGauge);
+    register.registerMetric(this.dbQueriesTotal);
+    register.registerMetric(this.dbQueryDuration);
   }
 
   recordHttpRequest(
@@ -94,6 +112,16 @@ export class FinancialMetricsService implements Metrics {
 
   recordApiError(endpoint: string, errorType: string) {
     this.apiErrorsTotal.inc({ endpoint, error_type: errorType });
+  }
+
+  recordDbQuery(
+    operation: string,
+    table: string,
+    status: 'success' | 'error',
+    duration: number,
+  ) {
+    this.dbQueriesTotal.inc({ operation, table, status });
+    this.dbQueryDuration.observe({ operation, table, status }, duration / 1000);
   }
 
   updateActiveUsers(period: string, count: number) {
