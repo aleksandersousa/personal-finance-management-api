@@ -109,7 +109,7 @@ describe('FinancialMetricsService', () => {
     });
 
     it('should register all metrics', () => {
-      expect(register.registerMetric).toHaveBeenCalledTimes(6);
+      expect(register.registerMetric).toHaveBeenCalledTimes(8);
     });
   });
 

@@ -3,11 +3,19 @@ import {
   PredictCashFlowUseCase,
   PredictCashFlowData,
   CashFlowForecast,
-  MonthlyProjection,
   ForecastPeriod,
   ForecastSummary,
   ForecastInsights,
 } from '@domain/usecases/predict-cash-flow.usecase';
+
+interface MonthlyProjectionRow {
+  month: string;
+  projectedIncome: number;
+  projectedExpenses: number;
+  netFlow: number;
+  cumulativeBalance: number;
+  confidence: 'high' | 'medium' | 'low';
+}
 import { EntryRepository } from '@/data/protocols/repositories/entry-repository';
 import { Logger } from '@data/protocols/logger';
 import { Metrics } from '@data/protocols/metrics';
@@ -72,7 +80,6 @@ export class DbPredictCashFlowUseCase implements PredictCashFlowUseCase {
       const forecast: CashFlowForecast = {
         forecastPeriod,
         currentBalance,
-        monthlyProjections,
         summary,
         insights,
       };
@@ -138,8 +145,8 @@ export class DbPredictCashFlowUseCase implements PredictCashFlowUseCase {
     fixedSummary: any,
     months: number,
     currentBalance: number,
-  ): MonthlyProjection[] {
-    const projections: MonthlyProjection[] = [];
+  ): MonthlyProjectionRow[] {
+    const projections: MonthlyProjectionRow[] = [];
     let cumulativeBalance = currentBalance;
 
     const startDate = new Date();
@@ -170,7 +177,9 @@ export class DbPredictCashFlowUseCase implements PredictCashFlowUseCase {
     return projections;
   }
 
-  private calculateSummary(projections: MonthlyProjection[]): ForecastSummary {
+  private calculateSummary(
+    projections: MonthlyProjectionRow[],
+  ): ForecastSummary {
     const totalProjectedIncome = projections.reduce(
       (sum, p) => sum + p.projectedIncome,
       0,
@@ -198,7 +207,7 @@ export class DbPredictCashFlowUseCase implements PredictCashFlowUseCase {
 
   private generateInsights(
     fixedSummary: any,
-    projections: MonthlyProjection[],
+    projections: MonthlyProjectionRow[],
   ): ForecastInsights {
     const netFlow = fixedSummary.fixedNetFlow || 0;
     const trend = this.determineTrend(netFlow);
@@ -242,7 +251,7 @@ export class DbPredictCashFlowUseCase implements PredictCashFlowUseCase {
 
   private assessRiskLevel(
     fixedSummary: any,
-    projections: MonthlyProjection[],
+    projections: MonthlyProjectionRow[],
   ): 'low' | 'medium' | 'high' {
     const netFlow = fixedSummary.fixedNetFlow || 0;
     const finalBalance =

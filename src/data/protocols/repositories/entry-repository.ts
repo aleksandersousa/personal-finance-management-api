@@ -70,7 +70,10 @@ export interface CategorySummaryItem {
 }
 
 export interface CategorySummaryResult {
+  /** Top categories (e.g. top 3) for compact UI */
   items: CategorySummaryItem[];
+  /** All categories with amounts for the month, same shape as items */
+  allItems: CategorySummaryItem[];
   incomeTotal: number;
   expenseTotal: number;
 }

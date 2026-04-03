@@ -20,45 +20,6 @@ export class ForecastPeriod {
   monthsCount: number;
 }
 
-export class MonthlyProjection {
-  @ApiProperty({
-    description: 'Month in YYYY-MM format',
-    example: '2024-02',
-  })
-  month: string;
-
-  @ApiProperty({
-    description: 'Projected income for the month',
-    example: 5000.0,
-  })
-  projectedIncome: number;
-
-  @ApiProperty({
-    description: 'Projected expenses for the month',
-    example: 2500.0,
-  })
-  projectedExpenses: number;
-
-  @ApiProperty({
-    description: 'Net flow (income - expenses)',
-    example: 2500.0,
-  })
-  netFlow: number;
-
-  @ApiProperty({
-    description: 'Cumulative balance at end of month',
-    example: 5100.0,
-  })
-  cumulativeBalance: number;
-
-  @ApiProperty({
-    description: 'Confidence level of projection',
-    enum: ['high', 'medium', 'low'],
-    example: 'high',
-  })
-  confidence: 'high' | 'medium' | 'low';
-}
-
 export class ForecastSummary {
   @ApiProperty({
     description: 'Total projected income across all months',
@@ -130,12 +91,6 @@ export class CashFlowForecastResponseDto {
     example: 2600.0,
   })
   currentBalance: number;
-
-  @ApiProperty({
-    description: 'Monthly projections array',
-    type: [MonthlyProjection],
-  })
-  monthlyProjections: MonthlyProjection[];
 
   @ApiProperty({
     description: 'Summary of entire forecast period',

@@ -12,7 +12,6 @@ export interface PredictCashFlowData {
 export interface CashFlowForecast {
   forecastPeriod: ForecastPeriod;
   currentBalance: number;
-  monthlyProjections: MonthlyProjection[];
   summary: ForecastSummary;
   insights: ForecastInsights;
 }
@@ -21,15 +20,6 @@ export interface ForecastPeriod {
   startDate: string;
   endDate: string;
   monthsCount: number;
-}
-
-export interface MonthlyProjection {
-  month: string;
-  projectedIncome: number;
-  projectedExpenses: number;
-  netFlow: number;
-  cumulativeBalance: number;
-  confidence: 'high' | 'medium' | 'low';
 }
 
 export interface ForecastSummary {

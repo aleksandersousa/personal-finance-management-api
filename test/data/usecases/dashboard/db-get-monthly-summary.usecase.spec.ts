@@ -123,8 +123,42 @@ describe('DbGetMonthlySummaryUseCase', () => {
           unpaidAmount: 100,
         },
       ],
+      allItems: [
+        {
+          categoryId: 'cat-1',
+          categoryName: 'Salary',
+          type: 'INCOME' as const,
+          total: 5000,
+          count: 1,
+          unpaidAmount: 0,
+        },
+        {
+          categoryId: 'cat-2',
+          categoryName: 'Housing',
+          type: 'EXPENSE' as const,
+          total: 1200,
+          count: 3,
+          unpaidAmount: 200,
+        },
+        {
+          categoryId: 'cat-3',
+          categoryName: 'Food',
+          type: 'EXPENSE' as const,
+          total: 800,
+          count: 5,
+          unpaidAmount: 100,
+        },
+        {
+          categoryId: 'cat-4',
+          categoryName: 'Transport',
+          type: 'EXPENSE' as const,
+          total: 400,
+          count: 2,
+          unpaidAmount: 0,
+        },
+      ],
       incomeTotal: 2,
-      expenseTotal: 3,
+      expenseTotal: 4,
     };
 
     const mockPreviousMonthStats = {

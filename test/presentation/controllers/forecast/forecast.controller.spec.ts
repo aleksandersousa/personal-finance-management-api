@@ -55,7 +55,6 @@ describe('ForecastController', () => {
         expect(result).toEqual({
           forecastPeriod: expectedForecast.forecastPeriod,
           currentBalance: expectedForecast.currentBalance,
-          monthlyProjections: expectedForecast.monthlyProjections,
           summary: expectedForecast.summary,
           insights: expectedForecast.insights,
         });
@@ -91,7 +90,6 @@ describe('ForecastController', () => {
         expect(result).toEqual({
           forecastPeriod: expectedForecast.forecastPeriod,
           currentBalance: expectedForecast.currentBalance,
-          monthlyProjections: expectedForecast.monthlyProjections,
           summary: expectedForecast.summary,
           insights: expectedForecast.insights,
         });
@@ -126,7 +124,6 @@ describe('ForecastController', () => {
         expect(result).toEqual({
           forecastPeriod: expectedForecast.forecastPeriod,
           currentBalance: expectedForecast.currentBalance,
-          monthlyProjections: expectedForecast.monthlyProjections,
           summary: expectedForecast.summary,
           insights: expectedForecast.insights,
         });
@@ -161,7 +158,6 @@ describe('ForecastController', () => {
         expect(result).toEqual({
           forecastPeriod: expectedForecast.forecastPeriod,
           currentBalance: expectedForecast.currentBalance,
-          monthlyProjections: expectedForecast.monthlyProjections,
           summary: expectedForecast.summary,
           insights: expectedForecast.insights,
         });
@@ -195,7 +191,6 @@ describe('ForecastController', () => {
         expect(result).toEqual({
           forecastPeriod: expectedForecast.forecastPeriod,
           currentBalance: expectedForecast.currentBalance,
-          monthlyProjections: expectedForecast.monthlyProjections,
           summary: expectedForecast.summary,
           insights: expectedForecast.insights,
         });
@@ -229,7 +224,6 @@ describe('ForecastController', () => {
         expect(result).toEqual({
           forecastPeriod: expectedForecast.forecastPeriod,
           currentBalance: expectedForecast.currentBalance,
-          monthlyProjections: expectedForecast.monthlyProjections,
           summary: expectedForecast.summary,
           insights: expectedForecast.insights,
         });
@@ -393,7 +387,6 @@ describe('ForecastController', () => {
         expect(result).toEqual({
           forecastPeriod: domainForecast.forecastPeriod,
           currentBalance: domainForecast.currentBalance,
-          monthlyProjections: domainForecast.monthlyProjections,
           summary: domainForecast.summary,
           insights: domainForecast.insights,
         });
@@ -401,7 +394,6 @@ describe('ForecastController', () => {
         // Verify all properties are present
         expect(result.forecastPeriod).toBeDefined();
         expect(result.currentBalance).toBeDefined();
-        expect(result.monthlyProjections).toBeDefined();
         expect(result.summary).toBeDefined();
         expect(result.insights).toBeDefined();
 
@@ -409,17 +401,6 @@ describe('ForecastController', () => {
         expect(result.forecastPeriod).toHaveProperty('startDate');
         expect(result.forecastPeriod).toHaveProperty('endDate');
         expect(result.forecastPeriod).toHaveProperty('monthsCount');
-
-        expect(result.monthlyProjections[0]).toHaveProperty('month');
-        expect(result.monthlyProjections[0]).toHaveProperty('projectedIncome');
-        expect(result.monthlyProjections[0]).toHaveProperty(
-          'projectedExpenses',
-        );
-        expect(result.monthlyProjections[0]).toHaveProperty('netFlow');
-        expect(result.monthlyProjections[0]).toHaveProperty(
-          'cumulativeBalance',
-        );
-        expect(result.monthlyProjections[0]).toHaveProperty('confidence');
 
         expect(result.summary).toHaveProperty('totalProjectedIncome');
         expect(result.summary).toHaveProperty('totalProjectedExpenses');
@@ -436,16 +417,6 @@ describe('ForecastController', () => {
         // Arrange
         const forecastWithPrecision = MockCashFlowForecastFactory.create({
           currentBalance: 1234.56,
-          monthlyProjections: [
-            {
-              month: '2024-02',
-              projectedIncome: 5000.99,
-              projectedExpenses: 2500.33,
-              netFlow: 2500.66,
-              cumulativeBalance: 3735.22,
-              confidence: 'high',
-            },
-          ],
           summary: {
             totalProjectedIncome: 30000.99,
             totalProjectedExpenses: 15000.33,
@@ -467,10 +438,6 @@ describe('ForecastController', () => {
 
         // Assert
         expect(result.currentBalance).toBe(1234.56);
-        expect(result.monthlyProjections[0].projectedIncome).toBe(5000.99);
-        expect(result.monthlyProjections[0].projectedExpenses).toBe(2500.33);
-        expect(result.monthlyProjections[0].netFlow).toBe(2500.66);
-        expect(result.monthlyProjections[0].cumulativeBalance).toBe(3735.22);
         expect(result.summary.totalProjectedIncome).toBe(30000.99);
         expect(result.summary.totalProjectedExpenses).toBe(15000.33);
         expect(result.summary.totalNetFlow).toBe(15000.66);
@@ -480,10 +447,9 @@ describe('ForecastController', () => {
     });
 
     describe('Edge Cases', () => {
-      it('should handle empty monthly projections', async () => {
+      it('should handle zero summary totals', async () => {
         // Arrange
         const emptyForecast = MockCashFlowForecastFactory.create({
-          monthlyProjections: [],
           summary: {
             totalProjectedIncome: 0,
             totalProjectedExpenses: 0,
@@ -504,7 +470,6 @@ describe('ForecastController', () => {
         );
 
         // Assert
-        expect(result.monthlyProjections).toEqual([]);
         expect(result.summary.totalProjectedIncome).toBe(0);
         expect(result.summary.totalProjectedExpenses).toBe(0);
         expect(result.summary.totalNetFlow).toBe(0);
@@ -536,16 +501,6 @@ describe('ForecastController', () => {
         // Arrange
         const negativeForecast = MockCashFlowForecastFactory.create({
           currentBalance: -1000.0,
-          monthlyProjections: [
-            {
-              month: '2024-02',
-              projectedIncome: 1000.0,
-              projectedExpenses: 2000.0,
-              netFlow: -1000.0,
-              cumulativeBalance: -2000.0,
-              confidence: 'low',
-            },
-          ],
           summary: {
             totalProjectedIncome: 6000.0,
             totalProjectedExpenses: 12000.0,
@@ -567,8 +522,6 @@ describe('ForecastController', () => {
 
         // Assert
         expect(result.currentBalance).toBe(-1000.0);
-        expect(result.monthlyProjections[0].netFlow).toBe(-1000.0);
-        expect(result.monthlyProjections[0].cumulativeBalance).toBe(-2000.0);
         expect(result.summary.totalNetFlow).toBe(-6000.0);
         expect(result.summary.finalBalance).toBe(-7000.0);
         expect(result.summary.averageMonthlyFlow).toBe(-1000.0);

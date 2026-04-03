@@ -84,6 +84,7 @@ describe('TypeormEntryRepository - Get Category Summary For Month', () => {
       recordHttpRequest: jest.fn(),
       recordAuthEvent: jest.fn(),
       recordTransaction: jest.fn(),
+      recordDbQuery: jest.fn(),
       recordApiError: jest.fn(),
       updateActiveUsers: jest.fn(),
       getMetrics: jest.fn(),
@@ -185,33 +186,36 @@ describe('TypeormEntryRepository - Get Category Summary For Month', () => {
         'DESC',
       );
 
+      const mappedAll = [
+        {
+          categoryId: 'category-1',
+          categoryName: 'Food',
+          type: 'EXPENSE' as const,
+          total: 1500,
+          count: 5,
+          unpaidAmount: 0,
+        },
+        {
+          categoryId: 'category-2',
+          categoryName: 'Salary',
+          type: 'INCOME' as const,
+          total: 5000,
+          count: 1,
+          unpaidAmount: 0,
+        },
+        {
+          categoryId: 'category-3',
+          categoryName: 'Unknown Category',
+          type: 'EXPENSE' as const,
+          total: 500,
+          count: 2,
+          unpaidAmount: 0,
+        },
+      ];
+
       expect(result).toEqual({
-        items: [
-          {
-            categoryId: 'category-1',
-            categoryName: 'Food',
-            type: 'EXPENSE',
-            total: 1500,
-            count: 5,
-            unpaidAmount: 0,
-          },
-          {
-            categoryId: 'category-2',
-            categoryName: 'Salary',
-            type: 'INCOME',
-            total: 5000,
-            count: 1,
-            unpaidAmount: 0,
-          },
-          {
-            categoryId: 'category-3',
-            categoryName: 'Unknown Category', // Should default to 'Unknown Category'
-            type: 'EXPENSE',
-            total: 500,
-            count: 2,
-            unpaidAmount: 0,
-          },
-        ],
+        items: mappedAll,
+        allItems: mappedAll,
         incomeTotal: 1,
         expenseTotal: 2,
       });
@@ -248,6 +252,7 @@ describe('TypeormEntryRepository - Get Category Summary For Month', () => {
 
       expect(result).toEqual({
         items: [],
+        allItems: [],
         incomeTotal: 0,
         expenseTotal: 0,
       });
@@ -287,17 +292,18 @@ describe('TypeormEntryRepository - Get Category Summary For Month', () => {
         1,
       );
 
+      const nullMapped = {
+        categoryId: 'category-1',
+        categoryName: 'Food',
+        type: 'EXPENSE' as const,
+        total: 0,
+        count: 0,
+        unpaidAmount: 0,
+      };
+
       expect(result).toEqual({
-        items: [
-          {
-            categoryId: 'category-1',
-            categoryName: 'Food',
-            type: 'EXPENSE',
-            total: 0, // Should convert null to 0
-            count: 0, // Should convert null to 0
-            unpaidAmount: 0,
-          },
-        ],
+        items: [nullMapped],
+        allItems: [nullMapped],
         incomeTotal: 0,
         expenseTotal: 1,
       });
@@ -355,17 +361,18 @@ describe('TypeormEntryRepository - Get Category Summary For Month', () => {
         1,
       );
 
+      const undefMapped = {
+        categoryId: 'category-1',
+        categoryName: 'Food',
+        type: 'EXPENSE' as const,
+        total: 0,
+        count: 0,
+        unpaidAmount: 0,
+      };
+
       expect(result).toEqual({
-        items: [
-          {
-            categoryId: 'category-1',
-            categoryName: 'Food',
-            type: 'EXPENSE',
-            total: 0, // Should convert undefined to 0
-            count: 0, // Should convert undefined to 0
-            unpaidAmount: 0,
-          },
-        ],
+        items: [undefMapped],
+        allItems: [undefMapped],
         incomeTotal: 0,
         expenseTotal: 1,
       });

@@ -10,24 +10,6 @@ export const mockCashFlowForecast: CashFlowForecast = {
     monthsCount: 6,
   },
   currentBalance: 2600.0,
-  monthlyProjections: [
-    {
-      month: '2024-02',
-      projectedIncome: 5000.0,
-      projectedExpenses: 2500.0,
-      netFlow: 2500.0,
-      cumulativeBalance: 5100.0,
-      confidence: 'high',
-    },
-    {
-      month: '2024-03',
-      projectedIncome: 5000.0,
-      projectedExpenses: 2500.0,
-      netFlow: 2500.0,
-      cumulativeBalance: 7600.0,
-      confidence: 'high',
-    },
-  ],
   summary: {
     totalProjectedIncome: 30000.0,
     totalProjectedExpenses: 15000.0,
@@ -88,22 +70,12 @@ export class MockCashFlowForecastFactory {
   }
 
   static createWithCustomMonths(months: number): CashFlowForecast {
-    const monthlyProjections = Array.from({ length: months }, (_, index) => ({
-      month: `2024-${String(index + 2).padStart(2, '0')}`,
-      projectedIncome: 5000.0,
-      projectedExpenses: 2500.0,
-      netFlow: 2500.0,
-      cumulativeBalance: 2600.0 + (index + 1) * 2500.0,
-      confidence: 'high' as const,
-    }));
-
     return this.create({
       forecastPeriod: {
         startDate: '2024-02-01',
         endDate: `2024-${String(months + 1).padStart(2, '0')}-31`,
         monthsCount: months,
       },
-      monthlyProjections,
       summary: {
         totalProjectedIncome: months * 5000.0,
         totalProjectedExpenses: months * 2500.0,
@@ -116,16 +88,6 @@ export class MockCashFlowForecastFactory {
 
   static createNegativeTrend(): CashFlowForecast {
     return this.create({
-      monthlyProjections: [
-        {
-          month: '2024-02',
-          projectedIncome: 2000.0,
-          projectedExpenses: 3000.0,
-          netFlow: -1000.0,
-          cumulativeBalance: 1600.0,
-          confidence: 'medium',
-        },
-      ],
       summary: {
         totalProjectedIncome: 12000.0,
         totalProjectedExpenses: 18000.0,

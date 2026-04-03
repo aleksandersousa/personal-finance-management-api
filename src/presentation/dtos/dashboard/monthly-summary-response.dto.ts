@@ -172,10 +172,17 @@ export class PreviousMonthComparisonDto {
 
 export class CategoryBreakdownResultDto {
   @ApiProperty({
-    description: 'Top 3 category items with highest values',
+    description: 'Top category items with highest values (compact breakdown)',
     type: [CategoryBreakdownItemDto],
   })
   items: CategoryBreakdownItemDto[];
+
+  @ApiProperty({
+    description:
+      'All categories with amounts for the month (full list, same fields as items)',
+    type: [CategoryBreakdownItemDto],
+  })
+  allItems: CategoryBreakdownItemDto[];
 
   @ApiProperty({
     description: 'Total number of income category items',
