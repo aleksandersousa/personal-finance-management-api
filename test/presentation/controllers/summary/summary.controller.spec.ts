@@ -135,6 +135,16 @@ describe('SummaryController', () => {
               unpaidAmount: 0,
             },
           ],
+          allItems: [
+            {
+              categoryId: 'cat-1',
+              categoryName: 'Salary',
+              type: 'INCOME' as const,
+              total: 5000,
+              count: 1,
+              unpaidAmount: 0,
+            },
+          ],
           incomeTotal: 1,
           expenseTotal: 0,
         },

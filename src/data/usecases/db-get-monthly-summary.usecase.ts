@@ -102,6 +102,7 @@ export class DbGetMonthlySummaryUseCase implements GetMonthlySummaryUseCase {
           );
         response.categoryBreakdown = {
           items: categorySummary.items,
+          allItems: categorySummary.allItems,
           incomeTotal: categorySummary.incomeTotal,
           expenseTotal: categorySummary.expenseTotal,
         };

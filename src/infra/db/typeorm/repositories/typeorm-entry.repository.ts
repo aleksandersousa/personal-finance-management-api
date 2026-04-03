@@ -648,8 +648,22 @@ export class TypeormEntryRepository implements EntryRepository {
         result => result.entry_type === 'EXPENSE' || result.type === 'EXPENSE',
       ).length;
 
-      // Take top 3 items
-      const results = allResults.slice(0, 3);
+      const mapRow = (result: Record<string, unknown>) => ({
+        categoryId: (result.entry_categoryId || result.categoryId) as string,
+        categoryName: (result.category_name ||
+          result.categoryName ||
+          'Unknown Category') as string,
+        type: (result.entry_type || result.type) as 'INCOME' | 'EXPENSE',
+        total: parseFloat(String(result.sum || '0')),
+        count: parseInt(String(result.count || '0'), 10),
+        unpaidAmount:
+          result.entry_type === 'EXPENSE' || result.type === 'EXPENSE'
+            ? parseFloat(String(result.unpaidSum || '0'))
+            : 0,
+      });
+
+      const allItems = allResults.map(mapRow);
+      const items = allItems.slice(0, 3);
 
       const duration = Date.now() - startTime;
 
@@ -660,7 +674,7 @@ export class TypeormEntryRepository implements EntryRepository {
         metadata: {
           year,
           month,
-          categoriesCount: results.length,
+          categoriesCount: allItems.length,
           incomeTotal,
           expenseTotal,
           duration,
@@ -676,21 +690,9 @@ export class TypeormEntryRepository implements EntryRepository {
         duration,
       );
 
-      const items = results.map(result => ({
-        categoryId: result.entry_categoryId || result.categoryId,
-        categoryName:
-          result.category_name || result.categoryName || 'Unknown Category',
-        type: result.entry_type || result.type,
-        total: parseFloat(result.sum || '0'),
-        count: parseInt(result.count || '0'),
-        unpaidAmount:
-          result.entry_type === 'EXPENSE' || result.type === 'EXPENSE'
-            ? parseFloat(result.unpaidSum || '0')
-            : 0,
-      }));
-
       return {
         items,
+        allItems,
         incomeTotal,
         expenseTotal,
       };

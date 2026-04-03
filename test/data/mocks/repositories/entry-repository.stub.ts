@@ -356,11 +356,9 @@ export class EntryRepositoryStub implements EntryRepository {
     });
 
     const allItems = Array.from(categoryGroups.values());
-    // Sort by total descending and take top 3
-    const sortedItems = allItems.sort((a, b) => b.total - a.total);
+    const sortedItems = [...allItems].sort((a, b) => b.total - a.total);
     const top3Items = sortedItems.slice(0, 3);
 
-    // Calculate totals by type
     const incomeTotal = allItems.filter(item => item.type === 'INCOME').length;
     const expenseTotal = allItems.filter(
       item => item.type === 'EXPENSE',
@@ -368,6 +366,7 @@ export class EntryRepositoryStub implements EntryRepository {
 
     return {
       items: top3Items,
+      allItems: sortedItems,
       incomeTotal,
       expenseTotal,
     };

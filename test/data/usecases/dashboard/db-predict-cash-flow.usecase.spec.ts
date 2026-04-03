@@ -71,10 +71,7 @@ describe('DbPredictCashFlowUseCase', () => {
       // Assert
       expect(result).toHaveProperty('forecastPeriod');
       expect(result.forecastPeriod.monthsCount).toBe(6);
-      expect(result.monthlyProjections).toHaveLength(6);
-      expect(result.monthlyProjections[0].projectedIncome).toBe(5000);
-      expect(result.monthlyProjections[0].projectedExpenses).toBe(2500);
-      expect(result.monthlyProjections[0].netFlow).toBe(2500);
+      expect(result).not.toHaveProperty('monthlyProjections');
       expect(result.summary.totalProjectedIncome).toBe(30000);
       expect(result.summary.totalProjectedExpenses).toBe(15000);
       expect(result.summary.totalNetFlow).toBe(15000);
@@ -119,9 +116,6 @@ describe('DbPredictCashFlowUseCase', () => {
       const result = await useCase.execute(validPredictData);
 
       // Assert
-      expect(result.monthlyProjections[0].projectedIncome).toBe(0);
-      expect(result.monthlyProjections[0].projectedExpenses).toBe(0);
-      expect(result.monthlyProjections[0].netFlow).toBe(0);
       expect(result.summary.totalProjectedIncome).toBe(0);
       expect(result.summary.totalProjectedExpenses).toBe(0);
       expect(result.insights.trend).toBe('stable');
@@ -173,7 +167,17 @@ describe('DbPredictCashFlowUseCase', () => {
       const result = await useCase.execute(validPredictData);
 
       // Assert
-      expect(result.monthlyProjections[0].confidence).toBe('high');
+      const projections = (useCase as any)['generateMonthlyProjections'](
+        {
+          fixedIncome: 6000,
+          fixedExpenses: 2800,
+          fixedNetFlow: 3200,
+          entriesCount: 5,
+        },
+        6,
+        result.currentBalance,
+      );
+      expect(projections[0].confidence).toBe('high');
     });
 
     it('should generate appropriate recommendations', async () => {
@@ -430,7 +434,7 @@ describe('DbPredictCashFlowUseCase', () => {
 
       // Assert
       expect(result.insights.trend).toBe('stable');
-      expect(result.monthlyProjections[0].netFlow).toBe(50);
+      expect(result.summary.averageMonthlyFlow).toBe(50);
     });
 
     it('should handle exactly zero months case', async () => {
@@ -484,8 +488,8 @@ describe('DbPredictCashFlowUseCase', () => {
 
       // Assert
       expect(result.insights.riskLevel).toBe('medium');
-      expect(result.monthlyProjections[0].netFlow).toBe(0);
-      expect(result.monthlyProjections[0].cumulativeBalance).toBeGreaterThan(0);
+      expect(result.summary.totalNetFlow).toBe(0);
+      expect(result.summary.finalBalance).toBeGreaterThan(0);
     });
 
     it('should handle high risk level scenario', async () => {
@@ -515,7 +519,7 @@ describe('DbPredictCashFlowUseCase', () => {
 
       // Assert
       expect(result.insights.riskLevel).toBe('high');
-      expect(result.monthlyProjections[0].netFlow).toBeLessThan(0);
+      expect(result.summary.averageMonthlyFlow).toBeLessThan(0);
       expect(result.insights.recommendations).toContain(
         'Considere reduzir despesas ou aumentar a renda',
       );
@@ -545,7 +549,6 @@ describe('DbPredictCashFlowUseCase', () => {
 
       // Assert
       expect(result).toHaveProperty('forecastPeriod');
-      expect(result).toHaveProperty('monthlyProjections');
       expect(result).toHaveProperty('summary');
       expect(result).toHaveProperty('insights');
 
@@ -605,7 +608,17 @@ describe('DbPredictCashFlowUseCase', () => {
       const result = await useCase.execute(validPredictData);
 
       // Assert
-      expect(result.monthlyProjections[0].confidence).toBe('low');
+      const projections = (useCase as any)['generateMonthlyProjections'](
+        {
+          fixedIncome: 0,
+          fixedExpenses: 0,
+          fixedNetFlow: 0,
+          entriesCount: 0,
+        },
+        6,
+        result.currentBalance,
+      );
+      expect(projections[0].confidence).toBe('low');
     });
 
     it('should calculate medium confidence with few entries', async () => {
@@ -621,7 +634,17 @@ describe('DbPredictCashFlowUseCase', () => {
       const result = await useCase.execute(validPredictData);
 
       // Assert
-      expect(result.monthlyProjections[0].confidence).toBe('medium');
+      const projections = (useCase as any)['generateMonthlyProjections'](
+        {
+          fixedIncome: 3000,
+          fixedExpenses: 0,
+          fixedNetFlow: 3000,
+          entriesCount: 3,
+        },
+        6,
+        result.currentBalance,
+      );
+      expect(projections[0].confidence).toBe('medium');
     });
   });
 

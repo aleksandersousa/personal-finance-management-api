@@ -48,6 +48,7 @@ export interface PreviousMonthComparison {
 
 export interface CategoryBreakdownResult {
   items: CategoryBreakdownItem[];
+  allItems: CategoryBreakdownItem[];
   incomeTotal: number;
   expenseTotal: number;
 }

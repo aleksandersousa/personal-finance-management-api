@@ -188,7 +188,6 @@ describe('ForecastController (e2e)', () => {
           expect(response.body).toEqual({
             forecastPeriod: expectedForecast.forecastPeriod,
             currentBalance: expectedForecast.currentBalance,
-            monthlyProjections: expectedForecast.monthlyProjections,
             summary: expectedForecast.summary,
             insights: expectedForecast.insights,
           });
@@ -196,7 +195,6 @@ describe('ForecastController (e2e)', () => {
           // Verify response structure
           expect(response.body.forecastPeriod).toBeDefined();
           expect(response.body.currentBalance).toBeDefined();
-          expect(response.body.monthlyProjections).toBeDefined();
           expect(response.body.summary).toBeDefined();
           expect(response.body.insights).toBeDefined();
         }
@@ -225,7 +223,9 @@ describe('ForecastController (e2e)', () => {
           });
 
           expect(response.body.forecastPeriod.monthsCount).toBe(6);
-          expect(response.body.monthlyProjections).toHaveLength(6);
+          expect(response.body.summary.totalProjectedIncome).toBe(
+            expectedForecast.summary.totalProjectedIncome,
+          );
         }
       });
 
@@ -278,7 +278,6 @@ describe('ForecastController (e2e)', () => {
           });
 
           expect(response.body.forecastPeriod.monthsCount).toBe(1);
-          expect(response.body.monthlyProjections).toHaveLength(1);
         }
       });
 
@@ -305,7 +304,6 @@ describe('ForecastController (e2e)', () => {
           });
 
           expect(response.body.forecastPeriod.monthsCount).toBe(12);
-          expect(response.body.monthlyProjections).toHaveLength(12);
         }
       });
 
@@ -536,7 +534,7 @@ describe('ForecastController (e2e)', () => {
           // Verificamos que a resposta foi formatada corretamente
           expect(response.body).toHaveProperty('forecastPeriod');
           expect(response.body).toHaveProperty('currentBalance');
-          expect(response.body).toHaveProperty('monthlyProjections');
+          expect(response.body).toHaveProperty('summary');
         }
       });
 
@@ -560,7 +558,7 @@ describe('ForecastController (e2e)', () => {
 
           // Verificamos que a resposta foi formatada corretamente
           expect(response.body).toHaveProperty('forecastPeriod');
-          expect(response.body).toHaveProperty('monthlyProjections');
+          expect(response.body).toHaveProperty('summary');
         }
       });
 
@@ -606,7 +604,6 @@ describe('ForecastController (e2e)', () => {
           // Verify all required fields are present
           expect(response.body).toHaveProperty('forecastPeriod');
           expect(response.body).toHaveProperty('currentBalance');
-          expect(response.body).toHaveProperty('monthlyProjections');
           expect(response.body).toHaveProperty('summary');
           expect(response.body).toHaveProperty('insights');
 
@@ -626,17 +623,6 @@ describe('ForecastController (e2e)', () => {
           expect(response.body.insights).toHaveProperty('trend');
           expect(response.body.insights).toHaveProperty('riskLevel');
           expect(response.body.insights).toHaveProperty('recommendations');
-
-          // Verify monthly projections structure
-          if (response.body.monthlyProjections.length > 0) {
-            const projection = response.body.monthlyProjections[0];
-            expect(projection).toHaveProperty('month');
-            expect(projection).toHaveProperty('projectedIncome');
-            expect(projection).toHaveProperty('projectedExpenses');
-            expect(projection).toHaveProperty('netFlow');
-            expect(projection).toHaveProperty('cumulativeBalance');
-            expect(projection).toHaveProperty('confidence');
-          }
         }
       });
 
@@ -644,16 +630,6 @@ describe('ForecastController (e2e)', () => {
         // Arrange
         const precisionForecast = MockCashFlowForecastFactory.create({
           currentBalance: 1234.56,
-          monthlyProjections: [
-            {
-              month: '2024-02',
-              projectedIncome: 5000.99,
-              projectedExpenses: 2500.33,
-              netFlow: 2500.66,
-              cumulativeBalance: 3735.22,
-              confidence: 'high',
-            },
-          ],
           summary: {
             totalProjectedIncome: 30000.99,
             totalProjectedExpenses: 15000.33,
@@ -674,16 +650,6 @@ describe('ForecastController (e2e)', () => {
 
         if ([200, 201].includes(response.status)) {
           expect(response.body.currentBalance).toBe(1234.56);
-          expect(response.body.monthlyProjections[0].projectedIncome).toBe(
-            5000.99,
-          );
-          expect(response.body.monthlyProjections[0].projectedExpenses).toBe(
-            2500.33,
-          );
-          expect(response.body.monthlyProjections[0].netFlow).toBe(2500.66);
-          expect(response.body.monthlyProjections[0].cumulativeBalance).toBe(
-            3735.22,
-          );
           expect(response.body.summary.totalProjectedIncome).toBe(30000.99);
           expect(response.body.summary.totalProjectedExpenses).toBe(15000.33);
           expect(response.body.summary.totalNetFlow).toBe(15000.66);

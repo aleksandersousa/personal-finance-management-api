@@ -72,24 +72,6 @@ export class ForecastController {
           monthsCount: 6,
         },
         currentBalance: 2600.0,
-        monthlyProjections: [
-          {
-            month: '2024-02',
-            projectedIncome: 5000.0,
-            projectedExpenses: 2500.0,
-            netFlow: 2500.0,
-            cumulativeBalance: 5100.0,
-            confidence: 'high',
-          },
-          {
-            month: '2024-03',
-            projectedIncome: 5000.0,
-            projectedExpenses: 2500.0,
-            netFlow: 2500.0,
-            cumulativeBalance: 7600.0,
-            confidence: 'high',
-          },
-        ],
         summary: {
           totalProjectedIncome: 30000.0,
           totalProjectedExpenses: 15000.0,
@@ -170,7 +152,6 @@ export class ForecastController {
     return {
       forecastPeriod: forecast.forecastPeriod,
       currentBalance: forecast.currentBalance,
-      monthlyProjections: forecast.monthlyProjections,
       summary: forecast.summary,
       insights: forecast.insights,
     };
