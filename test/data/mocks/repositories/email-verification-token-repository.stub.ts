@@ -5,9 +5,7 @@ import { EmailVerificationTokenModel } from '@domain/models/email-verification-t
  * EmailVerificationTokenRepository Stub for Data Layer Testing
  * Provides controllable implementations for testing business logic
  */
-export class EmailVerificationTokenRepositoryStub
-  implements EmailVerificationTokenRepository
-{
+export class EmailVerificationTokenRepositoryStub implements EmailVerificationTokenRepository {
   private tokens: Map<string, EmailVerificationTokenModel> = new Map();
   private shouldFail = false;
   private errorToThrow: Error | null = null;

@@ -7,9 +7,7 @@ import {
   TableIndex,
 } from 'typeorm';
 
-export class CreateEntryMonthlyPaymentsTable1766596765051
-  implements MigrationInterface
-{
+export class CreateEntryMonthlyPaymentsTable1766596765051 implements MigrationInterface {
   name = 'CreateEntryMonthlyPaymentsTable1766596765051';
 
   public async up(queryRunner: QueryRunner): Promise<void> {

@@ -2,7 +2,10 @@ import { NodeSDK } from '@opentelemetry/sdk-node';
 import { getNodeAutoInstrumentations } from '@opentelemetry/auto-instrumentations-node';
 import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-http';
 import { Resource } from '@opentelemetry/resources';
-import { SemanticResourceAttributes } from '@opentelemetry/semantic-conventions';
+import {
+  ATTR_SERVICE_NAME,
+  SEMRESATTRS_DEPLOYMENT_ENVIRONMENT,
+} from '@opentelemetry/semantic-conventions';
 
 let sdk: NodeSDK | null = null;
 
@@ -21,9 +24,8 @@ export async function startTracing(): Promise<void> {
   sdk = new NodeSDK({
     traceExporter: exporter,
     resource: new Resource({
-      [SemanticResourceAttributes.SERVICE_NAME]:
-        process.env.OTEL_SERVICE_NAME || 'pfm-api',
-      [SemanticResourceAttributes.DEPLOYMENT_ENVIRONMENT]:
+      [ATTR_SERVICE_NAME]: process.env.OTEL_SERVICE_NAME || 'pfm-api',
+      [SEMRESATTRS_DEPLOYMENT_ENVIRONMENT]:
         process.env.NODE_ENV || 'development',
     }),
     instrumentations: [getNodeAutoInstrumentations()],

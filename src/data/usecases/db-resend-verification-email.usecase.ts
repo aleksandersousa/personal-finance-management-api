@@ -12,9 +12,7 @@ import {
   VerificationTokenGenerator,
 } from '../protocols';
 
-export class DbResendVerificationEmailUseCase
-  implements ResendVerificationEmailUseCase
-{
+export class DbResendVerificationEmailUseCase implements ResendVerificationEmailUseCase {
   private readonly TOKEN_EXPIRY_HOURS = 24;
 
   constructor(
