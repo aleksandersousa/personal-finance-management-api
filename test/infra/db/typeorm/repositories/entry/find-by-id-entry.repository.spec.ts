@@ -60,6 +60,7 @@ describe('TypeormEntryRepository - Find By ID', () => {
       recordAuthEvent: jest.fn(),
       recordTransaction: jest.fn(),
       recordApiError: jest.fn(),
+      recordDbQuery: jest.fn(),
       updateActiveUsers: jest.fn(),
       getMetrics: jest.fn(),
     } as any;
