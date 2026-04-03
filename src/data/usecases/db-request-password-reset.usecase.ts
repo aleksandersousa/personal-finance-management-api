@@ -12,9 +12,7 @@ import {
   Logger,
 } from '../protocols';
 
-export class DbRequestPasswordResetUseCase
-  implements RequestPasswordResetUseCase
-{
+export class DbRequestPasswordResetUseCase implements RequestPasswordResetUseCase {
   private readonly TOKEN_EXPIRY_HOURS = 1;
   private readonly RATE_LIMIT_HOURS = 1;
   private readonly MAX_REQUESTS_PER_HOUR = 3;

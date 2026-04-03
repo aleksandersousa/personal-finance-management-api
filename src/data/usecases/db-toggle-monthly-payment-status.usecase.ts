@@ -7,9 +7,7 @@ import {
 import { EntryRepository } from '@/data/protocols/repositories/entry-repository';
 
 @Injectable()
-export class DbToggleMonthlyPaymentStatusUseCase
-  implements ToggleMonthlyPaymentStatusUseCase
-{
+export class DbToggleMonthlyPaymentStatusUseCase implements ToggleMonthlyPaymentStatusUseCase {
   constructor(private readonly entryRepository: EntryRepository) {}
 
   async execute(

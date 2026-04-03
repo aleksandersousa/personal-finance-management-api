@@ -7,9 +7,7 @@ import { EntryRepository } from '../protocols/repositories/entry-repository';
 import { UserRepository } from '../protocols/repositories/user-repository';
 import type { Logger } from '../protocols';
 
-export class DbGetEntriesMonthsYearsUseCase
-  implements GetEntriesMonthsYearsUseCase
-{
+export class DbGetEntriesMonthsYearsUseCase implements GetEntriesMonthsYearsUseCase {
   constructor(
     private readonly entryRepository: EntryRepository,
     private readonly userRepository: UserRepository,

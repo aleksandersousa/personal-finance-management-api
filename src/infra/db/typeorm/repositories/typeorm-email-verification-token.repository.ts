@@ -6,9 +6,7 @@ import { EmailVerificationTokenRepository } from '@data/protocols/repositories';
 import { EmailVerificationTokenModel } from '@domain/models/email-verification-token.model';
 
 @Injectable()
-export class TypeormEmailVerificationTokenRepository
-  implements EmailVerificationTokenRepository
-{
+export class TypeormEmailVerificationTokenRepository implements EmailVerificationTokenRepository {
   constructor(
     @InjectRepository(EmailVerificationTokenEntity)
     private readonly tokenRepository: Repository<EmailVerificationTokenEntity>,

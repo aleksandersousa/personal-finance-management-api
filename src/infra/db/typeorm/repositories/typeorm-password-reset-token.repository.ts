@@ -6,9 +6,7 @@ import { PasswordResetTokenRepository } from '@data/protocols/repositories/passw
 import { PasswordResetTokenModel } from '@domain/models/password-reset-token.model';
 
 @Injectable()
-export class TypeormPasswordResetTokenRepository
-  implements PasswordResetTokenRepository
-{
+export class TypeormPasswordResetTokenRepository implements PasswordResetTokenRepository {
   constructor(
     @InjectRepository(PasswordResetTokenEntity)
     private readonly tokenRepository: Repository<PasswordResetTokenEntity>,

@@ -4,9 +4,7 @@ import { VerificationTokenGenerator } from '@data/protocols/verification-token-g
  * VerificationTokenGenerator Stub for Data Layer Testing
  * Provides controllable implementations for testing business logic
  */
-export class VerificationTokenGeneratorStub
-  implements VerificationTokenGenerator
-{
+export class VerificationTokenGeneratorStub implements VerificationTokenGenerator {
   private tokens: string[] = [];
   private nextTokenIndex = 0;
   private shouldFail = false;

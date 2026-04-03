@@ -5,9 +5,7 @@ import { PasswordResetTokenModel } from '@domain/models';
  * PasswordResetTokenRepository Stub for Data Layer Testing
  * Provides controllable implementations for testing business logic
  */
-export class PasswordResetTokenRepositoryStub
-  implements PasswordResetTokenRepository
-{
+export class PasswordResetTokenRepositoryStub implements PasswordResetTokenRepository {
   private tokens: Map<string, PasswordResetTokenModel> = new Map();
   private shouldFail = false;
   private errorToThrow: Error | null = null;
