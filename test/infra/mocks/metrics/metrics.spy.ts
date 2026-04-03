@@ -104,6 +104,30 @@ export class MetricsSpy {
     });
   }
 
+  recordDbQuery(
+    operation: string,
+    table: string,
+    status: 'success' | 'error',
+    duration: number,
+  ): void {
+    // Counter-style metric for total queries
+    this.recordedMetrics.push({
+      name: 'db_queries_total',
+      labels: { operation, table, status },
+      type: 'counter',
+      timestamp: new Date(),
+    });
+
+    // Histogram-style metric for query duration (seconds)
+    this.recordedMetrics.push({
+      name: 'db_query_duration_seconds',
+      value: duration / 1000,
+      labels: { operation, table, status },
+      type: 'histogram',
+      timestamp: new Date(),
+    });
+  }
+
   updateActiveUsers(period: string, count: number): void {
     this.recordedMetrics.push({
       name: 'financial_active_users',

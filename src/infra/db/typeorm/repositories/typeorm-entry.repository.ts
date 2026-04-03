@@ -87,6 +87,10 @@ export class TypeormEntryRepository implements EntryRepository {
   async findByUserIdAndMonthWithFilters(
     filters: FindEntriesByMonthFilters,
   ): Promise<FindEntriesByMonthResult> {
+    const operation = 'find_entries_by_month_with_filters';
+    const table = 'entries';
+    const startTime = Date.now();
+
     const {
       userId,
       year,
@@ -128,6 +132,15 @@ export class TypeormEntryRepository implements EntryRepository {
       .addSelect('COALESCE(payment.is_paid, entry.is_paid)', 'entry_isPaid')
       .addSelect('payment.paid_at', 'entry_paidAt');
 
+    const paymentStatusExpr = `
+      CASE 
+        WHEN entry.is_fixed = false THEN entry.is_paid
+        WHEN EXTRACT(YEAR FROM entry.date) = ${year} AND EXTRACT(MONTH FROM entry.date) = ${month} 
+          THEN COALESCE(payment.is_paid, entry.is_paid)
+        ELSE COALESCE(payment.is_paid, false)
+      END
+    `;
+
     // Apply type filter
     if (type !== 'all') {
       queryBuilder = queryBuilder.andWhere('entry.type = :type', { type });
@@ -147,11 +160,11 @@ export class TypeormEntryRepository implements EntryRepository {
       });
     }
 
-    // Apply isPaid filter
     if (isPaid !== undefined && isPaid !== 'all') {
-      queryBuilder = queryBuilder.andWhere('entry.isPaid = :isPaid', {
-        isPaid: isPaid === true,
-      });
+      queryBuilder = queryBuilder.andWhere(
+        `(${paymentStatusExpr}) = :isPaidFilter`,
+        { isPaidFilter: isPaid === true },
+      );
     }
 
     // Apply sorting
@@ -186,16 +199,6 @@ export class TypeormEntryRepository implements EntryRepository {
       });
       payments.forEach(p => monthlyPayments.set(p.entryId, p));
     }
-
-    // Calculate summary - need separate query for totals without pagination
-    const paymentStatusExpr = `
-      CASE 
-        WHEN entry.is_fixed = false THEN entry.is_paid
-        WHEN EXTRACT(YEAR FROM entry.date) = ${year} AND EXTRACT(MONTH FROM entry.date) = ${month} 
-          THEN COALESCE(payment.is_paid, entry.is_paid)
-        ELSE COALESCE(payment.is_paid, false)
-      END
-    `;
 
     const summaryQuery = this.entryRepository
       .createQueryBuilder('entry')
@@ -276,6 +279,9 @@ export class TypeormEntryRepository implements EntryRepository {
 
       return model;
     });
+
+    const duration = Date.now() - startTime;
+    this.metrics.recordDbQuery(operation, table, 'success', duration);
 
     return {
       data,
@@ -502,6 +508,12 @@ export class TypeormEntryRepository implements EntryRepository {
 
       // Record metrics
       this.metrics.recordTransaction('get_monthly_summary_stats', 'success');
+      this.metrics.recordDbQuery(
+        'get_monthly_summary_stats',
+        'entries',
+        'success',
+        duration,
+      );
 
       return {
         totalIncome: parseFloat(result?.totalIncome || '0'),
@@ -657,6 +669,12 @@ export class TypeormEntryRepository implements EntryRepository {
 
       // Record metrics
       this.metrics.recordTransaction('get_category_summary', 'success');
+      this.metrics.recordDbQuery(
+        'get_category_summary',
+        'entries',
+        'success',
+        duration,
+      );
 
       const items = results.map(result => ({
         categoryId: result.entry_categoryId || result.categoryId,
@@ -731,6 +749,12 @@ export class TypeormEntryRepository implements EntryRepository {
 
       // Record metrics
       this.metrics.recordTransaction('get_fixed_entries_summary', 'success');
+      this.metrics.recordDbQuery(
+        'get_fixed_entries_summary',
+        'entries',
+        'success',
+        duration,
+      );
 
       return {
         fixedIncome,
@@ -787,6 +811,12 @@ export class TypeormEntryRepository implements EntryRepository {
 
       // Record metrics
       this.metrics.recordTransaction('get_current_balance', 'success');
+      this.metrics.recordDbQuery(
+        'get_current_balance',
+        'entries',
+        'success',
+        duration,
+      );
 
       return currentBalance;
     } catch (error) {
@@ -915,6 +945,12 @@ export class TypeormEntryRepository implements EntryRepository {
 
       // Record metrics
       this.metrics.recordTransaction('get_accumulated_stats', 'success');
+      this.metrics.recordDbQuery(
+        'get_accumulated_stats',
+        'entries',
+        'success',
+        duration,
+      );
 
       return {
         totalAccumulatedIncome,

@@ -19,6 +19,9 @@ export class ContextAwareLoggerService implements LoggerService, Logger {
         winston.format.errors({ stack: true }),
         winston.format.json(),
       ),
+      defaultMeta: {
+        environment: process.env.NODE_ENV || 'development',
+      },
       transports: [
         new winston.transports.Console({
           format: winston.format.combine(
