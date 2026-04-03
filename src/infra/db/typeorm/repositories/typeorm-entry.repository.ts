@@ -132,6 +132,15 @@ export class TypeormEntryRepository implements EntryRepository {
       .addSelect('COALESCE(payment.is_paid, entry.is_paid)', 'entry_isPaid')
       .addSelect('payment.paid_at', 'entry_paidAt');
 
+    const paymentStatusExpr = `
+      CASE 
+        WHEN entry.is_fixed = false THEN entry.is_paid
+        WHEN EXTRACT(YEAR FROM entry.date) = ${year} AND EXTRACT(MONTH FROM entry.date) = ${month} 
+          THEN COALESCE(payment.is_paid, entry.is_paid)
+        ELSE COALESCE(payment.is_paid, false)
+      END
+    `;
+
     // Apply type filter
     if (type !== 'all') {
       queryBuilder = queryBuilder.andWhere('entry.type = :type', { type });
@@ -151,11 +160,11 @@ export class TypeormEntryRepository implements EntryRepository {
       });
     }
 
-    // Apply isPaid filter
     if (isPaid !== undefined && isPaid !== 'all') {
-      queryBuilder = queryBuilder.andWhere('entry.isPaid = :isPaid', {
-        isPaid: isPaid === true,
-      });
+      queryBuilder = queryBuilder.andWhere(
+        `(${paymentStatusExpr}) = :isPaidFilter`,
+        { isPaidFilter: isPaid === true },
+      );
     }
 
     // Apply sorting
@@ -190,16 +199,6 @@ export class TypeormEntryRepository implements EntryRepository {
       });
       payments.forEach(p => monthlyPayments.set(p.entryId, p));
     }
-
-    // Calculate summary - need separate query for totals without pagination
-    const paymentStatusExpr = `
-      CASE 
-        WHEN entry.is_fixed = false THEN entry.is_paid
-        WHEN EXTRACT(YEAR FROM entry.date) = ${year} AND EXTRACT(MONTH FROM entry.date) = ${month} 
-          THEN COALESCE(payment.is_paid, entry.is_paid)
-        ELSE COALESCE(payment.is_paid, false)
-      END
-    `;
 
     const summaryQuery = this.entryRepository
       .createQueryBuilder('entry')
