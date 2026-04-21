@@ -27,6 +27,7 @@
     "migration:generate": "yarn typeorm migration:generate",
     "migration:run": "yarn typeorm migration:run",
     "migration:revert": "yarn typeorm migration:revert",
+    "seed:run": "ts-node -r tsconfig-paths/register src/infra/db/typeorm/seeds/seed-run.ts",
     "quality:check": "yarn lint && yarn test:all && yarn build",
     "quality:pre-commit": "lint-staged && yarn test:all && yarn test:coverage && yarn build",
     "quality:pre-push": "yarn test:ci",

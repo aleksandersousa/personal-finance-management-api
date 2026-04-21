@@ -15,7 +15,7 @@ export class EmailVerificationTokenEntity {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @Column({ name: 'user_id', type: 'uuid' })
+  @Column({ name: 'id_user', type: 'uuid' })
   @Index()
   userId: string;
 
@@ -33,6 +33,6 @@ export class EmailVerificationTokenEntity {
   createdAt: Date;
 
   @ManyToOne(() => UserEntity, { onDelete: 'CASCADE' })
-  @JoinColumn({ name: 'user_id' })
+  @JoinColumn({ name: 'id_user' })
   user: UserEntity;
 }

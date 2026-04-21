@@ -6,8 +6,6 @@ import {
   ManyToOne,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
-  DeleteDateColumn,
-  Index,
 } from 'typeorm';
 import { NotificationStatus } from '@domain/models/notification.model';
 import { UserEntity } from './user.entity';
@@ -19,36 +17,30 @@ export class NotificationEntity {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @Column({ name: 'entry_id' })
+  @Column({ name: 'id_entry' })
   entryId: string;
 
-  @Column({ name: 'user_id' })
+  @Column({ name: 'id_user' })
   userId: string;
 
   @Column({ name: 'scheduled_at', type: 'timestamp' })
-  @Index(`IDX_${TABLE_NAMES.NOTIFICATIONS}_scheduled_at`)
   scheduledAt: Date;
 
   @Column({ name: 'sent_at', type: 'timestamp', nullable: true })
   sentAt: Date | null;
 
-  @Column({
-    type: 'enum',
-    enum: NotificationStatus,
-    default: NotificationStatus.PENDING,
-  })
-  @Index(`IDX_${TABLE_NAMES.NOTIFICATIONS}_status`)
+  @Column({ type: 'varchar' })
   status: NotificationStatus;
 
-  @Column({ name: 'job_id', nullable: true })
-  jobId: string | null;
+  @Column({ name: 'job_id' })
+  jobId: string;
 
   @ManyToOne(() => EntryEntity)
-  @JoinColumn({ name: 'entry_id' })
+  @JoinColumn({ name: 'id_entry' })
   entry: EntryEntity;
 
   @ManyToOne(() => UserEntity)
-  @JoinColumn({ name: 'user_id' })
+  @JoinColumn({ name: 'id_user' })
   user: UserEntity;
 
   @CreateDateColumn({ name: 'created_at' })
@@ -57,6 +49,5 @@ export class NotificationEntity {
   @UpdateDateColumn({ name: 'updated_at' })
   updatedAt: Date;
 
-  @DeleteDateColumn({ name: 'deleted_at' })
-  deletedAt: Date | null;
+  deletedAt?: Date | null;
 }

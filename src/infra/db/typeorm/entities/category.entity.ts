@@ -1,25 +1,22 @@
 import {
   Column,
   CreateDateColumn,
-  DeleteDateColumn,
   Entity,
-  JoinColumn,
-  ManyToOne,
   OneToMany,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
 import { CategoryType } from '@domain/models/category.model';
-import { UserEntity } from './user.entity';
 import { EntryEntity } from './entry.entity';
 import { TABLE_NAMES } from '@/domain/constants';
+import { UserCategoryEntity } from './user-category.entity';
 
 @Entity(TABLE_NAMES.CATEGORIES)
 export class CategoryEntity {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @Column({ length: 100 })
+  @Column({ length: 100, unique: true })
   name: string;
 
   @Column({ length: 255, nullable: true })
@@ -37,18 +34,15 @@ export class CategoryEntity {
   @Column({ length: 50, nullable: true })
   icon?: string;
 
-  @Column({ name: 'user_id' })
-  userId: string;
+  userId?: string;
 
-  @Column({ name: 'is_default', default: false })
-  isDefault: boolean;
-
-  @ManyToOne(() => UserEntity, user => user.categories)
-  @JoinColumn({ name: 'user_id' })
-  user: UserEntity;
+  isDefault?: boolean;
 
   @OneToMany(() => EntryEntity, entry => entry.category)
   entries: EntryEntity[];
+
+  @OneToMany(() => UserCategoryEntity, userCategory => userCategory.category)
+  userCategories: UserCategoryEntity[];
 
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;
@@ -56,6 +50,5 @@ export class CategoryEntity {
   @UpdateDateColumn({ name: 'updated_at' })
   updatedAt: Date;
 
-  @DeleteDateColumn({ name: 'deleted_at' })
-  deletedAt: Date | null;
+  deletedAt?: Date | null;
 }

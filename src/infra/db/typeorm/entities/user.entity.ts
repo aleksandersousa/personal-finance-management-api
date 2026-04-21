@@ -7,9 +7,13 @@ import {
   UpdateDateColumn,
 } from 'typeorm';
 import { EntryEntity } from './entry.entity';
-import { CategoryEntity } from './category.entity';
 import { EmailVerificationTokenEntity } from './email-verification-token.entity';
 import { TABLE_NAMES } from '@/domain/constants';
+import { PasswordResetTokenEntity } from './password-reset-token.entity';
+import { NotificationEntity } from './notification.entity';
+import { UserSettingEntity } from './user-setting.entity';
+import { UserCategoryEntity } from './user-category.entity';
+import { CategoryEntity } from './category.entity';
 
 @Entity(TABLE_NAMES.USERS)
 export class UserEntity {
@@ -31,23 +35,31 @@ export class UserEntity {
   @Column({ name: 'email_verified', type: 'boolean', default: false })
   emailVerified: boolean;
 
-  @Column({ name: 'notification_enabled', type: 'boolean', default: true })
-  notificationEnabled: boolean;
+  notificationEnabled?: boolean;
 
-  @Column({ name: 'notification_time_minutes', type: 'integer', default: 30 })
-  notificationTimeMinutes: number;
+  notificationTimeMinutes?: number;
 
-  @Column({ name: 'timezone', default: 'America/Sao_Paulo' })
-  timezone: string;
+  timezone?: string;
 
   @OneToMany(() => EntryEntity, entry => entry.user)
-  entries: EntryEntity[];
+  entries?: EntryEntity[];
 
-  @OneToMany(() => CategoryEntity, category => category.user)
-  categories: CategoryEntity[];
+  @OneToMany(() => NotificationEntity, notification => notification.user)
+  notifications?: NotificationEntity[];
+
+  categories?: CategoryEntity[];
 
   @OneToMany(() => EmailVerificationTokenEntity, token => token.user)
-  emailVerificationTokens: EmailVerificationTokenEntity[];
+  emailVerificationTokens?: EmailVerificationTokenEntity[];
+
+  @OneToMany(() => PasswordResetTokenEntity, token => token.user)
+  passwordResetTokens?: PasswordResetTokenEntity[];
+
+  @OneToMany(() => UserCategoryEntity, userCategory => userCategory.user)
+  userCategories?: UserCategoryEntity[];
+
+  @OneToMany(() => UserSettingEntity, settings => settings.user)
+  settings?: UserSettingEntity[];
 
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;
