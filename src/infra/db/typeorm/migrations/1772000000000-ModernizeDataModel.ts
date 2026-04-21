@@ -194,27 +194,84 @@ export class ModernizeDataModel1772000000000 implements MigrationInterface {
         "created_at",
         "updated_at"
       )
+      WITH entries_expanded AS (
+        SELECT
+          e."id",
+          NULL::uuid AS "id_recurrence",
+          e."user_id" AS "id_user",
+          e."category_id",
+          e."description",
+          ROUND(e."amount"::numeric)::bigint AS "amount",
+          e."date"::date AS "issue_date",
+          e."date"::timestamp AS "due_date",
+          COALESCE(e."created_at", now()) AS "created_at",
+          COALESCE(e."updated_at", now()) AS "updated_at"
+        FROM "${SCHEMA_NAME}"."entries_legacy" e
+        WHERE COALESCE(e."is_fixed", false) = false
+
+        UNION ALL
+
+        SELECT
+          CASE
+            WHEN gs."month_start" = date_trunc('month', e."date"::date)::date THEN e."id"
+            ELSE public.uuid_generate_v4()
+          END AS "id",
+          r."id" AS "id_recurrence",
+          e."user_id" AS "id_user",
+          e."category_id",
+          e."description",
+          ROUND(e."amount"::numeric)::bigint AS "amount",
+          LEAST(
+            (
+              date_trunc('month', gs."month_start"::timestamp)
+              + (EXTRACT(DAY FROM e."date")::int - 1) * INTERVAL '1 day'
+            )::date,
+            (
+              date_trunc('month', gs."month_start"::timestamp)
+              + INTERVAL '1 month - 1 day'
+            )::date
+          ) AS "issue_date",
+          LEAST(
+            (
+              date_trunc('month', gs."month_start"::timestamp)
+              + (EXTRACT(DAY FROM e."date")::int - 1) * INTERVAL '1 day'
+            )::date,
+            (
+              date_trunc('month', gs."month_start"::timestamp)
+              + INTERVAL '1 month - 1 day'
+            )::date
+          )::timestamp AS "due_date",
+          COALESCE(e."created_at", now()) AS "created_at",
+          COALESCE(e."updated_at", now()) AS "updated_at"
+        FROM "${SCHEMA_NAME}"."entries_legacy" e
+        INNER JOIN "${SCHEMA_NAME}"."recurrences" r
+          ON r."type" = 'MONTHLY'
+        CROSS JOIN LATERAL generate_series(
+          date_trunc('month', e."date"::date)::date,
+          date_trunc('month', CURRENT_DATE)::date,
+          INTERVAL '1 month'
+        ) AS gs("month_start")
+        WHERE COALESCE(e."is_fixed", false) = true
+      )
       SELECT
-        e."id",
-        CASE WHEN e."is_fixed" = true THEN r."id" ELSE NULL END AS "id_recurrence",
-        e."user_id" AS "id_user",
+        ee."id",
+        ee."id_recurrence",
+        ee."id_user",
         c_new."id" AS "id_category",
-        e."description",
-        ROUND(e."amount"::numeric)::bigint AS "amount",
-        e."date"::date AS "issue_date",
-        e."date"::timestamp AS "due_date",
-        COALESCE(e."created_at", now()) AS "created_at",
-        COALESCE(e."updated_at", now()) AS "updated_at"
-      FROM "${SCHEMA_NAME}"."entries_legacy" e
+        ee."description",
+        ee."amount",
+        ee."issue_date",
+        ee."due_date",
+        ee."created_at",
+        ee."updated_at"
+      FROM entries_expanded ee
       INNER JOIN "${SCHEMA_NAME}"."${TABLE_NAMES.USERS}" u
-        ON u."id" = e."user_id"
+        ON u."id" = ee."id_user"
       INNER JOIN "${SCHEMA_NAME}"."categories_legacy" c_legacy
-        ON c_legacy."id" = e."category_id"
+        ON c_legacy."id" = ee."category_id"
       INNER JOIN "${SCHEMA_NAME}"."${TABLE_NAMES.CATEGORIES}" c_new
         ON c_new."name" = c_legacy."name"
        AND c_new."type" = c_legacy."type"::varchar
-      INNER JOIN "${SCHEMA_NAME}"."recurrences" r
-        ON r."type" = 'MONTHLY'
     `);
 
     await queryRunner.query(`
