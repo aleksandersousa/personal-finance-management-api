@@ -6,9 +6,7 @@ import {
 import { EntryRepository } from '@/data/protocols/repositories/entry-repository';
 import { UserRepository } from '@/data/protocols/repositories/user-repository';
 
-export class DbToggleEntryPaymentStatusUseCase
-  implements ToggleEntryPaymentStatusUseCase
-{
+export class DbToggleEntryPaymentStatusUseCase implements ToggleEntryPaymentStatusUseCase {
   constructor(
     private readonly entryRepository: EntryRepository,
     private readonly userRepository: UserRepository,
