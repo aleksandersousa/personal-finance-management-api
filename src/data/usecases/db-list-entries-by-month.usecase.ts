@@ -57,6 +57,7 @@ export class DbListEntriesByMonthUseCase implements ListEntriesByMonthUseCase {
       sort,
       order,
       categoryId: request.categoryId,
+      entryType: request.entryType,
       search: request.search,
     });
 

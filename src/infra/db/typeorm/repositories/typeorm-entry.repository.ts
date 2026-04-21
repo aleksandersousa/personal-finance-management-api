@@ -97,6 +97,7 @@ export class TypeormEntryRepository implements EntryRepository {
       sort,
       order,
       categoryId,
+      entryType,
       search,
     } = filters;
     const startDate = new Date(year, month - 1, 1);
@@ -113,6 +114,9 @@ export class TypeormEntryRepository implements EntryRepository {
 
     if (categoryId && categoryId !== 'all') {
       query.andWhere('entry.categoryId = :categoryId', { categoryId });
+    }
+    if (entryType) {
+      query.andWhere('category.type = :entryType', { entryType });
     }
     if (search && search.trim()) {
       query.andWhere('entry.description ILIKE :search', {

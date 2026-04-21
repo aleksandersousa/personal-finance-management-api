@@ -137,6 +137,28 @@ export class ModernizeDataModel1772000000000 implements MigrationInterface {
     `);
 
     await queryRunner.query(`
+      DO $$
+      DECLARE invalid_entries_count bigint;
+      BEGIN
+        SELECT COUNT(1)
+        INTO invalid_entries_count
+        FROM "${SCHEMA_NAME}"."entries_legacy" e
+        LEFT JOIN "${SCHEMA_NAME}"."categories_legacy" c_legacy
+          ON c_legacy."id" = e."category_id"
+        LEFT JOIN "${SCHEMA_NAME}"."${TABLE_NAMES.CATEGORIES}" c_new
+          ON c_new."name" = c_legacy."name"
+         AND c_new."type" = c_legacy."type"::varchar
+        WHERE e."category_id" IS NULL
+          OR c_legacy."id" IS NULL
+          OR c_new."id" IS NULL;
+
+        IF invalid_entries_count > 0 THEN
+          RAISE EXCEPTION 'Cannot migrate entries: % rows have missing or unmapped category', invalid_entries_count;
+        END IF;
+      END $$;
+    `);
+
+    await queryRunner.query(`
       ALTER TABLE "${SCHEMA_NAME}"."${TABLE_NAMES.ENTRIES}"
       RENAME TO "entries_legacy"
     `);
@@ -146,7 +168,7 @@ export class ModernizeDataModel1772000000000 implements MigrationInterface {
         "id" uuid PRIMARY KEY,
         "id_recurrence" uuid NULL,
         "id_user" uuid NOT NULL,
-        "id_category" uuid NULL,
+        "id_category" uuid NOT NULL,
         "description" varchar NOT NULL,
         "amount" bigint NOT NULL,
         "issue_date" date NOT NULL,
@@ -186,9 +208,9 @@ export class ModernizeDataModel1772000000000 implements MigrationInterface {
       FROM "${SCHEMA_NAME}"."entries_legacy" e
       INNER JOIN "${SCHEMA_NAME}"."${TABLE_NAMES.USERS}" u
         ON u."id" = e."user_id"
-      LEFT JOIN "${SCHEMA_NAME}"."categories_legacy" c_legacy
+      INNER JOIN "${SCHEMA_NAME}"."categories_legacy" c_legacy
         ON c_legacy."id" = e."category_id"
-      LEFT JOIN "${SCHEMA_NAME}"."${TABLE_NAMES.CATEGORIES}" c_new
+      INNER JOIN "${SCHEMA_NAME}"."${TABLE_NAMES.CATEGORIES}" c_new
         ON c_new."name" = c_legacy."name"
        AND c_new."type" = c_legacy."type"::varchar
       INNER JOIN "${SCHEMA_NAME}"."recurrences" r

@@ -9,6 +9,7 @@ export interface ListEntriesByMonthRequest {
   sort?: string;
   order?: 'asc' | 'desc';
   categoryId?: string;
+  entryType?: 'INCOME' | 'EXPENSE';
   search?: string;
 }
 

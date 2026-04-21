@@ -213,6 +213,12 @@ export class EntryController {
       'Search term for filtering entries by description (case-insensitive)',
     example: 'groceries',
   })
+  @ApiQuery({
+    name: 'entryType',
+    required: false,
+    description: "Filter by entry type: 'INCOME' or 'EXPENSE'",
+    example: 'INCOME',
+  })
   @ApiBadRequestResponse({ description: 'Invalid query parameters' })
   @ApiUnauthorizedResponse({ description: 'Invalid or missing JWT token' })
   async listByMonth(
@@ -222,6 +228,7 @@ export class EntryController {
     @Query('sort') sort: string = 'dueDate',
     @Query('order') order: string = 'desc',
     @Query('category') category: string = 'all',
+    @Query('entryType') entryType: string = '',
     @Query('search') search: string = '',
     @User() user: UserPayload,
   ): Promise<EntryListResponseDto> {
@@ -262,6 +269,15 @@ export class EntryController {
           `Invalid order. Must be one of: ${validOrders.join(', ')}`,
         );
       }
+      const normalizedEntryType = entryType?.toUpperCase();
+      if (
+        normalizedEntryType &&
+        !['INCOME', 'EXPENSE'].includes(normalizedEntryType)
+      ) {
+        throw new BadRequestException(
+          'Invalid entryType. Must be one of: INCOME, EXPENSE',
+        );
+      }
 
       const result = await this.listEntriesByMonthUseCase.execute({
         userId: user.id,
@@ -272,6 +288,7 @@ export class EntryController {
         sort,
         order: order as 'asc' | 'desc',
         categoryId: category !== 'all' ? category : undefined,
+        entryType: normalizedEntryType as 'INCOME' | 'EXPENSE' | undefined,
         search: search && search.trim() ? search.trim() : undefined,
       });
 
