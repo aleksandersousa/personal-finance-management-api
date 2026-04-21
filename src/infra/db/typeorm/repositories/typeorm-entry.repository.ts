@@ -20,6 +20,7 @@ import {
 import { EntryModel } from '@domain/models/entry.model';
 import { EntryEntity } from '../entities/entry.entity';
 import { PaymentEntity } from '../entities/payment.entity';
+import { RecurrenceEntity } from '../entities/recurrence.entity';
 import type { Logger, Metrics } from '@/data/protocols';
 
 @Injectable()
@@ -29,11 +30,22 @@ export class TypeormEntryRepository implements EntryRepository {
     private readonly entryRepository: Repository<EntryEntity>,
     @InjectRepository(PaymentEntity)
     private readonly paymentRepository: Repository<PaymentEntity>,
+    @InjectRepository(RecurrenceEntity)
+    private readonly recurrenceRepository: Repository<RecurrenceEntity>,
     @Inject('Logger')
     private readonly logger: Logger,
     @Inject('Metrics')
     private readonly metrics: Metrics,
   ) {}
+
+  async findRecurrenceIdByType(type: string): Promise<string | null> {
+    const recurrence = await this.recurrenceRepository.findOne({
+      where: { type },
+      select: ['id'],
+    });
+
+    return recurrence?.id ?? null;
+  }
 
   async create(data: CreateEntryData): Promise<EntryModel> {
     const entity = this.entryRepository.create({

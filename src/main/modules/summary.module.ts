@@ -3,6 +3,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { SummaryController } from '@presentation/controllers/summary.controller';
 import { EntryEntity } from '@infra/db/typeorm/entities/entry.entity';
 import { PaymentEntity } from '@infra/db/typeorm/entities/payment.entity';
+import { RecurrenceEntity } from '@infra/db/typeorm/entities/recurrence.entity';
 import { UserEntity } from '@infra/db/typeorm/entities/user.entity';
 import { UserSettingEntity } from '@infra/db/typeorm/entities/user-setting.entity';
 import { TypeormEntryRepository } from '@infra/db/typeorm/repositories/typeorm-entry.repository';
@@ -16,6 +17,7 @@ import { makeGetMonthlySummaryFactory } from '@main/factories/usecases/summary/m
     TypeOrmModule.forFeature([
       EntryEntity,
       PaymentEntity,
+      RecurrenceEntity,
       UserEntity,
       UserSettingEntity,
     ]),

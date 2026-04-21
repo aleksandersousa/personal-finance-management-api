@@ -1,6 +1,7 @@
 import { ApiProperty } from '@nestjs/swagger';
 import {
   IsDateString,
+  IsIn,
   IsNotEmpty,
   IsNumber,
   IsOptional,
@@ -62,5 +63,15 @@ export class UpdateEntryDto {
   })
   @IsOptional()
   @IsUUID()
-  recurrenceId?: string;
+  recurrenceId?: string | null;
+
+  @ApiProperty({
+    description: 'Recurrence type',
+    example: 'MONTHLY',
+    required: false,
+  })
+  @IsOptional()
+  @IsString()
+  @IsIn(['MONTHLY'])
+  recurrenceType?: 'MONTHLY';
 }

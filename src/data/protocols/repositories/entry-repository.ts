@@ -114,6 +114,7 @@ export interface EntryMonthlyMirrorExistsQuery {
 }
 
 export interface EntryRepository {
+  findRecurrenceIdByType(type: string): Promise<string | null>;
   create(data: CreateEntryData): Promise<EntryModel>;
   findById(id: string): Promise<EntryModel | null>;
   findByUserId(userId: string): Promise<EntryModel[]>;

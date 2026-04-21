@@ -4,6 +4,7 @@ import { EntryController } from '@presentation/controllers/entry.controller';
 import { EntryEntity } from '@infra/db/typeorm/entities/entry.entity';
 import { PaymentEntity } from '@infra/db/typeorm/entities/payment.entity';
 import { CategoryEntity } from '@infra/db/typeorm/entities/category.entity';
+import { RecurrenceEntity } from '@infra/db/typeorm/entities/recurrence.entity';
 import {
   makeCategoryRepository,
   makeEntryRepository,
@@ -24,7 +25,12 @@ import { ContextAwareLoggerService } from '@/infra/logging/context-aware-logger.
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([EntryEntity, PaymentEntity, CategoryEntity]),
+    TypeOrmModule.forFeature([
+      EntryEntity,
+      PaymentEntity,
+      CategoryEntity,
+      RecurrenceEntity,
+    ]),
     AuthModule,
     ObservabilityModule,
     forwardRef(() => NotificationModule),
@@ -37,6 +43,7 @@ import { ContextAwareLoggerService } from '@/infra/logging/context-aware-logger.
       inject: [
         getRepositoryToken(EntryEntity),
         getRepositoryToken(PaymentEntity),
+        getRepositoryToken(RecurrenceEntity),
         'Logger',
         'Metrics',
       ],

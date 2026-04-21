@@ -49,6 +49,7 @@ import { User } from '../decorators/user.decorator';
 import { Logger } from '@data/protocols/logger';
 import { Metrics } from '@data/protocols/metrics';
 import { UserPayload } from '@domain/models/user.model';
+import { EntryRepository } from '@/data/protocols/repositories/entry-repository';
 
 @ApiTags('entries')
 @Controller('entries')
@@ -72,6 +73,8 @@ export class EntryController {
     private readonly logger: Logger,
     @Inject('Metrics')
     private readonly metrics: Metrics,
+    @Inject('EntryRepository')
+    private readonly entryRepository: EntryRepository,
   ) {}
 
   @Post()
@@ -98,12 +101,15 @@ export class EntryController {
 
     try {
       const entry = await this.addEntryUseCase.execute({
+        recurrenceId: await this.resolveRecurrenceId(
+          createEntryDto.recurrenceId,
+          createEntryDto.recurrenceType,
+        ),
         userId: user.id,
         description: createEntryDto.description,
         amount: createEntryDto.amount,
         issueDate: new Date(createEntryDto.issueDate),
         dueDate: new Date(createEntryDto.dueDate),
-        recurrenceId: createEntryDto.recurrenceId,
         categoryId: createEntryDto.categoryId,
       });
 
@@ -361,12 +367,15 @@ export class EntryController {
     try {
       const entry = await this.updateEntryUseCase.execute({
         id,
+        recurrenceId: await this.resolveRecurrenceId(
+          updateEntryDto.recurrenceId,
+          updateEntryDto.recurrenceType,
+        ),
         userId: user.id,
         description: updateEntryDto.description,
         amount: updateEntryDto.amount,
         issueDate: new Date(updateEntryDto.issueDate),
         dueDate: new Date(updateEntryDto.dueDate),
-        recurrenceId: updateEntryDto.recurrenceId,
         categoryId: updateEntryDto.categoryId,
       });
 
@@ -617,5 +626,29 @@ export class EntryController {
 
   private isUnauthorizedError(message: string): boolean {
     return message.toLowerCase().includes('unauthorized');
+  }
+
+  private async resolveRecurrenceId(
+    recurrenceId: string | null | undefined,
+    recurrenceType?: 'MONTHLY',
+  ): Promise<string | null | undefined> {
+    if (recurrenceId !== undefined) {
+      return recurrenceId;
+    }
+
+    if (!recurrenceType) {
+      return undefined;
+    }
+
+    const resolvedRecurrenceId =
+      await this.entryRepository.findRecurrenceIdByType(recurrenceType);
+
+    if (!resolvedRecurrenceId) {
+      throw new BadRequestException(
+        `Recurrence type ${recurrenceType} not found`,
+      );
+    }
+
+    return resolvedRecurrenceId;
   }
 }
