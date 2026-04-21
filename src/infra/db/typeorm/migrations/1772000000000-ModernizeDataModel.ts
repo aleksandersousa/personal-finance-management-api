@@ -178,7 +178,7 @@ export class ModernizeDataModel1772000000000 implements MigrationInterface {
         e."user_id" AS "id_user",
         c_new."id" AS "id_category",
         e."description",
-        ROUND((e."amount"::numeric) * 100)::bigint AS "amount",
+        ROUND(e."amount"::numeric)::bigint AS "amount",
         e."date"::date AS "issue_date",
         e."date"::timestamp AS "due_date",
         COALESCE(e."created_at", now()) AS "created_at",
