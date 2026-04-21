@@ -3,20 +3,28 @@ import { EmailVerificationTokenRepositoryStub } from '@test/data/mocks/repositor
 import { PasswordResetTokenRepositoryStub } from '@test/data/mocks/repositories/password-reset-token-repository.stub';
 import { EmailVerificationTokenModel } from '@domain/models/email-verification-token.model';
 import { PasswordResetTokenModel } from '@domain/models/password-reset-token.model';
+import { EntryModel } from '@domain/models/entry.model';
 
 describe('ScheduledTasksWorker', () => {
   let worker: ScheduledTasksWorker;
   let emailVerificationTokenRepositoryStub: EmailVerificationTokenRepositoryStub;
   let passwordResetTokenRepositoryStub: PasswordResetTokenRepositoryStub;
+  let entryRepositoryStub: any;
 
   beforeEach(() => {
     emailVerificationTokenRepositoryStub =
       new EmailVerificationTokenRepositoryStub();
     passwordResetTokenRepositoryStub = new PasswordResetTokenRepositoryStub();
+    entryRepositoryStub = {
+      findMonthlyRecurringEntriesInRange: jest.fn(),
+      existsMonthlyMirroredEntry: jest.fn(),
+      create: jest.fn(),
+    };
 
     worker = new ScheduledTasksWorker(
       emailVerificationTokenRepositoryStub,
       passwordResetTokenRepositoryStub,
+      entryRepositoryStub,
     );
   });
 
@@ -266,6 +274,115 @@ describe('ScheduledTasksWorker', () => {
       expect(result.cleanedTypes).toContain('email-verification');
       expect(result.cleanedTypes).toContain('password-reset');
       expect(result.error).toBeUndefined();
+    });
+  });
+
+  describe('mirrorMonthlyRecurringEntries', () => {
+    it('creates mirrored entries for monthly recurrence without copying payments', async () => {
+      const sourceEntry: EntryModel = {
+        id: 'entry-source-1',
+        userId: 'user-1',
+        categoryId: 'category-1',
+        recurrenceId: 'recurrence-1',
+        description: 'Rent',
+        amount: 1500,
+        issueDate: new Date(2026, 0, 31, 10, 0, 0),
+        dueDate: new Date(2026, 0, 31, 10, 0, 0),
+        recurrence: {
+          id: 'recurrence-1',
+          type: 'MONTHLY',
+          createdAt: new Date('2025-01-01T00:00:00.000Z'),
+        },
+        payment: {
+          id: 'payment-1',
+          amount: 1500,
+          entryId: 'entry-source-1',
+          createdAt: new Date('2026-01-10T12:00:00.000Z'),
+        },
+        isPaid: true,
+        createdAt: new Date('2026-01-01T00:00:00.000Z'),
+        updatedAt: new Date('2026-01-01T00:00:00.000Z'),
+      };
+
+      entryRepositoryStub.findMonthlyRecurringEntriesInRange.mockResolvedValue([
+        sourceEntry,
+      ]);
+      entryRepositoryStub.existsMonthlyMirroredEntry.mockResolvedValue(false);
+      entryRepositoryStub.create.mockResolvedValue({ id: 'entry-new-1' });
+
+      const result = await worker.mirrorMonthlyRecurringEntries({
+        runDate: '2026-02-01T12:00:00.000Z',
+      });
+
+      expect(result).toEqual({
+        success: true,
+        createdCount: 1,
+        skippedCount: 0,
+      });
+      expect(
+        entryRepositoryStub.findMonthlyRecurringEntriesInRange,
+      ).toHaveBeenCalledWith({
+        startDate: new Date(2026, 0, 1, 0, 0, 0),
+        endDate: new Date(2026, 1, 0, 23, 59, 59),
+      });
+      expect(entryRepositoryStub.create).toHaveBeenCalledWith({
+        userId: 'user-1',
+        categoryId: 'category-1',
+        recurrenceId: 'recurrence-1',
+        description: 'Rent',
+        amount: 1500,
+        issueDate: new Date(2026, 1, 28, 10, 0, 0),
+        dueDate: new Date(2026, 1, 28, 10, 0, 0),
+      });
+    });
+
+    it('skips creation when mirrored entry already exists', async () => {
+      const sourceEntry: EntryModel = {
+        id: 'entry-source-2',
+        userId: 'user-1',
+        categoryId: 'category-1',
+        recurrenceId: 'recurrence-1',
+        description: 'Gym',
+        amount: 100,
+        issueDate: new Date('2026-03-15T10:00:00.000Z'),
+        dueDate: new Date('2026-03-15T10:00:00.000Z'),
+        isPaid: false,
+        createdAt: new Date('2026-03-01T00:00:00.000Z'),
+        updatedAt: new Date('2026-03-01T00:00:00.000Z'),
+      };
+
+      entryRepositoryStub.findMonthlyRecurringEntriesInRange.mockResolvedValue([
+        sourceEntry,
+      ]);
+      entryRepositoryStub.existsMonthlyMirroredEntry.mockResolvedValue(true);
+
+      const result = await worker.mirrorMonthlyRecurringEntries({
+        runDate: '2026-04-01T00:00:00.000Z',
+      });
+
+      expect(result).toEqual({
+        success: true,
+        createdCount: 0,
+        skippedCount: 1,
+      });
+      expect(entryRepositoryStub.create).not.toHaveBeenCalled();
+    });
+
+    it('returns failure when repository throws', async () => {
+      entryRepositoryStub.findMonthlyRecurringEntriesInRange.mockRejectedValue(
+        new Error('query failed'),
+      );
+
+      const result = await worker.mirrorMonthlyRecurringEntries({
+        runDate: '2026-04-01T00:00:00.000Z',
+      });
+
+      expect(result).toEqual({
+        success: false,
+        createdCount: 0,
+        skippedCount: 0,
+        error: 'query failed',
+      });
     });
   });
 });
