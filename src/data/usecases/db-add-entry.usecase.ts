@@ -39,13 +39,13 @@ export class DbAddEntryUseCase implements AddEntryUseCase {
     }
 
     // Verify category exists and belongs to user (if provided)
+    let categoryType: 'INCOME' | 'EXPENSE' | null = null;
     if (request.categoryId) {
-      const category = await this.categoryRepository.findById(
-        request.categoryId,
-      );
+      const category = await this.categoryRepository.findById(request.categoryId);
       if (!category) {
         throw new Error('Category not found');
       }
+      categoryType = category.type;
       const linked = await this.categoryRepository.isUserLinkedToCategory(
         request.userId,
         request.categoryId,
@@ -60,16 +60,15 @@ export class DbAddEntryUseCase implements AddEntryUseCase {
       userId: request.userId,
       description: request.description.trim(),
       amount: request.amount,
-      date: request.date,
-      type: request.type,
-      isFixed: request.isFixed,
+      issueDate: request.issueDate,
+      dueDate: request.dueDate,
+      recurrenceId: request.recurrenceId ?? null,
       categoryId: request.categoryId,
-      isPaid: request.isPaid ?? false,
     });
 
     // Create notification for EXPENSE entries if user has notifications enabled
     if (
-      entry.type === 'EXPENSE' &&
+      categoryType === 'EXPENSE' &&
       this.createNotificationUseCase &&
       user.notificationEnabled !== false
     ) {

@@ -56,13 +56,13 @@ export class DbUpdateEntryUseCase implements UpdateEntryUseCase {
     }
 
     // Verify category exists and belongs to user (if provided)
+    let categoryType: 'INCOME' | 'EXPENSE' | null = null;
     if (request.categoryId) {
-      const category = await this.categoryRepository.findById(
-        request.categoryId,
-      );
+      const category = await this.categoryRepository.findById(request.categoryId);
       if (!category) {
         throw new Error('Category not found');
       }
+      categoryType = category.type;
       const linked = await this.categoryRepository.isUserLinkedToCategory(
         request.userId,
         request.categoryId,
@@ -74,21 +74,20 @@ export class DbUpdateEntryUseCase implements UpdateEntryUseCase {
 
     // Check if date changed (for notification update)
     const dateChanged =
-      existingEntry.date.getTime() !== new Date(request.date).getTime();
+      existingEntry.dueDate.getTime() !== new Date(request.dueDate).getTime();
 
     // Update entry
     const updatedEntry = await this.entryRepository.update(request.id, {
       description: request.description.trim(),
       amount: request.amount,
-      date: request.date,
-      type: request.type,
-      isFixed: request.isFixed,
+      issueDate: request.issueDate,
+      dueDate: request.dueDate,
+      recurrenceId: request.recurrenceId ?? null,
       categoryId: request.categoryId,
-      isPaid: request.isPaid,
     });
 
     // Handle notifications for EXPENSE entries
-    if (updatedEntry.type === 'EXPENSE' && user.notificationEnabled !== false) {
+    if (categoryType === 'EXPENSE' && user.notificationEnabled !== false) {
       // Cancel old notification if date changed
       if (dateChanged && this.cancelNotificationUseCase) {
         try {

@@ -1,5 +1,4 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { EntryType } from '@domain/models/entry.model';
 
 export class EntryResponseDto {
   @ApiProperty({
@@ -27,23 +26,16 @@ export class EntryResponseDto {
   amount: number;
 
   @ApiProperty({
-    description: 'Entry date',
+    description: 'Entry issue date',
     example: '2025-01-15T10:00:00Z',
   })
-  date: Date;
+  issueDate: Date;
 
   @ApiProperty({
-    description: 'Entry type',
-    enum: ['INCOME', 'EXPENSE'],
-    example: 'INCOME',
+    description: 'Entry due date',
+    example: '2025-01-15T10:00:00Z',
   })
-  type: EntryType;
-
-  @ApiProperty({
-    description: 'Whether this entry is fixed (recurring)',
-    example: true,
-  })
-  isFixed: boolean;
+  dueDate: Date;
 
   @ApiProperty({
     description: 'Category ID',
@@ -60,18 +52,11 @@ export class EntryResponseDto {
   categoryName?: string;
 
   @ApiProperty({
-    description: 'Whether this entry is paid',
-    example: true,
+    description: 'Recurrence ID',
+    example: '123e4567-e89b-12d3-a456-426614174110',
+    nullable: true,
   })
-  isPaid: boolean;
-
-  @ApiProperty({
-    description:
-      'Whether this is a fixed entry from a previous month appearing in current month',
-    example: false,
-    required: false,
-  })
-  isFromPreviousMonth?: boolean;
+  recurrenceId: string | null;
 
   @ApiProperty({
     description: 'Entry creation date',

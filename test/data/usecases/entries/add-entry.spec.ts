@@ -52,10 +52,10 @@ describe('DbAddEntryUseCase', () => {
       userId: 'valid-user-id',
       description: 'Salary - January 2025',
       amount: 5000,
-      date: new Date('2025-01-15'),
-      type: 'INCOME',
-      isFixed: true,
       categoryId: 'valid-category-id',
+      issueDate: new Date('2025-01-15'),
+      dueDate: new Date('2025-01-15'),
+      recurrenceId: 'recurrence-1',
     });
 
     it('should create an entry successfully', async () => {

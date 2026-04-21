@@ -4,17 +4,22 @@ import { UpdateEntryRequest } from '@domain/usecases/update-entry.usecase';
 
 export const mockEntry: EntryModel = {
   id: '550e8400-e29b-41d4-a716-446655440000',
+  recurrenceId: null,
   userId: 'user-123',
   description: 'Test Entry',
   amount: 10000, // 100.00 in cents
   categoryId: 'category-123',
-  type: 'EXPENSE',
-  isFixed: false,
-  date: new Date('2025-06-01'),
+  issueDate: new Date('2025-06-01'),
+  dueDate: new Date('2025-06-01'),
+  category: {
+    id: 'category-123',
+    name: 'Food',
+    type: 'EXPENSE' as any,
+    createdAt: new Date('2025-06-01T10:00:00Z'),
+    updatedAt: new Date('2025-06-01T10:00:00Z'),
+  },
   createdAt: new Date('2025-06-01T10:00:00Z'),
   updatedAt: new Date('2025-06-01T10:00:00Z'),
-  deletedAt: null,
-  isPaid: true,
 };
 
 export const mockAddEntryRequest: AddEntryRequest = {
@@ -22,9 +27,8 @@ export const mockAddEntryRequest: AddEntryRequest = {
   description: 'Test Entry',
   amount: 10000,
   categoryId: 'category-123',
-  type: 'EXPENSE',
-  isFixed: false,
-  date: new Date('2025-06-01'),
+  issueDate: new Date('2025-06-01'),
+  dueDate: new Date('2025-06-01'),
 };
 
 export const mockUpdateEntryRequest: UpdateEntryRequest = {
@@ -32,10 +36,10 @@ export const mockUpdateEntryRequest: UpdateEntryRequest = {
   userId: 'user-123',
   description: 'Updated Test Entry',
   amount: 15000, // 150.00 in cents
-  categoryId: 'category-456',
-  type: 'INCOME',
-  isFixed: true,
-  date: new Date('2025-06-15'),
+  categoryId: 'category-123',
+  issueDate: new Date('2025-06-15'),
+  dueDate: new Date('2025-06-15'),
+  recurrenceId: 'recurrence-1',
 };
 
 /**
@@ -88,33 +92,44 @@ export class MockEntryFactory {
     return this.create({
       description: 'Updated Test Entry',
       amount: 15000,
-      type: 'INCOME',
-      isFixed: true,
+      recurrenceId: 'recurrence-1',
       updatedAt: new Date('2025-06-01T10:30:00Z'), // Later timestamp
     });
   }
 
   static createIncome(amount: number = 50000): EntryModel {
     return this.create({
-      type: 'INCOME',
       amount,
       categoryId: 'salary-category',
+      category: {
+        id: 'salary-category',
+        name: 'Salary',
+        type: 'INCOME' as any,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
       description: 'Monthly Salary',
     });
   }
 
   static createExpense(amount: number = 10000): EntryModel {
     return this.create({
-      type: 'EXPENSE',
       amount,
       categoryId: 'food-category',
+      category: {
+        id: 'food-category',
+        name: 'Food',
+        type: 'EXPENSE' as any,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
       description: 'Grocery Shopping',
     });
   }
 
   static createFixed(isFixed: boolean = true): EntryModel {
     return this.create({
-      isFixed,
+      recurrenceId: isFixed ? 'recurrence-1' : null,
       description: isFixed ? 'Fixed Monthly Rent' : 'Variable Expense',
       categoryId: isFixed ? 'housing-category' : 'variable-category',
     });
@@ -133,7 +148,8 @@ export class MockEntryFactory {
       entries.push(
         this.create({
           id: `entry-${index}`,
-          date: new Date(currentDate),
+          issueDate: new Date(currentDate),
+          dueDate: new Date(currentDate),
           description: `Entry for ${currentDate.toISOString().split('T')[0]}`,
         }),
       );
@@ -151,9 +167,8 @@ export class MockEntryFactory {
       description: '',
       amount: -100,
       categoryId: '',
-      type: 'EXPENSE',
-      isFixed: false,
-      date: new Date(),
+      issueDate: new Date(),
+      dueDate: new Date(),
     };
   }
 
@@ -164,9 +179,8 @@ export class MockEntryFactory {
       description: '',
       amount: -100,
       categoryId: '',
-      type: 'EXPENSE',
-      isFixed: false,
-      date: new Date(),
+      issueDate: new Date(),
+      dueDate: new Date(),
     };
   }
 

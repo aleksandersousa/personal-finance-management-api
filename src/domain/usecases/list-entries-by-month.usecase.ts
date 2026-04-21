@@ -8,10 +8,8 @@ export interface ListEntriesByMonthRequest {
   limit?: number;
   sort?: string;
   order?: 'asc' | 'desc';
-  type?: 'INCOME' | 'EXPENSE' | 'all';
   categoryId?: string;
   search?: string;
-  isPaid?: boolean | 'all';
 }
 
 export interface ListEntriesByMonthResponse {

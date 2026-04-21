@@ -30,7 +30,7 @@ export class EntryNotificationEmailService extends BaseEmailTemplateService {
       year: 'numeric',
       hour: '2-digit',
       minute: '2-digit',
-    }).format(data.entry.date);
+    }).format(data.entry.dueDate);
 
     const templateData = {
       userName: data.user.name,

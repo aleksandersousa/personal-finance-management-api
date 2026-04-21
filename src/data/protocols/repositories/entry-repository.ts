@@ -3,21 +3,19 @@ import { EntryModel } from '@domain/models/entry.model';
 export interface CreateEntryData {
   amount: number;
   description: string;
-  date: Date;
-  type: 'INCOME' | 'EXPENSE';
-  isFixed: boolean;
+  issueDate: Date;
+  dueDate: Date;
+  recurrenceId: string | null;
   categoryId: string | null;
-  isPaid?: boolean;
   userId: string;
 }
 
 export interface UpdateEntryData {
   amount?: number;
   description?: string;
-  date?: Date;
-  type?: 'INCOME' | 'EXPENSE';
-  isFixed?: boolean;
-  isPaid?: boolean;
+  issueDate?: Date;
+  dueDate?: Date;
+  recurrenceId?: string | null;
   categoryId?: string | null;
 }
 
@@ -29,10 +27,8 @@ export interface FindEntriesByMonthFilters {
   limit?: number;
   sort?: string;
   order?: 'asc' | 'desc';
-  type?: 'INCOME' | 'EXPENSE' | 'all';
   categoryId?: string;
   search?: string;
-  isPaid?: boolean | 'all';
 }
 
 export interface FindEntriesByMonthResult {
@@ -97,14 +93,6 @@ export interface AccumulatedStats {
   accumulatedBalance: number;
 }
 
-export interface MonthlyPaymentStatus {
-  entryId: string;
-  year: number;
-  month: number;
-  isPaid: boolean;
-  paidAt: Date | null;
-}
-
 export interface EntryRepository {
   create(data: CreateEntryData): Promise<EntryModel>;
   findById(id: string): Promise<EntryModel | null>;
@@ -138,16 +126,4 @@ export interface EntryRepository {
   update(id: string, data: UpdateEntryData): Promise<EntryModel>;
   delete(id: string): Promise<void>;
   softDelete(id: string): Promise<Date>;
-  setMonthlyPaymentStatus(
-    entryId: string,
-    year: number,
-    month: number,
-    isPaid: boolean,
-  ): Promise<MonthlyPaymentStatus>;
-  getMonthlyPaymentStatus(
-    entryId: string,
-    year: number,
-    month: number,
-  ): Promise<MonthlyPaymentStatus | null>;
-  deleteMonthlyPaymentStatuses(entryId: string): Promise<void>;
 }

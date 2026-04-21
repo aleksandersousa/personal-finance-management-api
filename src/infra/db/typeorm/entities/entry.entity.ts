@@ -5,6 +5,7 @@ import {
   JoinColumn,
   ManyToOne,
   OneToMany,
+  OneToOne,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
@@ -14,7 +15,6 @@ import { TABLE_NAMES } from '@/domain/constants';
 import { RecurrenceEntity } from './recurrence.entity';
 import { PaymentEntity } from './payment.entity';
 import { NotificationEntity } from './notification.entity';
-import { EntryType } from '@domain/models/entry.model';
 
 @Entity(TABLE_NAMES.ENTRIES)
 export class EntryEntity {
@@ -42,18 +42,6 @@ export class EntryEntity {
   @Column({ name: 'due_date', type: 'timestamp' })
   dueDate: Date;
 
-  date?: Date;
-
-  type?: EntryType;
-
-  isFixed?: boolean;
-
-  isPaid?: boolean;
-
-  notificationTimeMinutes?: number | null;
-
-  deletedAt?: Date | null;
-
   @ManyToOne(() => UserEntity, user => user.entries)
   @JoinColumn({ name: 'id_user' })
   user: UserEntity;
@@ -73,8 +61,8 @@ export class EntryEntity {
   @OneToMany(() => NotificationEntity, notification => notification.entry)
   notifications: NotificationEntity[];
 
-  @OneToMany(() => PaymentEntity, payment => payment.entry)
-  payments: PaymentEntity[];
+  @OneToOne(() => PaymentEntity, payment => payment.entry)
+  payment?: PaymentEntity | null;
 
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;

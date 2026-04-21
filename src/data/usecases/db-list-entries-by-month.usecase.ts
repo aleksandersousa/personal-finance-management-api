@@ -38,15 +38,12 @@ export class DbListEntriesByMonthUseCase implements ListEntriesByMonthUseCase {
     // Set default values for pagination and filters
     const page = Math.max(1, request.page || 1);
     const limit = Math.min(100, Math.max(1, request.limit || 20));
-    const sort = ['date', 'amount', 'description'].includes(request.sort || '')
+    const sort = ['dueDate', 'amount', 'description'].includes(request.sort || '')
       ? request.sort
-      : 'date';
+      : 'dueDate';
     const order = ['asc', 'desc'].includes(request.order || '')
       ? request.order
       : 'desc';
-    const type = ['INCOME', 'EXPENSE', 'all'].includes(request.type || '')
-      ? request.type
-      : 'all';
 
     // Get entries with filters and pagination from repository
     const result = await this.entryRepository.findByUserIdAndMonthWithFilters({
@@ -57,10 +54,8 @@ export class DbListEntriesByMonthUseCase implements ListEntriesByMonthUseCase {
       limit,
       sort,
       order,
-      type,
       categoryId: request.categoryId,
       search: request.search,
-      isPaid: request.isPaid,
     });
 
     // Calculate pagination metadata
@@ -69,14 +64,8 @@ export class DbListEntriesByMonthUseCase implements ListEntriesByMonthUseCase {
     const hasPrev = page > 1;
 
     // Flag entries from previous months (fixed entries appearing in current month)
-    const startOfMonth = new Date(request.year, request.month - 1, 1);
-    const entriesWithFlags = result.data.map(entry => ({
-      ...entry,
-      isFromPreviousMonth: entry.isFixed && new Date(entry.date) < startOfMonth,
-    }));
-
     return {
-      data: entriesWithFlags,
+      data: result.data,
       pagination: {
         page,
         limit,

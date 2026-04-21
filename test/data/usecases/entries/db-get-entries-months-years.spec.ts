@@ -41,46 +41,31 @@ describe('DbGetEntriesMonthsYearsUseCase', () => {
     };
 
     it('should return distinct months and years successfully', async () => {
-      // Arrange
       userRepositoryStub.seed([mockUser]);
 
       const entry1 = MockEntryFactory.create({
         id: 'entry-1',
         userId: 'valid-user-id',
-        date: new Date('2024-01-15'),
-        amount: 1000,
-        description: 'Entry 1',
-        type: 'INCOME',
-        isFixed: false,
+        issueDate: new Date('2024-01-15'),
+        dueDate: new Date('2024-01-15'),
       });
-
       const entry2 = MockEntryFactory.create({
         id: 'entry-2',
         userId: 'valid-user-id',
-        date: new Date('2024-02-20'),
-        amount: 2000,
-        description: 'Entry 2',
-        type: 'INCOME',
-        isFixed: false,
+        issueDate: new Date('2024-02-20'),
+        dueDate: new Date('2024-02-20'),
       });
-
       const entry3 = MockEntryFactory.create({
         id: 'entry-3',
         userId: 'valid-user-id',
-        date: new Date('2024-01-10'),
-        amount: 500,
-        description: 'Entry 3',
-        type: 'EXPENSE',
-        isFixed: false,
+        issueDate: new Date('2024-01-10'),
+        dueDate: new Date('2024-01-10'),
       });
 
       entryRepositoryStub.seed([entry1, entry2, entry3]);
 
-      // Act
       const result = await sut.execute(mockRequest);
 
-      // Assert
-      expect(result.monthsYears).toHaveLength(2);
       expect(result.monthsYears).toEqual([
         { year: 2024, month: 2 },
         { year: 2024, month: 1 },
@@ -99,82 +84,33 @@ describe('DbGetEntriesMonthsYearsUseCase', () => {
       expect(result.monthsYears).toEqual([]);
     });
 
-    it('should exclude deleted entries from results', async () => {
-      // Arrange
-      userRepositoryStub.seed([mockUser]);
-
-      const entry1 = MockEntryFactory.create({
-        id: 'entry-1',
-        userId: 'valid-user-id',
-        date: new Date('2024-01-15'),
-        amount: 1000,
-        description: 'Entry 1',
-        type: 'INCOME',
-        isFixed: false,
-        deletedAt: null,
-      });
-
-      const entry2 = MockEntryFactory.create({
-        id: 'entry-2',
-        userId: 'valid-user-id',
-        date: new Date('2024-02-20'),
-        amount: 2000,
-        description: 'Entry 2',
-        type: 'INCOME',
-        isFixed: false,
-        deletedAt: new Date(), // Deleted entry
-      });
-
-      entryRepositoryStub.seed([entry1, entry2]);
-
-      // Act
-      const result = await sut.execute(mockRequest);
-
-      // Assert
-      expect(result.monthsYears).toHaveLength(1);
-      expect(result.monthsYears).toEqual([{ year: 2024, month: 1 }]);
-    });
-
     it('should return months and years sorted in descending order', async () => {
-      // Arrange
       userRepositoryStub.seed([mockUser]);
 
       const entries = [
         MockEntryFactory.create({
           id: 'entry-1',
           userId: 'valid-user-id',
-          date: new Date('2023-03-15'),
-          amount: 1000,
-          description: 'Entry 1',
-          type: 'INCOME',
-          isFixed: false,
+          issueDate: new Date('2023-03-15'),
+          dueDate: new Date('2023-03-15'),
         }),
         MockEntryFactory.create({
           id: 'entry-2',
           userId: 'valid-user-id',
-          date: new Date('2024-01-20'),
-          amount: 2000,
-          description: 'Entry 2',
-          type: 'INCOME',
-          isFixed: false,
+          issueDate: new Date('2024-01-20'),
+          dueDate: new Date('2024-01-20'),
         }),
         MockEntryFactory.create({
           id: 'entry-3',
           userId: 'valid-user-id',
-          date: new Date('2024-05-10'),
-          amount: 500,
-          description: 'Entry 3',
-          type: 'EXPENSE',
-          isFixed: false,
+          issueDate: new Date('2024-05-10'),
+          dueDate: new Date('2024-05-10'),
         }),
         MockEntryFactory.create({
           id: 'entry-4',
           userId: 'valid-user-id',
-          date: new Date('2023-12-25'),
-          amount: 3000,
-          description: 'Entry 4',
-          type: 'INCOME',
-          isFixed: false,
+          issueDate: new Date('2023-12-25'),
+          dueDate: new Date('2023-12-25'),
         }),
       ];
 
@@ -194,36 +130,26 @@ describe('DbGetEntriesMonthsYearsUseCase', () => {
     });
 
     it('should handle entries from multiple years', async () => {
-      // Arrange
       userRepositoryStub.seed([mockUser]);
 
       const entries = [
         MockEntryFactory.create({
           id: 'entry-1',
           userId: 'valid-user-id',
-          date: new Date('2022-06-15'),
-          amount: 1000,
-          description: 'Entry 1',
-          type: 'INCOME',
-          isFixed: false,
+          issueDate: new Date('2022-06-15'),
+          dueDate: new Date('2022-06-15'),
         }),
         MockEntryFactory.create({
           id: 'entry-2',
           userId: 'valid-user-id',
-          date: new Date('2024-01-20'),
-          amount: 2000,
-          description: 'Entry 2',
-          type: 'INCOME',
-          isFixed: false,
+          issueDate: new Date('2024-01-20'),
+          dueDate: new Date('2024-01-20'),
         }),
         MockEntryFactory.create({
           id: 'entry-3',
           userId: 'valid-user-id',
-          date: new Date('2023-11-10'),
-          amount: 500,
-          description: 'Entry 3',
-          type: 'EXPENSE',
-          isFixed: false,
+          issueDate: new Date('2023-11-10'),
+          dueDate: new Date('2023-11-10'),
         }),
       ];
 
@@ -295,27 +221,20 @@ describe('DbGetEntriesMonthsYearsUseCase', () => {
     });
 
     it('should not include entries from other users', async () => {
-      // Arrange
       userRepositoryStub.seed([mockUser]);
 
       const entry1 = MockEntryFactory.create({
         id: 'entry-1',
         userId: 'valid-user-id',
-        date: new Date('2024-01-15'),
-        amount: 1000,
-        description: 'Entry 1',
-        type: 'INCOME',
-        isFixed: false,
+        issueDate: new Date('2024-01-15'),
+        dueDate: new Date('2024-01-15'),
       });
 
       const entry2 = MockEntryFactory.create({
         id: 'entry-2',
         userId: 'other-user-id',
-        date: new Date('2024-02-20'),
-        amount: 2000,
-        description: 'Entry 2',
-        type: 'INCOME',
-        isFixed: false,
+        issueDate: new Date('2024-02-20'),
+        dueDate: new Date('2024-02-20'),
       });
 
       entryRepositoryStub.seed([entry1, entry2]);

@@ -58,8 +58,6 @@ describe('DbUpdateEntryUseCase', () => {
       expect(result).toHaveProperty('id', existingEntry.id);
       expect(result.description).toBe(updateRequest.description);
       expect(result.amount).toBe(updateRequest.amount);
-      expect(result.type).toBe(updateRequest.type);
-      expect(result.isFixed).toBe(updateRequest.isFixed);
       expect(result.categoryId).toBe(updateRequest.categoryId);
       expect(result.userId).toBe(updateRequest.userId);
     });
@@ -193,25 +191,27 @@ describe('DbUpdateEntryUseCase', () => {
       );
     });
 
-    it('should update entry without category when categoryId is not provided', async () => {
+    it('should update entry with provided category', async () => {
       // Arrange
       const existingEntry = MockEntryFactory.create();
       const user = MockUserFactory.create({ id: existingEntry.userId });
+      const category = MockCategoryFactory.create({ id: existingEntry.categoryId! });
       const updateRequest = MockEntryFactory.createUpdateRequest({
         id: existingEntry.id,
         userId: existingEntry.userId,
-        categoryId: undefined,
+        categoryId: existingEntry.categoryId,
       });
 
       entryRepositoryStub.seed([existingEntry]);
       userRepositoryStub.seed([user]);
+      categoryRepositoryStub.seed([category], existingEntry.userId);
 
       // Act
       const result = await useCase.execute(updateRequest);
 
       // Assert
       expect(result).toHaveProperty('id', existingEntry.id);
-      expect(result.categoryId).toBeUndefined();
+      expect(result.categoryId).toBe(existingEntry.categoryId);
     });
 
     it('should handle repository errors', async () => {

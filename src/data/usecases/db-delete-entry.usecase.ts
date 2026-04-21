@@ -28,11 +28,6 @@ export class DbDeleteEntryUseCase implements DeleteEntryUseCase {
       throw new Error('Entry not found');
     }
 
-    // Check if entry is already deleted
-    if (entry.deletedAt) {
-      throw new Error('Entry is already deleted');
-    }
-
     // Verify ownership
     if (entry.userId !== request.userId) {
       throw new Error('User does not own this entry');

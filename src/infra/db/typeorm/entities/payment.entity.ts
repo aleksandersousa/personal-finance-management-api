@@ -3,7 +3,7 @@ import {
   CreateDateColumn,
   Entity,
   JoinColumn,
-  ManyToOne,
+  OneToOne,
   PrimaryGeneratedColumn,
 } from 'typeorm';
 import { TABLE_NAMES } from '@/domain/constants';
@@ -18,12 +18,12 @@ export class PaymentEntity {
   entryId: string;
 
   @Column({ type: 'bigint' })
-  amount: string;
+  amount: number;
 
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;
 
-  @ManyToOne(() => EntryEntity, entry => entry.payments, {
+  @OneToOne(() => EntryEntity, entry => entry.payment, {
     onDelete: 'CASCADE',
   })
   @JoinColumn({ name: 'id_entry' })

@@ -50,15 +50,15 @@ describe('NotificationSchedulerService', () => {
   describe('calculateScheduledTime', () => {
     const baseEntry: EntryModel = {
       id: 'entry-123',
+      recurrenceId: null,
       userId: 'user-123',
+      categoryId: null,
       description: 'Test Entry',
       amount: 100,
-      date: new Date('2024-01-15T10:00:00Z'),
-      type: 'EXPENSE',
-      isFixed: false,
+      issueDate: new Date('2024-01-15T10:00:00Z'),
+      dueDate: new Date('2024-01-15T10:00:00Z'),
       createdAt: new Date('2024-01-01'),
       updatedAt: new Date('2024-01-01'),
-      isPaid: true,
     };
 
     const baseUser: UserModel = {
@@ -69,12 +69,9 @@ describe('NotificationSchedulerService', () => {
       updatedAt: new Date('2024-01-01'),
     };
 
-    it('should calculate scheduled time using entry notification minutes', () => {
+    it('should calculate scheduled time using user notification minutes', () => {
       // Arrange
-      const entry: EntryModel = {
-        ...baseEntry,
-        notificationTimeMinutes: 15,
-      };
+      const entry: EntryModel = { ...baseEntry };
       const user: UserModel = {
         ...baseUser,
         notificationTimeMinutes: 30,
@@ -90,12 +87,9 @@ describe('NotificationSchedulerService', () => {
       );
     });
 
-    it('should calculate scheduled time using user notification minutes when entry has none', () => {
+    it('should calculate scheduled time using user notification minutes', () => {
       // Arrange
-      const entry: EntryModel = {
-        ...baseEntry,
-        notificationTimeMinutes: null,
-      };
+      const entry: EntryModel = { ...baseEntry };
       const user: UserModel = {
         ...baseUser,
         notificationTimeMinutes: 30,
@@ -113,10 +107,7 @@ describe('NotificationSchedulerService', () => {
 
     it('should use default 5 minutes when neither entry nor user has notification minutes', () => {
       // Arrange
-      const entry: EntryModel = {
-        ...baseEntry,
-        notificationTimeMinutes: null,
-      };
+      const entry: EntryModel = { ...baseEntry };
       const user: UserModel = {
         ...baseUser,
         notificationTimeMinutes: undefined,
@@ -179,15 +170,15 @@ describe('NotificationSchedulerService', () => {
   describe('scheduleNotification', () => {
     const mockEntry: EntryModel = {
       id: 'entry-123',
+      recurrenceId: null,
       userId: 'user-123',
+      categoryId: null,
       description: 'Test Entry',
       amount: 100,
-      date: new Date('2024-01-15T10:00:00Z'),
-      type: 'EXPENSE',
-      isFixed: false,
+      issueDate: new Date('2024-01-15T10:00:00Z'),
+      dueDate: new Date('2024-01-15T10:00:00Z'),
       createdAt: new Date('2024-01-01'),
       updatedAt: new Date('2024-01-01'),
-      isPaid: true,
     };
 
     it('should schedule notification successfully', async () => {
@@ -222,7 +213,7 @@ describe('NotificationSchedulerService', () => {
             scheduledAt: scheduledAt.toISOString(),
             entryDescription: mockEntry.description,
             entryAmount: mockEntry.amount,
-            entryDate: mockEntry.date.toISOString(),
+            entryDate: mockEntry.dueDate.toISOString(),
           },
         },
         {
