@@ -11,6 +11,7 @@ import {
   Param,
   Post,
   Put,
+  Patch,
   Query,
   UseGuards,
   ValidationPipe,
@@ -32,6 +33,7 @@ import { ListEntriesByMonthUseCase } from '@domain/usecases/list-entries-by-mont
 import { DeleteEntryUseCase } from '@domain/usecases/delete-entry.usecase';
 import { UpdateEntryUseCase } from '@domain/usecases/update-entry.usecase';
 import { GetEntriesMonthsYearsUseCase } from '@domain/usecases/get-entries-months-years.usecase';
+import { ToggleEntryPaymentStatusUseCase } from '@domain/usecases/toggle-entry-payment-status.usecase';
 import {
   CreateEntryDto,
   UpdateEntryDto,
@@ -39,6 +41,8 @@ import {
   EntryListResponseDto,
   DeleteEntryResponseDto,
   EntriesMonthsYearsResponseDto,
+  ToggleEntryPaymentStatusDto,
+  ToggleEntryPaymentStatusResponseDto,
 } from '../dtos';
 import { JwtAuthGuard } from '../guards/jwt-auth.guard';
 import { User } from '../decorators/user.decorator';
@@ -60,6 +64,8 @@ export class EntryController {
     private readonly deleteEntryUseCase: DeleteEntryUseCase,
     @Inject('UpdateEntryUseCase')
     private readonly updateEntryUseCase: UpdateEntryUseCase,
+    @Inject('ToggleEntryPaymentStatusUseCase')
+    private readonly toggleEntryPaymentStatusUseCase: ToggleEntryPaymentStatusUseCase,
     @Inject('GetEntriesMonthsYearsUseCase')
     private readonly getEntriesMonthsYearsUseCase: GetEntriesMonthsYearsUseCase,
     @Inject('Logger')
@@ -118,7 +124,21 @@ export class EntryController {
       // Record metrics
       this.metrics.recordHttpRequest('POST', '/entries', 201, duration);
 
-      return entry;
+      return {
+        id: entry.id,
+        userId: entry.userId,
+        description: entry.description,
+        amount: entry.amount,
+        issueDate: entry.issueDate,
+        dueDate: entry.dueDate,
+        categoryId: entry.categoryId,
+        categoryName: entry.categoryName,
+        entryType: entry.entryType,
+        recurrenceId: entry.recurrenceId,
+        isPaid: !!entry.payment,
+        createdAt: entry.createdAt,
+        updatedAt: entry.updatedAt,
+      };
     } catch (error) {
       // Log error
       this.logger.error(
@@ -352,6 +372,7 @@ export class EntryController {
 
       return {
         id: entry.id,
+        userId: entry.userId,
         amount: entry.amount,
         description: entry.description,
         issueDate: entry.issueDate,
@@ -359,7 +380,8 @@ export class EntryController {
         recurrenceId: entry.recurrenceId,
         categoryId: entry.categoryId,
         categoryName: entry.categoryName,
-        userId: entry.userId,
+        entryType: entry.entryType,
+        isPaid: !!entry.payment,
         createdAt: entry.createdAt,
         updatedAt: entry.updatedAt,
       };
@@ -383,6 +405,41 @@ export class EntryController {
         throw new BadRequestException(error.message);
       }
       throw new BadRequestException('Failed to update entry');
+    }
+  }
+
+  @Patch(':id/payment-status')
+  @ApiOperation({
+    summary: 'Toggle paid/unpaid status by payment relation',
+    description:
+      'Marks an entry as paid by creating a payment record, or unpaid by deleting it.',
+  })
+  @ApiParam({
+    name: 'id',
+    description: 'Entry ID',
+    example: '123e4567-e89b-12d3-a456-426614174000',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Payment status updated successfully',
+    type: ToggleEntryPaymentStatusResponseDto,
+  })
+  async togglePaymentStatus(
+    @Param('id') id: string,
+    @Body(ValidationPipe) body: ToggleEntryPaymentStatusDto,
+    @User() user: UserPayload,
+  ): Promise<ToggleEntryPaymentStatusResponseDto> {
+    try {
+      return await this.toggleEntryPaymentStatusUseCase.execute({
+        userId: user.id,
+        entryId: id,
+        isPaid: body.isPaid,
+      });
+    } catch (error) {
+      if (this.isClientError(error.message)) {
+        throw new BadRequestException(error.message);
+      }
+      throw new BadRequestException('Failed to update payment status');
     }
   }
 

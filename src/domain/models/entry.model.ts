@@ -13,6 +13,8 @@ export interface EntryModel {
   dueDate: Date;
   recurrence?: RecurrenceModel | null;
   payment?: PaymentModel | null;
+  isPaid: boolean;
+  entryType?: 'INCOME' | 'EXPENSE';
   category?: Category | null;
   createdAt: Date;
   updatedAt: Date;

@@ -1,4 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
+import { IsOptional } from 'class-validator';
 
 export class EntryResponseDto {
   @ApiProperty({
@@ -57,6 +58,21 @@ export class EntryResponseDto {
     nullable: true,
   })
   recurrenceId: string | null;
+
+  @ApiProperty({
+    description: 'Entry type inferred from category',
+    enum: ['INCOME', 'EXPENSE'],
+    required: false,
+  })
+  @IsOptional()
+  entryType?: 'INCOME' | 'EXPENSE';
+
+  @ApiProperty({
+    description:
+      'Whether the entry has a related payment record (paid when true)',
+    example: false,
+  })
+  isPaid: boolean;
 
   @ApiProperty({
     description: 'Entry creation date',

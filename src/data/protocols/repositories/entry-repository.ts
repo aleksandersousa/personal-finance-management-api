@@ -93,6 +93,12 @@ export interface AccumulatedStats {
   accumulatedBalance: number;
 }
 
+export interface ToggleEntryPaymentStatusResult {
+  entryId: string;
+  isPaid: boolean;
+  paidAt: Date | null;
+}
+
 export interface EntryRepository {
   create(data: CreateEntryData): Promise<EntryModel>;
   findById(id: string): Promise<EntryModel | null>;
@@ -124,6 +130,11 @@ export interface EntryRepository {
     month: number,
   ): Promise<AccumulatedStats>;
   update(id: string, data: UpdateEntryData): Promise<EntryModel>;
+  togglePaymentStatus(
+    userId: string,
+    entryId: string,
+    isPaid: boolean,
+  ): Promise<ToggleEntryPaymentStatusResult>;
   delete(id: string): Promise<void>;
   softDelete(id: string): Promise<Date>;
 }

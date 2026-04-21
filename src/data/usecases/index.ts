@@ -12,6 +12,7 @@ export * from './db-predict-cash-flow.usecase';
 export * from './db-refresh-token.usecase';
 export * from './db-register-user.usecase';
 export * from './db-update-entry.usecase';
+export * from './db-toggle-entry-payment-status.usecase';
 export * from './db-resend-verification-email.usecase';
 export * from './db-verify-email.usecase';
 export * from './agent-based-orchestrate-answer';

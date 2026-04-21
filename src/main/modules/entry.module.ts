@@ -2,6 +2,7 @@ import { Module, forwardRef } from '@nestjs/common';
 import { TypeOrmModule, getRepositoryToken } from '@nestjs/typeorm';
 import { EntryController } from '@presentation/controllers/entry.controller';
 import { EntryEntity } from '@infra/db/typeorm/entities/entry.entity';
+import { PaymentEntity } from '@infra/db/typeorm/entities/payment.entity';
 import { CategoryEntity } from '@infra/db/typeorm/entities/category.entity';
 import {
   makeCategoryRepository,
@@ -17,12 +18,13 @@ import {
   makeListEntriesByMonthFactory,
   makeUpdateEntryFactory,
   makeGetEntriesMonthsYearsFactory,
+  makeToggleEntryPaymentStatusFactory,
 } from '../factories';
 import { ContextAwareLoggerService } from '@/infra/logging/context-aware-logger.service';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([EntryEntity, CategoryEntity]),
+    TypeOrmModule.forFeature([EntryEntity, PaymentEntity, CategoryEntity]),
     AuthModule,
     ObservabilityModule,
     forwardRef(() => NotificationModule),
@@ -32,7 +34,12 @@ import { ContextAwareLoggerService } from '@/infra/logging/context-aware-logger.
     {
       provide: 'EntryRepository',
       useFactory: makeEntryRepository,
-      inject: [getRepositoryToken(EntryEntity), 'Logger', 'Metrics'],
+      inject: [
+        getRepositoryToken(EntryEntity),
+        getRepositoryToken(PaymentEntity),
+        'Logger',
+        'Metrics',
+      ],
     },
     {
       provide: 'CategoryRepository',
@@ -83,6 +90,11 @@ import { ContextAwareLoggerService } from '@/infra/logging/context-aware-logger.
       ],
     },
     {
+      provide: 'ToggleEntryPaymentStatusUseCase',
+      useFactory: makeToggleEntryPaymentStatusFactory,
+      inject: ['EntryRepository', 'UserRepository'],
+    },
+    {
       provide: 'GetEntriesMonthsYearsUseCase',
       useFactory: makeGetEntriesMonthsYearsFactory,
       inject: ['EntryRepository', 'UserRepository', 'Logger'],
@@ -93,6 +105,7 @@ import { ContextAwareLoggerService } from '@/infra/logging/context-aware-logger.
     'ListEntriesByMonthUseCase',
     'UpdateEntryUseCase',
     'DeleteEntryUseCase',
+    'ToggleEntryPaymentStatusUseCase',
     'GetEntriesMonthsYearsUseCase',
     'EntryRepository',
   ],

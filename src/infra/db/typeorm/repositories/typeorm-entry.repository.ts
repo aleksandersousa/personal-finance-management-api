@@ -13,9 +13,11 @@ import {
   MonthYear,
   AccumulatedStats,
   CategorySummaryItem,
+  ToggleEntryPaymentStatusResult,
 } from '@/data/protocols/repositories/entry-repository';
 import { EntryModel } from '@domain/models/entry.model';
 import { EntryEntity } from '../entities/entry.entity';
+import { PaymentEntity } from '../entities/payment.entity';
 import type { Logger, Metrics } from '@/data/protocols';
 
 @Injectable()
@@ -23,6 +25,8 @@ export class TypeormEntryRepository implements EntryRepository {
   constructor(
     @InjectRepository(EntryEntity)
     private readonly entryRepository: Repository<EntryEntity>,
+    @InjectRepository(PaymentEntity)
+    private readonly paymentRepository: Repository<PaymentEntity>,
     @Inject('Logger')
     private readonly logger: Logger,
     @Inject('Metrics')
@@ -352,6 +356,56 @@ export class TypeormEntryRepository implements EntryRepository {
     return this.mapToModel(updated);
   }
 
+  async togglePaymentStatus(
+    userId: string,
+    entryId: string,
+    isPaid: boolean,
+  ): Promise<ToggleEntryPaymentStatusResult> {
+    const entry = await this.entryRepository.findOne({
+      where: { id: entryId },
+      relations: ['payment'],
+    });
+
+    if (!entry) {
+      throw new Error('Entry not found');
+    }
+
+    if (entry.userId !== userId) {
+      throw new Error('Unauthorized');
+    }
+
+    if (isPaid) {
+      if (entry.payment) {
+        return {
+          entryId,
+          isPaid: true,
+          paidAt: entry.payment.createdAt,
+        };
+      }
+
+      const payment = this.paymentRepository.create({
+        entryId,
+        amount: entry.amount,
+      });
+      const savedPayment = await this.paymentRepository.save(payment);
+      return {
+        entryId,
+        isPaid: true,
+        paidAt: savedPayment.createdAt,
+      };
+    }
+
+    if (entry.payment) {
+      await this.paymentRepository.delete({ entryId });
+    }
+
+    return {
+      entryId,
+      isPaid: false,
+      paidAt: null,
+    };
+  }
+
   async delete(id: string): Promise<void> {
     const result = await this.entryRepository.delete(id);
     if (result.affected === 0) {
@@ -396,6 +450,8 @@ export class TypeormEntryRepository implements EntryRepository {
             createdAt: entity.payment.createdAt,
           }
         : null,
+      isPaid: !!entity.payment,
+      entryType: entity.category?.type,
       category: entity.category
         ? {
             id: entity.category.id,
