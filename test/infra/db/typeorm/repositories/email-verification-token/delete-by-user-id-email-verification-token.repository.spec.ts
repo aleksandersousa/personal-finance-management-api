@@ -52,7 +52,7 @@ describe('TypeormEmailVerificationTokenRepository - Delete By User ID', () => {
       // Assert
       expect(mockRepository.createQueryBuilder).toHaveBeenCalled();
       expect(mockQueryBuilder.delete).toHaveBeenCalled();
-      expect(mockQueryBuilder.where).toHaveBeenCalledWith('user_id = :userId', {
+      expect(mockQueryBuilder.where).toHaveBeenCalledWith('id_user = :userId', {
         userId: 'user-123',
       });
       expect(mockQueryBuilder.andWhere).toHaveBeenCalledWith('used_at IS NULL');
