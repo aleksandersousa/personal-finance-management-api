@@ -8,7 +8,6 @@ import { EmailVerificationTokenEntity } from '../entities/email-verification-tok
 import { NotificationEntity } from '../entities/notification.entity';
 import { PasswordResetTokenEntity } from '../entities/password-reset-token.entity';
 import { UserSettingEntity } from '../entities/user-setting.entity';
-import { UserCategoryEntity } from '../entities/user-category.entity';
 import { RecurrenceEntity } from '../entities/recurrence.entity';
 import { PaymentEntity } from '../entities/payment.entity';
 
@@ -29,7 +28,6 @@ export const AppDataSource = new DataSource({
     NotificationEntity,
     PasswordResetTokenEntity,
     UserSettingEntity,
-    UserCategoryEntity,
     RecurrenceEntity,
     PaymentEntity,
   ],
@@ -55,7 +53,6 @@ export const typeOrmConfig = {
     NotificationEntity,
     PasswordResetTokenEntity,
     UserSettingEntity,
-    UserCategoryEntity,
     RecurrenceEntity,
     PaymentEntity,
   ],

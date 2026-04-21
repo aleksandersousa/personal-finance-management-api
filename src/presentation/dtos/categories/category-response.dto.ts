@@ -43,18 +43,6 @@ export class CategoryResponseDto {
   icon?: string;
 
   @ApiProperty({
-    description: 'User ID who owns this category',
-    example: 'user-a1b2c3d4-e5f6-7890-abcd-ef1234567890',
-  })
-  userId: string;
-
-  @ApiProperty({
-    description: 'Whether this is a default system category',
-    example: false,
-  })
-  isDefault: boolean;
-
-  @ApiProperty({
     description: 'Category creation date',
     example: '2025-06-01T00:00:00Z',
   })

@@ -48,7 +48,7 @@ import { ContextAwareLoggerService } from '@/infra/logging/context-aware-logger.
     {
       provide: 'CategoryRepository',
       useFactory: makeCategoryRepository,
-      inject: [getRepositoryToken(CategoryEntity)],
+      inject: [getRepositoryToken(CategoryEntity), 'Logger', 'Metrics'],
     },
     {
       provide: 'IdGenerator',

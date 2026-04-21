@@ -63,7 +63,11 @@ export class DbUpdateEntryUseCase implements UpdateEntryUseCase {
       if (!category) {
         throw new Error('Category not found');
       }
-      if (category.userId !== request.userId) {
+      const linked = await this.categoryRepository.isUserLinkedToCategory(
+        request.userId,
+        request.categoryId,
+      );
+      if (!linked) {
         throw new Error('Category does not belong to the user');
       }
     }

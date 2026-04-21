@@ -90,7 +90,6 @@ describe('CategoryController - update (e2e)', () => {
       description: 'Updated Description',
       color: '#FF5722',
       icon: 'updated_icon',
-      userId: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890',
     });
 
     it('should update category successfully', async () => {
@@ -162,7 +161,6 @@ describe('CategoryController - update (e2e)', () => {
       const partialUpdateResponse = MockCategoryFactory.create({
         id: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890',
         name: 'Only Name Updated',
-        userId: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890',
       });
 
       mockUpdateCategoryUseCase.execute.mockResolvedValue(
@@ -340,7 +338,6 @@ describe('CategoryController - update (e2e)', () => {
       // Arrange
       const emptyResponse = MockCategoryFactory.create({
         id: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890',
-        userId: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890',
       });
 
       mockUpdateCategoryUseCase.execute.mockResolvedValue(emptyResponse);

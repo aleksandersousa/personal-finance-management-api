@@ -5,6 +5,5 @@ export * from './password-reset-token.entity';
 export * from './email-verification-token.entity';
 export * from './notification.entity';
 export * from './user-setting.entity';
-export * from './user-category.entity';
 export * from './recurrence.entity';
 export * from './payment.entity';

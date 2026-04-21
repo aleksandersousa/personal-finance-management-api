@@ -12,8 +12,6 @@ export const mockCategory: Category = {
   type: CategoryType.INCOME,
   color: '#4CAF50',
   icon: 'work',
-  userId: 'user-a1b2c3d4-e5f6-7890-abcd-ef1234567890',
-  isDefault: false,
   createdAt: new Date('2025-06-01T00:00:00Z'),
   updatedAt: new Date('2025-06-01T00:00:00Z'),
 };
@@ -25,8 +23,6 @@ export const mockDefaultCategory: Category = {
   type: CategoryType.INCOME,
   color: '#2196F3',
   icon: 'account_balance_wallet',
-  userId: 'user-a1b2c3d4-e5f6-7890-abcd-ef1234567890',
-  isDefault: true,
   createdAt: new Date('2025-06-01T00:00:00Z'),
   updatedAt: new Date('2025-06-01T00:00:00Z'),
 };

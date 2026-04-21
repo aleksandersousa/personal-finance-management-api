@@ -10,38 +10,48 @@ import {
   FindCategoriesWithFiltersResult,
 } from '@/data/protocols/repositories/category-repository';
 
-/**
- * Category Repository Stub for Data Layer Testing
- * Provides controllable implementations for testing business logic
- */
 export class CategoryRepositoryStub implements CategoryRepository {
   private categories: Map<string, Category> = new Map();
+  private linksByUser: Map<string, Set<string>> = new Map();
   private shouldFail = false;
   private errorToThrow: Error | null = null;
   private hasEntriesAssociatedResult = false;
+
+  private getLinkedCategoryIds(userId: string): Set<string> {
+    return this.linksByUser.get(userId) ?? new Set();
+  }
+
+  private linkUserToCategory(userId: string, categoryId: string): void {
+    const set = this.getLinkedCategoryIds(userId);
+    set.add(categoryId);
+    this.linksByUser.set(userId, set);
+  }
 
   async create(data: CategoryCreateData): Promise<Category> {
     if (this.shouldFail && this.errorToThrow) {
       throw this.errorToThrow;
     }
 
-    // Check for duplicate name
-    const existing = Array.from(this.categories.values()).find(
-      c => c.userId === data.userId && c.name === data.name,
-    );
-    if (existing) {
-      throw new Error('Category name already exists');
+    for (const cid of this.getLinkedCategoryIds(data.userId)) {
+      const c = this.categories.get(cid);
+      if (c?.name === data.name) {
+        throw new Error('Category name already exists');
+      }
     }
 
     const category: Category = {
-      ...data,
+      name: data.name,
+      description: data.description,
+      type: data.type,
+      color: data.color,
+      icon: data.icon,
       id: `stub-${Date.now()}-${Math.random()}`,
-      isDefault: false,
       createdAt: new Date(),
       updatedAt: new Date(),
     };
 
     this.categories.set(category.id, category);
+    this.linkUserToCategory(data.userId, category.id);
     return category;
   }
 
@@ -56,9 +66,10 @@ export class CategoryRepositoryStub implements CategoryRepository {
     if (this.shouldFail && this.errorToThrow) {
       throw this.errorToThrow;
     }
-    return Array.from(this.categories.values()).filter(
-      c => c.userId === userId,
-    );
+    return Array.from(this.getLinkedCategoryIds(userId))
+      .map(id => this.categories.get(id))
+      .filter((c): c is Category => !!c)
+      .sort((a, b) => a.name.localeCompare(b.name));
   }
 
   async findByUserIdAndType(
@@ -68,9 +79,7 @@ export class CategoryRepositoryStub implements CategoryRepository {
     if (this.shouldFail && this.errorToThrow) {
       throw this.errorToThrow;
     }
-    return Array.from(this.categories.values()).filter(
-      c => c.userId === userId && c.type === type,
-    );
+    return (await this.findByUserId(userId)).filter(c => c.type === type);
   }
 
   async findByUserIdAndName(
@@ -80,11 +89,7 @@ export class CategoryRepositoryStub implements CategoryRepository {
     if (this.shouldFail && this.errorToThrow) {
       throw this.errorToThrow;
     }
-    return (
-      Array.from(this.categories.values()).find(
-        c => c.userId === userId && c.name === name,
-      ) || null
-    );
+    return (await this.findByUserId(userId)).find(c => c.name === name) || null;
   }
 
   async findWithFilters(
@@ -94,9 +99,7 @@ export class CategoryRepositoryStub implements CategoryRepository {
       throw this.errorToThrow;
     }
 
-    let filtered = Array.from(this.categories.values()).filter(
-      c => c.userId === filters.userId,
-    );
+    let filtered = await this.findByUserId(filters.userId);
 
     if (filters.type && filters.type !== 'all') {
       filtered = filtered.filter(
@@ -111,10 +114,8 @@ export class CategoryRepositoryStub implements CategoryRepository {
       );
     }
 
-    // Get total before pagination
     const total = filtered.length;
 
-    // Apply pagination if provided
     if (filters.page !== undefined && filters.limit !== undefined) {
       const skip = (filters.page - 1) * filters.limit;
       filtered = filtered.slice(skip, skip + filters.limit);
@@ -143,14 +144,20 @@ export class CategoryRepositoryStub implements CategoryRepository {
       throw new Error('Category not found');
     }
 
-    // Check for duplicate name if name is being updated
     if (data.name && data.name !== existing.name) {
-      const duplicate = Array.from(this.categories.values()).find(
-        c =>
-          c.userId === existing.userId && c.name === data.name && c.id !== id,
-      );
-      if (duplicate) {
-        throw new Error('Category name already exists');
+      for (const ids of this.linksByUser.values()) {
+        if (!ids.has(id)) {
+          continue;
+        }
+        for (const cid of ids) {
+          if (cid === id) {
+            continue;
+          }
+          const other = this.categories.get(cid);
+          if (other?.name === data.name) {
+            throw new Error('Category name already exists');
+          }
+        }
       }
     }
 
@@ -164,84 +171,84 @@ export class CategoryRepositoryStub implements CategoryRepository {
       throw this.errorToThrow;
     }
     this.categories.delete(id);
+    for (const ids of this.linksByUser.values()) {
+      ids.delete(id);
+    }
   }
 
-  async softDelete(id: string): Promise<void> {
+  async isUserLinkedToCategory(
+    userId: string,
+    categoryId: string,
+  ): Promise<boolean> {
     if (this.shouldFail && this.errorToThrow) {
       throw this.errorToThrow;
     }
-    // In a real implementation, this would set a deletedAt field
-    this.categories.delete(id);
+    return this.getLinkedCategoryIds(userId).has(categoryId);
   }
 
-  async hasEntriesAssociated(_: string): Promise<boolean> {
+  async unlinkFromUser(userId: string, categoryId: string): Promise<void> {
+    if (this.shouldFail && this.errorToThrow) {
+      throw this.errorToThrow;
+    }
+    const ids = this.getLinkedCategoryIds(userId);
+    if (!ids.has(categoryId)) {
+      throw new Error('Category not found');
+    }
+    ids.delete(categoryId);
+  }
+
+  async hasEntriesAssociated(
+    _userId: string,
+    _categoryId: string,
+  ): Promise<boolean> {
     if (this.shouldFail && this.errorToThrow) {
       throw this.errorToThrow;
     }
     return this.hasEntriesAssociatedResult;
   }
 
-  // =================== Test Utility Methods ===================
-
-  /**
-   * Clear all categories and reset error state
-   */
   clear(): void {
     this.categories.clear();
+    this.linksByUser.clear();
     this.shouldFail = false;
     this.errorToThrow = null;
     this.hasEntriesAssociatedResult = false;
   }
 
-  /**
-   * Seed the repository with predefined categories
-   */
-  seed(categories: Category[]): void {
+  seed(categories: Category[], userId?: string): void {
     categories.forEach(category => this.categories.set(category.id, category));
+    if (userId) {
+      categories.forEach(c => this.linkUserToCategory(userId, c.id));
+    }
   }
 
-  /**
-   * Configure the stub to throw an error on next operation
-   */
   mockFailure(error: Error): void {
     this.shouldFail = true;
     this.errorToThrow = error;
   }
 
-  /**
-   * Configure the stub to operate normally
-   */
   mockSuccess(): void {
     this.shouldFail = false;
     this.errorToThrow = null;
   }
 
-  /**
-   * Get the number of categories in the stub
-   */
   getCount(): number {
     return this.categories.size;
   }
 
-  /**
-   * Check if a category exists by ID
-   */
   hasCategory(id: string): boolean {
     return this.categories.has(id);
   }
 
-  /**
-   * Simulate connection errors
-   */
   mockConnectionError(): void {
     this.mockFailure(new Error('Database connection failed'));
   }
 
   findByName(userId: string, name: string): Category | null {
     return (
-      Array.from(this.categories.values()).find(
-        c => c.userId === userId && c.name === name,
-      ) || null
+      Array.from(this.getLinkedCategoryIds(userId))
+        .map(id => this.categories.get(id))
+        .find(c => c?.name === name) || null
     );
   }
 
@@ -249,9 +256,6 @@ export class CategoryRepositoryStub implements CategoryRepository {
     return Array.from(this.categories.values());
   }
 
-  /**
-   * Mock the hasEntriesAssociated method to return a specific value
-   */
   mockHasEntriesAssociated(hasEntries: boolean): void {
     this.hasEntriesAssociatedResult = hasEntries;
   }

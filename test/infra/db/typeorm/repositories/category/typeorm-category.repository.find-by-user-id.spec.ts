@@ -15,7 +15,6 @@ describe('TypeormCategoryRepository - findByUserId', () => {
 
   const mockUserId = 'a1b2c3d4-e5f6-7890-abcd-ef1234567890';
 
-  // Mock data for testing
   const mockCategoryEntity = {
     id: 'test-id',
     name: 'Test Category',
@@ -23,19 +22,22 @@ describe('TypeormCategoryRepository - findByUserId', () => {
     type: CategoryType.INCOME,
     color: '#4CAF50',
     icon: 'work',
-    userId: mockUserId,
-    isDefault: false,
     createdAt: new Date('2023-01-01'),
     updatedAt: new Date('2023-01-01'),
     deletedAt: null,
     entries: [],
   };
 
+  const mockQueryBuilder = {
+    innerJoin: jest.fn().mockReturnThis(),
+    orderBy: jest.fn().mockReturnThis(),
+    getMany: jest.fn(),
+  };
+
   beforeEach(async () => {
     loggerSpy = new LoggerSpy();
     metricsSpy = new MetricsSpy();
 
-    // Create mock repository
     mockTypeormRepository = {
       create: jest.fn(),
       save: jest.fn(),
@@ -43,10 +45,13 @@ describe('TypeormCategoryRepository - findByUserId', () => {
       find: jest.fn(),
       update: jest.fn(),
       delete: jest.fn(),
-      softDelete: jest.fn(),
       createQueryBuilder: jest.fn(),
       count: jest.fn(),
     } as any;
+
+    mockTypeormRepository.createQueryBuilder.mockReturnValue(
+      mockQueryBuilder as any,
+    );
 
     testingModule = await Test.createTestingModule({
       providers: [
@@ -80,7 +85,6 @@ describe('TypeormCategoryRepository - findByUserId', () => {
 
   describe('findByUserId', () => {
     it('should find categories by user id successfully', async () => {
-      // Arrange
       const categories = [
         { ...mockCategoryEntity, name: 'Category 1' },
         {
@@ -89,20 +93,26 @@ describe('TypeormCategoryRepository - findByUserId', () => {
           type: CategoryType.EXPENSE,
         },
       ];
-      mockTypeormRepository.find.mockResolvedValue(categories as any);
+      mockQueryBuilder.getMany.mockResolvedValue(categories as any);
 
-      // Act
       const result = await repository.findByUserId(mockUserId);
 
-      // Assert
       expect(result).toHaveLength(2);
-      expect(result.every(cat => cat.userId === mockUserId)).toBe(true);
-      expect(mockTypeormRepository.find).toHaveBeenCalledWith({
-        where: { userId: mockUserId },
-        order: { name: 'ASC' },
-      });
+      expect(result.map(c => c.name)).toEqual(['Category 1', 'Category 2']);
+      expect(mockTypeormRepository.createQueryBuilder).toHaveBeenCalledWith(
+        'category',
+      );
+      expect(mockQueryBuilder.innerJoin).toHaveBeenCalledWith(
+        'category.users',
+        'user',
+        'user.id = :userId',
+        { userId: mockUserId },
+      );
+      expect(mockQueryBuilder.orderBy).toHaveBeenCalledWith(
+        'category.name',
+        'ASC',
+      );
 
-      // Verify metrics
       expect(metricsSpy.hasRecordedMetric('financial_transactions_total')).toBe(
         true,
       );
@@ -116,13 +126,10 @@ describe('TypeormCategoryRepository - findByUserId', () => {
     });
 
     it('should return empty array when no categories found', async () => {
-      // Arrange
-      mockTypeormRepository.find.mockResolvedValue([]);
+      mockQueryBuilder.getMany.mockResolvedValue([]);
 
-      // Act
       const result = await repository.findByUserId('non-existent-user');
 
-      // Assert
       expect(result).toEqual([]);
       expect(metricsSpy.hasRecordedMetric('financial_transactions_total')).toBe(
         true,
@@ -130,20 +137,16 @@ describe('TypeormCategoryRepository - findByUserId', () => {
     });
 
     it('should handle database errors', async () => {
-      // Arrange
       const error = new Error('Database error');
-      mockTypeormRepository.find.mockRejectedValue(error);
+      mockQueryBuilder.getMany.mockRejectedValue(error);
 
-      // Act & Assert
       await expect(repository.findByUserId(mockUserId)).rejects.toThrow();
 
-      // Verify error logging
       expect(loggerSpy.getErrorsCount()).toBeGreaterThan(0);
       expect(loggerSpy.loggedErrors[0].message).toContain(
         'Failed to find categories by userId',
       );
 
-      // Verify error metrics
       expect(metricsSpy.hasRecordedMetric('api_errors_total')).toBe(true);
       const errorMetrics = metricsSpy.getMetricsByFilter('api_errors_total');
       expect(errorMetrics[0].labels.endpoint).toBe(
@@ -152,7 +155,7 @@ describe('TypeormCategoryRepository - findByUserId', () => {
     });
 
     it('should log and rethrow on error', async () => {
-      mockTypeormRepository.find.mockRejectedValue('err');
+      mockQueryBuilder.getMany.mockRejectedValue('err');
       await expect(repository.findByUserId('u')).rejects.toBe('err');
       expect(loggerSpy.getErrorsCount()).toBeGreaterThan(0);
       expect(metricsSpy.hasRecordedMetric('api_errors_total')).toBe(true);
@@ -166,25 +169,22 @@ describe('TypeormCategoryRepository - findByUserId', () => {
         type: CategoryType.EXPENSE,
         color: '#000',
         icon: 'i',
-        userId: 'user-1',
-        isDefault: false,
         createdAt: new Date('2023-01-01'),
         updatedAt: new Date('2023-01-01'),
         deletedAt: null as any,
         entries: [],
       } as any;
 
-      // Create repository without metrics
       const repositoryWithoutMetrics = new TypeormCategoryRepository(
         mockTypeormRepository,
         loggerSpy,
         undefined as any,
       );
 
-      mockTypeormRepository.find.mockResolvedValue([baseEntity] as any);
+      mockQueryBuilder.getMany.mockResolvedValue([baseEntity] as any);
       const result = await repositoryWithoutMetrics.findByUserId('user-1');
       expect(result).toHaveLength(1);
-      expect(result[0]).toMatchObject({ id: 'id1', userId: 'user-1' });
+      expect(result[0]).toMatchObject({ id: 'id1', name: 'Name' });
     });
   });
 });

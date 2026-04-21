@@ -46,7 +46,6 @@ describe('DbAddEntryUseCase', () => {
       id: 'valid-category-id',
       name: 'Salary',
       type: CategoryType.INCOME,
-      userId: 'valid-user-id',
     });
 
     const mockRequest = MockEntryFactory.createAddRequest({
@@ -62,7 +61,7 @@ describe('DbAddEntryUseCase', () => {
     it('should create an entry successfully', async () => {
       // Arrange
       userRepositoryStub.seed([mockUser]);
-      categoryRepositoryStub.seed([mockCategory]);
+      categoryRepositoryStub.seed([mockCategory], mockUser.id);
 
       // Act
       const result = await sut.execute(mockRequest);
@@ -82,7 +81,7 @@ describe('DbAddEntryUseCase', () => {
 
     it('should throw error if user not found', async () => {
       // Arrange
-      categoryRepositoryStub.seed([mockCategory]);
+      categoryRepositoryStub.seed([mockCategory], mockUser.id);
       // User not seeded - simulates user not found
 
       // Act & Assert
@@ -106,12 +105,11 @@ describe('DbAddEntryUseCase', () => {
       // Arrange
       const categoryFromOtherUser = MockCategoryFactory.create({
         id: 'valid-category-id',
-        userId: 'other-user-id',
         name: 'Other User Category',
       });
 
       userRepositoryStub.seed([mockUser]);
-      categoryRepositoryStub.seed([categoryFromOtherUser]);
+      categoryRepositoryStub.seed([categoryFromOtherUser], 'other-user-id');
 
       // Act & Assert
       await expect(sut.execute(mockRequest)).rejects.toThrow(
@@ -207,7 +205,7 @@ describe('DbAddEntryUseCase', () => {
     it('should handle repository errors', async () => {
       // Arrange
       userRepositoryStub.seed([mockUser]);
-      categoryRepositoryStub.seed([mockCategory]);
+      categoryRepositoryStub.seed([mockCategory], mockUser.id);
       entryRepositoryStub.mockConnectionError();
 
       // Act & Assert
@@ -240,7 +238,7 @@ describe('DbAddEntryUseCase', () => {
     it('should create multiple entries with different IDs', async () => {
       // Arrange
       userRepositoryStub.seed([mockUser]);
-      categoryRepositoryStub.seed([mockCategory]);
+      categoryRepositoryStub.seed([mockCategory], mockUser.id);
 
       const request1 = MockEntryFactory.createAddRequest({
         ...mockRequest,
@@ -265,7 +263,7 @@ describe('DbAddEntryUseCase', () => {
     it('should create entry with correct timestamps', async () => {
       // Arrange
       userRepositoryStub.seed([mockUser]);
-      categoryRepositoryStub.seed([mockCategory]);
+      categoryRepositoryStub.seed([mockCategory], mockUser.id);
       const beforeExecution = new Date();
 
       // Act

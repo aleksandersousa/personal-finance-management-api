@@ -40,7 +40,6 @@ describe('DbUpdateEntryUseCase', () => {
       const user = MockUserFactory.create({ id: existingEntry.userId });
       const category = MockCategoryFactory.create({
         id: 'category-456',
-        userId: existingEntry.userId,
       });
       const updateRequest = MockEntryFactory.createUpdateRequest({
         id: existingEntry.id,
@@ -50,7 +49,7 @@ describe('DbUpdateEntryUseCase', () => {
 
       entryRepositoryStub.seed([existingEntry]);
       userRepositoryStub.seed([user]);
-      categoryRepositoryStub.seed([category]);
+      categoryRepositoryStub.seed([category], existingEntry.userId);
 
       // Act
       const result = await useCase.execute(updateRequest);
@@ -177,7 +176,6 @@ describe('DbUpdateEntryUseCase', () => {
       const user = MockUserFactory.create({ id: existingEntry.userId });
       const category = MockCategoryFactory.create({
         id: 'category-456',
-        userId: 'different-user',
       });
       const updateRequest = MockEntryFactory.createUpdateRequest({
         id: existingEntry.id,
@@ -187,7 +185,7 @@ describe('DbUpdateEntryUseCase', () => {
 
       entryRepositoryStub.seed([existingEntry]);
       userRepositoryStub.seed([user]);
-      categoryRepositoryStub.seed([category]);
+      categoryRepositoryStub.seed([category], 'different-user');
 
       // Act & Assert
       await expect(useCase.execute(updateRequest)).rejects.toThrow(

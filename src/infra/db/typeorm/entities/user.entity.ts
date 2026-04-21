@@ -2,6 +2,8 @@ import {
   Column,
   CreateDateColumn,
   Entity,
+  JoinTable,
+  ManyToMany,
   OneToMany,
   OneToOne,
   PrimaryGeneratedColumn,
@@ -13,7 +15,6 @@ import { TABLE_NAMES } from '@/domain/constants';
 import { PasswordResetTokenEntity } from './password-reset-token.entity';
 import { NotificationEntity } from './notification.entity';
 import { UserSettingEntity } from './user-setting.entity';
-import { UserCategoryEntity } from './user-category.entity';
 import { CategoryEntity } from './category.entity';
 
 @Entity(TABLE_NAMES.USERS)
@@ -42,16 +43,19 @@ export class UserEntity {
   @OneToMany(() => NotificationEntity, notification => notification.user)
   notifications?: NotificationEntity[];
 
-  categories?: CategoryEntity[];
+  @ManyToMany(() => CategoryEntity, category => category.users)
+  @JoinTable({
+    name: TABLE_NAMES.USER_CATEGORIES,
+    joinColumn: { name: 'id_user', referencedColumnName: 'id' },
+    inverseJoinColumn: { name: 'id_category', referencedColumnName: 'id' },
+  })
+  categories: CategoryEntity[];
 
   @OneToMany(() => EmailVerificationTokenEntity, token => token.user)
   emailVerificationTokens?: EmailVerificationTokenEntity[];
 
   @OneToMany(() => PasswordResetTokenEntity, token => token.user)
   passwordResetTokens?: PasswordResetTokenEntity[];
-
-  @OneToMany(() => UserCategoryEntity, userCategory => userCategory.user)
-  userCategories?: UserCategoryEntity[];
 
   @OneToOne(() => UserSettingEntity, setting => setting.user)
   userSetting?: UserSettingEntity;
