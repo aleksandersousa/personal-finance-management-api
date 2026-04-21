@@ -78,7 +78,6 @@ describe('TypeormNotificationRepository', () => {
         sentAt: null,
         createdAt: new Date('2024-01-01'),
         updatedAt: new Date('2024-01-01'),
-        deletedAt: null,
         entry: null,
         user: null,
       };
@@ -98,6 +97,7 @@ describe('TypeormNotificationRepository', () => {
         entryId: 'entry-123',
         userId: 'user-123',
         scheduledAt: createData.scheduledAt,
+        sentAt: null,
         jobId: null,
         status: NotificationStatus.PENDING,
       });
@@ -150,10 +150,9 @@ describe('TypeormNotificationRepository', () => {
         scheduledAt: new Date('2024-01-15T10:00:00Z'),
         jobId: 'job-123',
         status: NotificationStatus.PENDING,
-        sentAt: null,
+        sentAt: new Date('2024-01-15T10:00:00Z'),
         createdAt: new Date('2024-01-01'),
         updatedAt: new Date('2024-01-01'),
-        deletedAt: null,
         entry: null,
         user: null,
       };
@@ -194,10 +193,9 @@ describe('TypeormNotificationRepository', () => {
         scheduledAt: new Date('2024-01-15T10:00:00Z'),
         jobId: 'job-123',
         status: NotificationStatus.PENDING,
-        sentAt: null,
+        sentAt: new Date('2024-01-15T10:00:00Z'),
         createdAt: new Date('2024-01-01'),
         updatedAt: new Date('2024-01-01'),
-        deletedAt: null,
         entry: null,
         user: null,
       };
@@ -242,7 +240,6 @@ describe('TypeormNotificationRepository', () => {
         sentAt: new Date('2024-01-15T10:00:00Z'),
         createdAt: new Date('2024-01-01'),
         updatedAt: new Date('2024-01-01'),
-        deletedAt: null,
         entry: null,
         user: null,
       };
@@ -295,10 +292,9 @@ describe('TypeormNotificationRepository', () => {
         scheduledAt: new Date('2024-01-15T10:00:00Z'),
         jobId: 'job-456',
         status: NotificationStatus.PENDING,
-        sentAt: null,
+        sentAt: new Date('2024-01-15T10:00:00Z'),
         createdAt: new Date('2024-01-01'),
         updatedAt: new Date('2024-01-01'),
-        deletedAt: null,
         entry: null,
         user: null,
       };

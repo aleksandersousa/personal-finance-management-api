@@ -32,8 +32,8 @@ export class NotificationEntity {
   @Column({ type: 'varchar' })
   status: NotificationStatus;
 
-  @Column({ name: 'job_id' })
-  jobId: string;
+  @Column({ name: 'job_id', nullable: true })
+  jobId: string | null;
 
   @ManyToOne(() => EntryEntity)
   @JoinColumn({ name: 'id_entry' })
@@ -48,6 +48,4 @@ export class NotificationEntity {
 
   @UpdateDateColumn({ name: 'updated_at' })
   updatedAt: Date;
-
-  deletedAt?: Date | null;
 }

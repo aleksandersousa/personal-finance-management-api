@@ -270,7 +270,7 @@ export class ModernizeDataModel1772000000000 implements MigrationInterface {
         "id" uuid PRIMARY KEY DEFAULT public.uuid_generate_v4(),
         "id_user" uuid NOT NULL,
         "id_entry" uuid NOT NULL,
-        "job_id" varchar NOT NULL,
+        "job_id" varchar NULL,
         "status" varchar NOT NULL,
         "scheduled_at" timestamp NOT NULL,
         "sent_at" timestamp NULL,

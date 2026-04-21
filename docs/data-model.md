@@ -68,10 +68,10 @@ Indexes/constraints:
 - `id` uuid **PK** not null
 - `id_user` uuid **FK -> users.id** not null
 - `id_entry` uuid **FK -> entries.id** not null
-- `job_id` varchar not null
+- `job_id` varchar null
 - `status` varchar not null
 - `scheduled_at` timestamp not null
-- `sent_at` timestamp not null
+- `sent_at` timestamp null
 - `created_at` timestamp not null
 - `updated_at` timestamp not null
 
