@@ -36,7 +36,10 @@ describe('DbToggleEntryPaymentStatusUseCase', () => {
       update: jest.fn(),
     };
 
-    sut = new DbToggleEntryPaymentStatusUseCase(entryRepository, userRepository);
+    sut = new DbToggleEntryPaymentStatusUseCase(
+      entryRepository,
+      userRepository,
+    );
   });
 
   it('throws when userId is missing', async () => {

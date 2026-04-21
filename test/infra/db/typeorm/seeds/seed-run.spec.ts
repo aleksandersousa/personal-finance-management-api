@@ -2,7 +2,9 @@ describe('seed-run', () => {
   const initializeMock = jest.fn();
   const destroyMock = jest.fn();
   const seedRecurrencesMock = jest.fn();
-  const errorSpy = jest.spyOn(console, 'error').mockImplementation(() => undefined);
+  const errorSpy = jest
+    .spyOn(console, 'error')
+    .mockImplementation(() => undefined);
   const originalExit = process.exit;
 
   beforeEach(() => {

@@ -195,13 +195,17 @@ describe('TypeormEntryRepository', () => {
   });
 
   it('finds recurrence id by type and returns null when missing', async () => {
-    mockRecurrenceRepository.findOne.mockResolvedValueOnce({ id: 'rec-1' } as any);
+    mockRecurrenceRepository.findOne.mockResolvedValueOnce({
+      id: 'rec-1',
+    } as any);
     mockRecurrenceRepository.findOne.mockResolvedValueOnce(null);
 
     await expect(repository.findRecurrenceIdByType('MONTHLY')).resolves.toBe(
       'rec-1',
     );
-    await expect(repository.findRecurrenceIdByType('WEEKLY')).resolves.toBeNull();
+    await expect(
+      repository.findRecurrenceIdByType('WEEKLY'),
+    ).resolves.toBeNull();
   });
 
   it('finds entry by id and maps nested fields', async () => {
@@ -357,20 +361,37 @@ describe('TypeormEntryRepository', () => {
 
   it('computes monthly summary stats for fixed and dynamic entries', async () => {
     const entries = [
-      { ...makeEntryEntity({ amount: 1500, recurrenceId: 'r1' }), category: { type: 'INCOME' } },
-      { ...makeEntryEntity({ id: 'i2', amount: 500, recurrenceId: null }), category: { type: 'INCOME' } },
+      {
+        ...makeEntryEntity({ amount: 1500, recurrenceId: 'r1' }),
+        category: { type: 'INCOME' },
+      },
+      {
+        ...makeEntryEntity({ id: 'i2', amount: 500, recurrenceId: null }),
+        category: { type: 'INCOME' },
+      },
       {
         ...makeEntryEntity({ id: 'e1', amount: 200, recurrenceId: 'r2' }),
         category: { type: 'EXPENSE' },
-        payment: { id: 'p1', entryId: 'e1', amount: 200, createdAt: new Date() },
+        payment: {
+          id: 'p1',
+          entryId: 'e1',
+          amount: 200,
+          createdAt: new Date(),
+        },
       },
       {
         ...makeEntryEntity({ id: 'e2', amount: 90, recurrenceId: null }),
         category: { type: 'EXPENSE' },
         payment: { id: 'p2', entryId: 'e2', amount: 90, createdAt: new Date() },
       },
-      { ...makeEntryEntity({ id: 'e3', amount: 70, recurrenceId: 'r3' }), category: { type: 'EXPENSE' } },
-      { ...makeEntryEntity({ id: 'e4', amount: 30, recurrenceId: null }), category: { type: 'EXPENSE' } },
+      {
+        ...makeEntryEntity({ id: 'e3', amount: 70, recurrenceId: 'r3' }),
+        category: { type: 'EXPENSE' },
+      },
+      {
+        ...makeEntryEntity({ id: 'e4', amount: 30, recurrenceId: null }),
+        category: { type: 'EXPENSE' },
+      },
     ] as any;
     jest.spyOn(repository, 'findByUserIdAndMonth').mockResolvedValue(entries);
 
@@ -409,12 +430,21 @@ describe('TypeormEntryRepository', () => {
         payment: { id: 'p2', entryId: '4', amount: 40, createdAt: new Date() },
       },
       {
-        ...makeEntryEntity({ id: '5', amount: 20, categoryId: null as any, category: null as any }),
+        ...makeEntryEntity({
+          id: '5',
+          amount: 20,
+          categoryId: null as any,
+          category: null as any,
+        }),
       },
     ] as any;
     jest.spyOn(repository, 'findByUserIdAndMonth').mockResolvedValue(entries);
 
-    const result = await repository.getCategorySummaryForMonth('user-1', 2026, 2);
+    const result = await repository.getCategorySummaryForMonth(
+      'user-1',
+      2026,
+      2,
+    );
 
     expect(result.allItems).toHaveLength(3);
     expect(result.items.length).toBeLessThanOrEqual(3);
@@ -427,18 +457,37 @@ describe('TypeormEntryRepository', () => {
 
   it('returns fixed entries summary and current balance', async () => {
     jest.spyOn(repository, 'findByUserId').mockResolvedValue([
-      { ...makeEntryEntity({ amount: 1000, recurrenceId: 'r1' }), category: { type: 'INCOME' } },
+      {
+        ...makeEntryEntity({ amount: 1000, recurrenceId: 'r1' }),
+        category: { type: 'INCOME' },
+      },
       {
         ...makeEntryEntity({ id: 'e1', amount: 400, recurrenceId: 'r2' }),
         category: { type: 'EXPENSE' },
-        payment: { id: 'p1', entryId: 'e1', amount: 400, createdAt: new Date() },
+        payment: {
+          id: 'p1',
+          entryId: 'e1',
+          amount: 400,
+          createdAt: new Date(),
+        },
       },
-      { ...makeEntryEntity({ id: 'e2', amount: 250, recurrenceId: 'r3' }), category: { type: 'EXPENSE' } },
-      { ...makeEntryEntity({ id: 'e3', amount: 500, recurrenceId: null }), category: { type: 'INCOME' } },
+      {
+        ...makeEntryEntity({ id: 'e2', amount: 250, recurrenceId: 'r3' }),
+        category: { type: 'EXPENSE' },
+      },
+      {
+        ...makeEntryEntity({ id: 'e3', amount: 500, recurrenceId: null }),
+        category: { type: 'INCOME' },
+      },
       {
         ...makeEntryEntity({ id: 'e4', amount: 120, recurrenceId: null }),
         category: { type: 'EXPENSE' },
-        payment: { id: 'p2', entryId: 'e4', amount: 120, createdAt: new Date() },
+        payment: {
+          id: 'p2',
+          entryId: 'e4',
+          amount: 120,
+          createdAt: new Date(),
+        },
       },
     ] as any);
 
@@ -463,9 +512,10 @@ describe('TypeormEntryRepository', () => {
       addGroupBy: jest.fn().mockReturnThis(),
       orderBy: jest.fn().mockReturnThis(),
       addOrderBy: jest.fn().mockReturnThis(),
-      getRawMany: jest
-        .fn()
-        .mockResolvedValue([{ year: '2026', month: '2' }, { year: '2025', month: '12' }]),
+      getRawMany: jest.fn().mockResolvedValue([
+        { year: '2026', month: '2' },
+        { year: '2025', month: '12' },
+      ]),
     };
     mockRepository.createQueryBuilder.mockReturnValue(queryBuilder as any);
 
@@ -480,16 +530,33 @@ describe('TypeormEntryRepository', () => {
   it('computes accumulated stats including previous unpaid expenses', async () => {
     jest.spyOn(repository, 'findByUserId').mockResolvedValue([
       {
-        ...makeEntryEntity({ id: 'income-1', amount: 1000, dueDate: new Date('2026-02-05') }),
+        ...makeEntryEntity({
+          id: 'income-1',
+          amount: 1000,
+          dueDate: new Date('2026-02-05'),
+        }),
         category: { type: 'INCOME' },
       },
       {
-        ...makeEntryEntity({ id: 'expense-paid', amount: 250, dueDate: new Date('2026-02-10') }),
+        ...makeEntryEntity({
+          id: 'expense-paid',
+          amount: 250,
+          dueDate: new Date('2026-02-10'),
+        }),
         category: { type: 'EXPENSE' },
-        payment: { id: 'p1', entryId: 'expense-paid', amount: 250, createdAt: new Date() },
+        payment: {
+          id: 'p1',
+          entryId: 'expense-paid',
+          amount: 250,
+          createdAt: new Date(),
+        },
       },
       {
-        ...makeEntryEntity({ id: 'expense-old-unpaid', amount: 70, dueDate: new Date('2026-01-20') }),
+        ...makeEntryEntity({
+          id: 'expense-old-unpaid',
+          amount: 70,
+          dueDate: new Date('2026-01-20'),
+        }),
         category: { type: 'EXPENSE' },
       },
       {
@@ -511,14 +578,21 @@ describe('TypeormEntryRepository', () => {
   });
 
   it('updates entry and throws when updated record does not exist', async () => {
-    const updatedEntity = makeEntryEntity({ id: 'entry-1', description: 'Updated' });
+    const updatedEntity = makeEntryEntity({
+      id: 'entry-1',
+      description: 'Updated',
+    });
     mockRepository.update.mockResolvedValue({} as any);
-    mockRepository.findOne.mockResolvedValueOnce(updatedEntity).mockResolvedValueOnce(null);
+    mockRepository.findOne
+      .mockResolvedValueOnce(updatedEntity)
+      .mockResolvedValueOnce(null);
 
-    const updated = await repository.update('entry-1', { description: 'Updated' });
-    await expect(repository.update('entry-1', { description: 'Missing' })).rejects.toThrow(
-      'Entry not found',
-    );
+    const updated = await repository.update('entry-1', {
+      description: 'Updated',
+    });
+    await expect(
+      repository.update('entry-1', { description: 'Missing' }),
+    ).rejects.toThrow('Entry not found');
 
     expect(updated.description).toBe('Updated');
   });
@@ -530,17 +604,30 @@ describe('TypeormEntryRepository', () => {
       .mockResolvedValueOnce(makeEntryEntity({ userId: 'other-user' }))
       .mockResolvedValueOnce(
         makeEntryEntity({
-          payment: { id: 'p1', entryId: 'entry-1', amount: 100, createdAt } as any,
+          payment: {
+            id: 'p1',
+            entryId: 'entry-1',
+            amount: 100,
+            createdAt,
+          } as any,
         }),
       )
       .mockResolvedValueOnce(makeEntryEntity({ payment: null }))
       .mockResolvedValueOnce(
         makeEntryEntity({
-          payment: { id: 'p2', entryId: 'entry-1', amount: 100, createdAt } as any,
+          payment: {
+            id: 'p2',
+            entryId: 'entry-1',
+            amount: 100,
+            createdAt,
+          } as any,
         }),
       )
       .mockResolvedValueOnce(makeEntryEntity({ payment: null }));
-    mockPaymentRepository.create.mockReturnValue({ entryId: 'entry-1', amount: 100 } as any);
+    mockPaymentRepository.create.mockReturnValue({
+      entryId: 'entry-1',
+      amount: 100,
+    } as any);
     mockPaymentRepository.save.mockResolvedValue({ createdAt } as any);
 
     await expect(
@@ -562,7 +649,9 @@ describe('TypeormEntryRepository', () => {
       repository.togglePaymentStatus('user-1', 'entry-1', false),
     ).resolves.toEqual({ entryId: 'entry-1', isPaid: false, paidAt: null });
 
-    expect(mockPaymentRepository.delete).toHaveBeenCalledWith({ entryId: 'entry-1' });
+    expect(mockPaymentRepository.delete).toHaveBeenCalledWith({
+      entryId: 'entry-1',
+    });
     expect(mockPaymentRepository.create).toHaveBeenCalledWith({
       entryId: 'entry-1',
       amount: 100,
@@ -571,7 +660,9 @@ describe('TypeormEntryRepository', () => {
 
   it('throws when deleting missing entry and soft deletes when existing', async () => {
     mockRepository.delete.mockResolvedValueOnce({ affected: 0 } as any);
-    await expect(repository.delete('missing')).rejects.toThrow('Entry not found');
+    await expect(repository.delete('missing')).rejects.toThrow(
+      'Entry not found',
+    );
 
     mockRepository.delete.mockResolvedValueOnce({ affected: 1 } as any);
     const deletedAt = await repository.softDelete('entry-1');
@@ -580,6 +671,9 @@ describe('TypeormEntryRepository', () => {
     expect(mockLogger.logBusinessEvent).toHaveBeenCalledWith(
       expect.objectContaining({ event: 'entry_deleted', entityId: 'entry-1' }),
     );
-    expect(mockMetrics.recordTransaction).toHaveBeenCalledWith('delete', 'success');
+    expect(mockMetrics.recordTransaction).toHaveBeenCalledWith(
+      'delete',
+      'success',
+    );
   });
 });

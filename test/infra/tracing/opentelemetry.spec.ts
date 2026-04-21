@@ -69,7 +69,8 @@ describe('opentelemetry tracing', () => {
 
   it('does not start twice and supports no-op shutdown', async () => {
     process.env.TRACING_ENABLED = 'true';
-    process.env.OTEL_EXPORTER_OTLP_ENDPOINT = 'http://custom-endpoint/v1/traces';
+    process.env.OTEL_EXPORTER_OTLP_ENDPOINT =
+      'http://custom-endpoint/v1/traces';
     process.env.OTEL_SERVICE_NAME = 'custom-service';
     process.env.NODE_ENV = 'production';
     const tracing = await loadModule();
