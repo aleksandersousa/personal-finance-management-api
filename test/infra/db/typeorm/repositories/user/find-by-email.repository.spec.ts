@@ -103,9 +103,9 @@ describe('TypeormUserRepository - Find By Email', () => {
         new Error('Database connection failed'),
       );
 
-      await expect(
-        repository.findByEmail('john@example.com'),
-      ).rejects.toThrow('Database connection failed');
+      await expect(repository.findByEmail('john@example.com')).rejects.toThrow(
+        'Database connection failed',
+      );
     });
   });
 });

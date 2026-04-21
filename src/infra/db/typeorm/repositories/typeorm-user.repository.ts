@@ -59,10 +59,18 @@ export class TypeormUserRepository implements UserRepository {
 
   async update(id: string, data: Partial<UserModel>): Promise<UserModel> {
     const userPayload: Partial<UserEntity> = {};
-    if (data.name !== undefined) userPayload.name = data.name;
-    if (data.email !== undefined) userPayload.email = data.email;
-    if (data.password !== undefined) userPayload.password = data.password;
-    if (data.avatarUrl !== undefined) userPayload.avatarUrl = data.avatarUrl;
+    if (data.name !== undefined) {
+      userPayload.name = data.name;
+    }
+    if (data.email !== undefined) {
+      userPayload.email = data.email;
+    }
+    if (data.password !== undefined) {
+      userPayload.password = data.password;
+    }
+    if (data.avatarUrl !== undefined) {
+      userPayload.avatarUrl = data.avatarUrl;
+    }
     if (data.emailVerified !== undefined) {
       userPayload.emailVerified = data.emailVerified;
     }
@@ -88,10 +96,7 @@ export class TypeormUserRepository implements UserRepository {
     }
 
     if (Object.keys(settingsPayload).length > 0) {
-      await this.userSettingRepository.update(
-        { userId: id },
-        settingsPayload,
-      );
+      await this.userSettingRepository.update({ userId: id }, settingsPayload);
     }
 
     const updatedUser = await this.userRepository.findOne({
