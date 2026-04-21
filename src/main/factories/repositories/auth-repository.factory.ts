@@ -1,10 +1,11 @@
 import { TypeormUserRepository } from '@infra/db/typeorm/repositories/typeorm-user.repository';
 import { UserEntity } from '@infra/db/typeorm/entities/user.entity';
+import { UserSettingEntity } from '@infra/db/typeorm/entities/user-setting.entity';
 import { Repository } from 'typeorm';
 
-// Factory para criar o repositório TypeORM
 export const makeUserRepository = (
-  repository: Repository<UserEntity>,
+  userRepository: Repository<UserEntity>,
+  userSettingRepository: Repository<UserSettingEntity>,
 ): TypeormUserRepository => {
-  return new TypeormUserRepository(repository);
+  return new TypeormUserRepository(userRepository, userSettingRepository);
 };

@@ -4,6 +4,7 @@ import { SummaryController } from '@presentation/controllers/summary.controller'
 import { EntryEntity } from '@infra/db/typeorm/entities/entry.entity';
 import { EntryMonthlyPaymentEntity } from '@infra/db/typeorm/entities/entry-monthly-payment.entity';
 import { UserEntity } from '@infra/db/typeorm/entities/user.entity';
+import { UserSettingEntity } from '@infra/db/typeorm/entities/user-setting.entity';
 import { TypeormEntryRepository } from '@infra/db/typeorm/repositories/typeorm-entry.repository';
 import { TypeormUserRepository } from '@infra/db/typeorm/repositories/typeorm-user.repository';
 import { ContextAwareLoggerService } from '@infra/logging/context-aware-logger.service';
@@ -16,6 +17,7 @@ import { makeGetMonthlySummaryFactory } from '@main/factories/usecases/summary/m
       EntryEntity,
       EntryMonthlyPaymentEntity,
       UserEntity,
+      UserSettingEntity,
     ]),
   ],
   controllers: [SummaryController],

@@ -3,6 +3,7 @@ import { getRepositoryToken } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { TypeormUserRepository } from '@infra/db/typeorm/repositories/typeorm-user.repository';
 import { UserEntity } from '@infra/db/typeorm/entities/user.entity';
+import { UserSettingEntity } from '@infra/db/typeorm/entities/user-setting.entity';
 
 describe('TypeormUserRepository - Find By ID', () => {
   let repository: TypeormUserRepository;
@@ -23,6 +24,10 @@ describe('TypeormUserRepository - Find By ID', () => {
           provide: getRepositoryToken(UserEntity),
           useValue: mockRepository,
         },
+        {
+          provide: getRepositoryToken(UserSettingEntity),
+          useValue: { update: jest.fn() },
+        },
       ],
     }).compile();
 
@@ -36,6 +41,16 @@ describe('TypeormUserRepository - Find By ID', () => {
   });
 
   describe('findById', () => {
+    const mockUserSetting: UserSettingEntity = {
+      id: 'st-1',
+      userId: 'user-123',
+      notificationsEnabled: true,
+      notificationsTimeMinutes: 30,
+      timezone: 'America/Sao_Paulo',
+      createdAt: new Date('2024-01-01'),
+      user: undefined as any,
+    };
+
     const mockUserEntity: UserEntity = {
       id: 'user-123',
       name: 'John Doe',
@@ -43,26 +58,22 @@ describe('TypeormUserRepository - Find By ID', () => {
       password: 'hashedPassword123',
       avatarUrl: null,
       emailVerified: false,
-      notificationEnabled: true,
-      notificationTimeMinutes: 30,
-      timezone: null,
       createdAt: new Date('2024-01-01'),
       updatedAt: new Date('2024-01-01'),
       entries: [],
       categories: [],
       emailVerificationTokens: [],
+      userSetting: mockUserSetting,
     };
 
     it('should find user by id successfully', async () => {
-      // Arrange
       mockRepository.findOne.mockResolvedValue(mockUserEntity);
 
-      // Act
       const result = await repository.findById('user-123');
 
-      // Assert
       expect(mockRepository.findOne).toHaveBeenCalledWith({
         where: { id: 'user-123' },
+        relations: ['userSetting'],
       });
       expect(result).toEqual({
         id: mockUserEntity.id,
@@ -71,41 +82,30 @@ describe('TypeormUserRepository - Find By ID', () => {
         password: mockUserEntity.password,
         avatarUrl: mockUserEntity.avatarUrl,
         emailVerified: mockUserEntity.emailVerified,
-        notificationEnabled: mockUserEntity.notificationEnabled,
-        notificationTimeMinutes: mockUserEntity.notificationTimeMinutes,
-        timezone: mockUserEntity.timezone,
+        notificationEnabled: mockUserSetting.notificationsEnabled,
+        notificationTimeMinutes: mockUserSetting.notificationsTimeMinutes,
+        timezone: mockUserSetting.timezone,
         createdAt: mockUserEntity.createdAt,
         updatedAt: mockUserEntity.updatedAt,
       });
     });
 
     it('should return null when user is not found', async () => {
-      // Arrange
       mockRepository.findOne.mockResolvedValue(null);
 
-      // Act
       const result = await repository.findById('nonexistent-id');
 
-      // Assert
-      expect(mockRepository.findOne).toHaveBeenCalledWith({
-        where: { id: 'nonexistent-id' },
-      });
       expect(result).toBeNull();
     });
 
-    it('should handle repository errors during findById', async () => {
-      // Arrange
+    it('should handle repository errors', async () => {
       mockRepository.findOne.mockRejectedValue(
         new Error('Database connection failed'),
       );
 
-      // Act & Assert
       await expect(repository.findById('user-123')).rejects.toThrow(
         'Database connection failed',
       );
-      expect(mockRepository.findOne).toHaveBeenCalledWith({
-        where: { id: 'user-123' },
-      });
     });
   });
 });

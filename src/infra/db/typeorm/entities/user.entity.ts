@@ -3,6 +3,7 @@ import {
   CreateDateColumn,
   Entity,
   OneToMany,
+  OneToOne,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
@@ -35,12 +36,6 @@ export class UserEntity {
   @Column({ name: 'email_verified', type: 'boolean', default: false })
   emailVerified: boolean;
 
-  notificationEnabled?: boolean;
-
-  notificationTimeMinutes?: number;
-
-  timezone?: string;
-
   @OneToMany(() => EntryEntity, entry => entry.user)
   entries?: EntryEntity[];
 
@@ -58,8 +53,8 @@ export class UserEntity {
   @OneToMany(() => UserCategoryEntity, userCategory => userCategory.user)
   userCategories?: UserCategoryEntity[];
 
-  @OneToMany(() => UserSettingEntity, settings => settings.user)
-  settings?: UserSettingEntity[];
+  @OneToOne(() => UserSettingEntity, setting => setting.user)
+  userSetting?: UserSettingEntity;
 
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;

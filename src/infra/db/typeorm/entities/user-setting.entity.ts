@@ -3,7 +3,7 @@ import {
   CreateDateColumn,
   Entity,
   JoinColumn,
-  ManyToOne,
+  OneToOne,
   PrimaryGeneratedColumn,
 } from 'typeorm';
 import { TABLE_NAMES } from '@/domain/constants';
@@ -29,7 +29,7 @@ export class UserSettingEntity {
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;
 
-  @ManyToOne(() => UserEntity, user => user.settings, { onDelete: 'CASCADE' })
+  @OneToOne(() => UserEntity, user => user.userSetting, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'id_user' })
   user: UserEntity;
 }

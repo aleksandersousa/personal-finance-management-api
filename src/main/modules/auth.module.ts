@@ -5,6 +5,7 @@ import { PassportModule } from '@nestjs/passport';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { AuthController } from '@presentation/controllers';
 import { UserEntity } from '@infra/db/typeorm/entities/user.entity';
+import { UserSettingEntity } from '@infra/db/typeorm/entities/user-setting.entity';
 import { EmailVerificationTokenEntity } from '@infra/db/typeorm/entities/email-verification-token.entity';
 import { PasswordResetTokenEntity } from '@infra/db/typeorm/entities/password-reset-token.entity';
 import {
@@ -35,6 +36,7 @@ import { EmailModule } from './email.module';
   imports: [
     TypeOrmModule.forFeature([
       UserEntity,
+      UserSettingEntity,
       EmailVerificationTokenEntity,
       PasswordResetTokenEntity,
     ]),
@@ -54,7 +56,10 @@ import { EmailModule } from './email.module';
     {
       provide: 'UserRepository',
       useFactory: makeUserRepository,
-      inject: [getRepositoryToken(UserEntity)],
+      inject: [
+        getRepositoryToken(UserEntity),
+        getRepositoryToken(UserSettingEntity),
+      ],
     },
     {
       provide: 'EmailVerificationTokenRepository',

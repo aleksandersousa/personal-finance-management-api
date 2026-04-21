@@ -6,9 +6,7 @@ type SeedTask = {
   run: () => Promise<void>;
 };
 
-const seeds: SeedTask[] = [
-  { name: 'recurrences', run: seedRecurrences },
-];
+const seeds: SeedTask[] = [{ name: 'recurrences', run: seedRecurrences }];
 
 async function runAllSeeds(): Promise<void> {
   await AppDataSource.initialize();
