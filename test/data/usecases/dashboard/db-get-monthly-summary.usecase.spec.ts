@@ -12,11 +12,14 @@ describe('DbGetMonthlySummaryUseCase', () => {
 
   beforeEach(() => {
     mockEntryRepository = {
+      findRecurrenceIdByType: jest.fn(),
       create: jest.fn(),
       findById: jest.fn(),
       findByUserId: jest.fn(),
       findByUserIdAndMonth: jest.fn(),
       findByUserIdAndMonthWithFilters: jest.fn(),
+      findMonthlyRecurringEntriesInRange: jest.fn(),
+      existsMonthlyMirroredEntry: jest.fn(),
       getMonthlySummaryStats: jest.fn(),
       getCategorySummaryForMonth: jest.fn(),
       getFixedEntriesSummary: jest.fn(),
@@ -24,11 +27,9 @@ describe('DbGetMonthlySummaryUseCase', () => {
       getDistinctMonthsYears: jest.fn(),
       getAccumulatedStats: jest.fn(),
       update: jest.fn(),
+      togglePaymentStatus: jest.fn(),
       delete: jest.fn(),
       softDelete: jest.fn(),
-      setMonthlyPaymentStatus: jest.fn(),
-      getMonthlyPaymentStatus: jest.fn(),
-      deleteMonthlyPaymentStatuses: jest.fn(),
     };
 
     mockUserRepository = {

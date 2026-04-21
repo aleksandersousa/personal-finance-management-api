@@ -4,11 +4,13 @@ import { EntryEntity } from '@infra/db/typeorm/entities/entry.entity';
 import { PaymentEntity } from '@infra/db/typeorm/entities/payment.entity';
 import { ContextAwareLoggerService } from '@infra/logging/context-aware-logger.service';
 import { FinancialMetricsService } from '@infra/metrics/financial-metrics.service';
+import { RecurrenceEntity } from '@infra/db/typeorm/entities/recurrence.entity';
 
 describe('TypeormEntryRepository', () => {
   let repository: TypeormEntryRepository;
   let mockRepository: jest.Mocked<Repository<EntryEntity>>;
   let mockPaymentRepository: jest.Mocked<Repository<PaymentEntity>>;
+  let mockRecurrenceRepository: jest.Mocked<Repository<RecurrenceEntity>>;
   let mockLogger: jest.Mocked<ContextAwareLoggerService>;
   let mockMetrics: jest.Mocked<FinancialMetricsService>;
 
@@ -28,6 +30,10 @@ describe('TypeormEntryRepository', () => {
       create: jest.fn(),
       save: jest.fn(),
       delete: jest.fn(),
+    } as any;
+
+    mockRecurrenceRepository = {
+      findOne: jest.fn(),
     } as any;
 
     mockLogger = {
@@ -52,6 +58,7 @@ describe('TypeormEntryRepository', () => {
     repository = new TypeormEntryRepository(
       mockRepository,
       mockPaymentRepository,
+      mockRecurrenceRepository,
       mockLogger,
       mockMetrics,
     );

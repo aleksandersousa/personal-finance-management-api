@@ -9,11 +9,14 @@ describe('DbListEntriesByMonthUseCase', () => {
 
   beforeEach(() => {
     mockEntryRepository = {
+      findRecurrenceIdByType: jest.fn(),
       create: jest.fn(),
       findById: jest.fn(),
       findByUserId: jest.fn(),
       findByUserIdAndMonth: jest.fn(),
       findByUserIdAndMonthWithFilters: jest.fn(),
+      findMonthlyRecurringEntriesInRange: jest.fn(),
+      existsMonthlyMirroredEntry: jest.fn(),
       getMonthlySummaryStats: jest.fn(),
       getCategorySummaryForMonth: jest.fn(),
       getFixedEntriesSummary: jest.fn(),
@@ -21,6 +24,7 @@ describe('DbListEntriesByMonthUseCase', () => {
       getDistinctMonthsYears: jest.fn(),
       getAccumulatedStats: jest.fn(),
       update: jest.fn(),
+      togglePaymentStatus: jest.fn(),
       delete: jest.fn(),
       softDelete: jest.fn(),
     };
@@ -59,6 +63,7 @@ describe('DbListEntriesByMonthUseCase', () => {
         issueDate: new Date('2025-01-15'),
         dueDate: new Date('2025-01-15'),
         categoryId: null,
+        isPaid: false,
         createdAt: new Date(),
         updatedAt: new Date(),
       },
@@ -71,6 +76,7 @@ describe('DbListEntriesByMonthUseCase', () => {
         issueDate: new Date('2025-01-10'),
         dueDate: new Date('2025-01-10'),
         categoryId: 'category-123',
+        isPaid: false,
         createdAt: new Date(),
         updatedAt: new Date(),
       },

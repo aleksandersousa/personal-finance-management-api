@@ -2,12 +2,15 @@ import {
   AccumulatedStats,
   CategorySummaryResult,
   CreateEntryData,
+  EntryMonthlyMirrorExistsQuery,
   EntryRepository,
   FindEntriesByMonthFilters,
   FindEntriesByMonthResult,
   FixedEntriesSummary,
   MonthYear,
+  MonthlyRecurringEntriesQuery,
   MonthlySummaryStats,
+  ToggleEntryPaymentStatusResult,
   UpdateEntryData,
 } from '@/data/protocols/repositories/entry-repository';
 import { IdGenerator } from '@data/protocols/id-generator';
@@ -37,9 +40,14 @@ export class EntryRepositoryStub implements EntryRepository {
       amount: data.amount,
       issueDate: data.issueDate,
       dueDate: data.dueDate,
+      isPaid: false,
       createdAt: new Date(),
       updatedAt: new Date(),
     };
+  }
+
+  async findRecurrenceIdByType(): Promise<string | null> {
+    return null;
   }
 
   async create(data: CreateEntryData): Promise<EntryModel> {
@@ -134,17 +142,47 @@ export class EntryRepositoryStub implements EntryRepository {
   }
 
   async getFixedEntriesSummary(): Promise<FixedEntriesSummary> {
+    const entries = [...this.entries.values()];
+    const fixedEntries = entries.filter(entry => {
+      const legacyIsFixed = Boolean((entry as any).isFixed);
+      return legacyIsFixed || Boolean(entry.recurrenceId);
+    });
+    const fixedIncome = fixedEntries
+      .filter(entry => {
+        const legacyType = (entry as any).type;
+        return entry.entryType === 'INCOME' || legacyType === 'INCOME';
+      })
+      .reduce((sum, entry) => sum + entry.amount, 0);
+    const fixedExpenses = fixedEntries
+      .filter(entry => {
+        const legacyType = (entry as any).type;
+        return entry.entryType === 'EXPENSE' || legacyType === 'EXPENSE';
+      })
+      .reduce((sum, entry) => sum + entry.amount, 0);
     return {
-      fixedIncome: 0,
-      fixedExpenses: 0,
-      fixedNetFlow: 0,
-      entriesCount: 0,
+      fixedIncome,
+      fixedExpenses,
+      fixedNetFlow: fixedIncome - fixedExpenses,
+      entriesCount: fixedEntries.length,
     };
   }
 
   async getCurrentBalance(): Promise<number> {
     this.throwIfNeeded();
-    return 0;
+    const entries = [...this.entries.values()];
+    const totalIncome = entries
+      .filter(entry => {
+        const legacyType = (entry as any).type;
+        return entry.entryType === 'INCOME' || legacyType === 'INCOME';
+      })
+      .reduce((sum, entry) => sum + entry.amount, 0);
+    const totalExpenses = entries
+      .filter(entry => {
+        const legacyType = (entry as any).type;
+        return entry.entryType === 'EXPENSE' || legacyType === 'EXPENSE';
+      })
+      .reduce((sum, entry) => sum + entry.amount, 0);
+    return totalIncome - totalExpenses;
   }
 
   async getDistinctMonthsYears(userId: string): Promise<MonthYear[]> {
@@ -196,6 +234,40 @@ export class EntryRepositoryStub implements EntryRepository {
   async softDelete(id: string): Promise<Date> {
     await this.delete(id);
     return new Date();
+  }
+
+  async findMonthlyRecurringEntriesInRange(
+    _query: MonthlyRecurringEntriesQuery,
+  ): Promise<EntryModel[]> {
+    return [];
+  }
+
+  async existsMonthlyMirroredEntry(
+    _query: EntryMonthlyMirrorExistsQuery,
+  ): Promise<boolean> {
+    return false;
+  }
+
+  async togglePaymentStatus(
+    _userId: string,
+    entryId: string,
+    isPaid: boolean,
+  ): Promise<ToggleEntryPaymentStatusResult> {
+    const entry = this.entries.get(entryId);
+    if (!entry) {
+      throw new Error('Entry not found');
+    }
+    const updatedEntry: EntryModel = {
+      ...entry,
+      isPaid,
+      updatedAt: new Date(),
+    };
+    this.entries.set(entryId, updatedEntry);
+    return {
+      entryId,
+      isPaid,
+      paidAt: isPaid ? new Date() : null,
+    };
   }
 
   clear(): void {

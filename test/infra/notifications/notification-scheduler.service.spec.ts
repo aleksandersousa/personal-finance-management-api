@@ -57,6 +57,7 @@ describe('NotificationSchedulerService', () => {
       amount: 100,
       issueDate: new Date('2024-01-15T10:00:00Z'),
       dueDate: new Date('2024-01-15T10:00:00Z'),
+      isPaid: false,
       createdAt: new Date('2024-01-01'),
       updatedAt: new Date('2024-01-01'),
     };
@@ -177,6 +178,7 @@ describe('NotificationSchedulerService', () => {
       amount: 100,
       issueDate: new Date('2024-01-15T10:00:00Z'),
       dueDate: new Date('2024-01-15T10:00:00Z'),
+      isPaid: false,
       createdAt: new Date('2024-01-01'),
       updatedAt: new Date('2024-01-01'),
     };

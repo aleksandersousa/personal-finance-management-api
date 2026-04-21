@@ -174,6 +174,51 @@ describe('DbAddEntryUseCase', () => {
       expect(entryRepositoryStub.getCount()).toBe(0);
     });
 
+    it('should throw error when due date is before issue date', async () => {
+      const invalidRequest = MockEntryFactory.createAddRequest({
+        ...mockRequest,
+        issueDate: new Date('2025-01-20T15:00:00Z'),
+        dueDate: new Date('2025-01-19T10:00:00Z'),
+      });
+
+      await expect(sut.execute(invalidRequest)).rejects.toThrow(
+        'Due date cannot be before issue date',
+      );
+      expect(entryRepositoryStub.getCount()).toBe(0);
+    });
+
+    it('should create entry when due date is the same day as issue date', async () => {
+      userRepositoryStub.seed([mockUser]);
+      categoryRepositoryStub.seed([mockCategory], mockUser.id);
+      const validRequest = MockEntryFactory.createAddRequest({
+        ...mockRequest,
+        issueDate: new Date('2025-01-20T00:01:00Z'),
+        dueDate: new Date('2025-01-20T23:59:00Z'),
+      });
+
+      const result = await sut.execute(validRequest);
+
+      expect(result).toHaveProperty('id');
+      expect(result.issueDate).toEqual(validRequest.issueDate);
+      expect(result.dueDate).toEqual(validRequest.dueDate);
+    });
+
+    it('should create entry when due date is after issue date', async () => {
+      userRepositoryStub.seed([mockUser]);
+      categoryRepositoryStub.seed([mockCategory], mockUser.id);
+      const validRequest = MockEntryFactory.createAddRequest({
+        ...mockRequest,
+        issueDate: new Date('2025-01-20T10:00:00Z'),
+        dueDate: new Date('2025-01-21T10:00:00Z'),
+      });
+
+      const result = await sut.execute(validRequest);
+
+      expect(result).toHaveProperty('id');
+      expect(result.issueDate).toEqual(validRequest.issueDate);
+      expect(result.dueDate).toEqual(validRequest.dueDate);
+    });
+
     it('should throw error if userId is empty', async () => {
       // Arrange
       const invalidRequest = MockEntryFactory.createAddRequest({

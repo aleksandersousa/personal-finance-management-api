@@ -27,6 +27,14 @@ export class DbAddEntryUseCase implements AddEntryUseCase {
       throw new Error('Description is required');
     }
 
+    const issueDate = new Date(request.issueDate);
+    issueDate.setHours(0, 0, 0, 0);
+    const dueDate = new Date(request.dueDate);
+    dueDate.setHours(0, 0, 0, 0);
+    if (dueDate.getTime() < issueDate.getTime()) {
+      throw new Error('Due date cannot be before issue date');
+    }
+
     // Validate user ID
     if (!request.userId) {
       throw new Error('User ID is required');

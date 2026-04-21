@@ -236,6 +236,7 @@ export class EntryController {
     @Query('category') category: string = 'all',
     @Query('entryType') entryType: string = '',
     @Query('search') search: string = '',
+    @Query('isPaid') isPaid: string = 'all',
     @User() user: UserPayload,
   ): Promise<EntryListResponseDto> {
     const startTime = Date.now();
@@ -261,7 +262,7 @@ export class EntryController {
       }
 
       // Validate query parameters
-      const validSortFields = ['dueDate', 'amount', 'description'];
+      const validSortFields = ['date', 'dueDate', 'amount', 'description'];
       const validOrders = ['asc', 'desc'];
 
       if (!validSortFields.includes(sort)) {
@@ -278,10 +279,10 @@ export class EntryController {
       const normalizedEntryType = entryType?.toUpperCase();
       if (
         normalizedEntryType &&
-        !['INCOME', 'EXPENSE'].includes(normalizedEntryType)
+        !['INCOME', 'EXPENSE', 'ALL'].includes(normalizedEntryType)
       ) {
         throw new BadRequestException(
-          'Invalid entryType. Must be one of: INCOME, EXPENSE',
+          'Invalid type. Must be one of: INCOME, EXPENSE, all',
         );
       }
 
@@ -294,9 +295,17 @@ export class EntryController {
         sort,
         order: order as 'asc' | 'desc',
         categoryId: category !== 'all' ? category : undefined,
-        entryType: normalizedEntryType as 'INCOME' | 'EXPENSE' | undefined,
+        entryType:
+          normalizedEntryType === 'INCOME' || normalizedEntryType === 'EXPENSE'
+            ? (normalizedEntryType as 'INCOME' | 'EXPENSE')
+            : undefined,
+        type:
+          normalizedEntryType === 'INCOME' || normalizedEntryType === 'EXPENSE'
+            ? normalizedEntryType
+            : 'all',
         search: search && search.trim() ? search.trim() : undefined,
-      });
+        isPaid,
+      } as any);
 
       const duration = Date.now() - startTime;
 

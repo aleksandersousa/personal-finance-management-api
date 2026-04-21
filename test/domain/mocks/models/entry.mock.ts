@@ -9,6 +9,7 @@ export const mockEntry: EntryModel = {
   description: 'Test Entry',
   amount: 10000, // 100.00 in cents
   categoryId: 'category-123',
+  isPaid: false,
   issueDate: new Date('2025-06-01'),
   dueDate: new Date('2025-06-01'),
   category: {
@@ -46,7 +47,9 @@ export const mockUpdateEntryRequest: UpdateEntryRequest = {
  * Factory for creating Entry mock instances with variations
  */
 export class MockEntryFactory {
-  static create(overrides: Partial<EntryModel> = {}): EntryModel {
+  static create(
+    overrides: (Partial<EntryModel> & Record<string, unknown>) = {},
+  ): EntryModel {
     return { ...mockEntry, ...overrides };
   }
 

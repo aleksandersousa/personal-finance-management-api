@@ -38,6 +38,14 @@ export class DbUpdateEntryUseCase implements UpdateEntryUseCase {
       throw new Error('Description is required');
     }
 
+    const issueDate = new Date(request.issueDate);
+    issueDate.setHours(0, 0, 0, 0);
+    const dueDate = new Date(request.dueDate);
+    dueDate.setHours(0, 0, 0, 0);
+    if (dueDate.getTime() < issueDate.getTime()) {
+      throw new Error('Due date cannot be before issue date');
+    }
+
     // Verify user exists
     const user = await this.userRepository.findById(request.userId);
     if (!user) {
