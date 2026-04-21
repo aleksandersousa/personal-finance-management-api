@@ -58,7 +58,9 @@ export class DbUpdateEntryUseCase implements UpdateEntryUseCase {
     // Verify category exists and belongs to user (if provided)
     let categoryType: 'INCOME' | 'EXPENSE' | null = null;
     if (request.categoryId) {
-      const category = await this.categoryRepository.findById(request.categoryId);
+      const category = await this.categoryRepository.findById(
+        request.categoryId,
+      );
       if (!category) {
         throw new Error('Category not found');
       }

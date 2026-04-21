@@ -84,7 +84,17 @@ export class TypeormEntryRepository implements EntryRepository {
     filters: FindEntriesByMonthFilters,
   ): Promise<FindEntriesByMonthResult> {
     const startTime = Date.now();
-    const { userId, year, month, page = 1, limit = 20, sort, order, categoryId, search } = filters;
+    const {
+      userId,
+      year,
+      month,
+      page = 1,
+      limit = 20,
+      sort,
+      order,
+      categoryId,
+      search,
+    } = filters;
     const startDate = new Date(year, month - 1, 1);
     const endDate = new Date(year, month, 0, 23, 59, 59);
 
@@ -109,7 +119,10 @@ export class TypeormEntryRepository implements EntryRepository {
     const validSort = ['dueDate', 'amount', 'description'];
     const sortField = validSort.includes(sort || '') ? sort! : 'dueDate';
     const sortOrder = (order || 'desc').toUpperCase() as 'ASC' | 'DESC';
-    query.orderBy(`entry.${sortField}`, sortOrder).skip((page - 1) * limit).take(limit);
+    query
+      .orderBy(`entry.${sortField}`, sortOrder)
+      .skip((page - 1) * limit)
+      .take(limit);
 
     const [entries, total] = await query.getManyAndCount();
 
@@ -147,7 +160,7 @@ export class TypeormEntryRepository implements EntryRepository {
     const entries = await this.findByUserIdAndMonth(userId, year, month);
     let totalIncome = 0;
     let totalPaidExpenses = 0;
-    let totalUnpaidExpenses = 0;
+    const totalUnpaidExpenses = 0;
     let fixedIncome = 0;
     let dynamicIncome = 0;
     let fixedPaidExpenses = 0;

@@ -83,7 +83,9 @@ export class EntryRepositoryStub implements EntryRepository {
       filters.month,
     );
     if (filters.categoryId && filters.categoryId !== 'all') {
-      entries = entries.filter(entry => entry.categoryId === filters.categoryId);
+      entries = entries.filter(
+        entry => entry.categoryId === filters.categoryId,
+      );
     }
     if (filters.search) {
       entries = entries.filter(entry =>
@@ -177,14 +179,18 @@ export class EntryRepositoryStub implements EntryRepository {
 
   async update(id: string, data: UpdateEntryData): Promise<EntryModel> {
     const entry = this.entries.get(id);
-    if (!entry) throw new Error('Entry not found');
+    if (!entry) {
+      throw new Error('Entry not found');
+    }
     const updated: EntryModel = { ...entry, ...data, updatedAt: new Date() };
     this.entries.set(id, updated);
     return updated;
   }
 
   async delete(id: string): Promise<void> {
-    if (!this.entries.delete(id)) throw new Error('Entry not found');
+    if (!this.entries.delete(id)) {
+      throw new Error('Entry not found');
+    }
   }
 
   async softDelete(id: string): Promise<Date> {

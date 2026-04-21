@@ -38,7 +38,9 @@ export class DbListEntriesByMonthUseCase implements ListEntriesByMonthUseCase {
     // Set default values for pagination and filters
     const page = Math.max(1, request.page || 1);
     const limit = Math.min(100, Math.max(1, request.limit || 20));
-    const sort = ['dueDate', 'amount', 'description'].includes(request.sort || '')
+    const sort = ['dueDate', 'amount', 'description'].includes(
+      request.sort || '',
+    )
       ? request.sort
       : 'dueDate';
     const order = ['asc', 'desc'].includes(request.order || '')

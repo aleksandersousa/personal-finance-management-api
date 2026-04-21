@@ -195,7 +195,9 @@ describe('DbUpdateEntryUseCase', () => {
       // Arrange
       const existingEntry = MockEntryFactory.create();
       const user = MockUserFactory.create({ id: existingEntry.userId });
-      const category = MockCategoryFactory.create({ id: existingEntry.categoryId! });
+      const category = MockCategoryFactory.create({
+        id: existingEntry.categoryId!,
+      });
       const updateRequest = MockEntryFactory.createUpdateRequest({
         id: existingEntry.id,
         userId: existingEntry.userId,
