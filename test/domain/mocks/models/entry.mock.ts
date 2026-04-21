@@ -48,7 +48,7 @@ export const mockUpdateEntryRequest: UpdateEntryRequest = {
  */
 export class MockEntryFactory {
   static create(
-    overrides: (Partial<EntryModel> & Record<string, unknown>) = {},
+    overrides: Partial<EntryModel> & Record<string, unknown> = {},
   ): EntryModel {
     return { ...mockEntry, ...overrides };
   }
