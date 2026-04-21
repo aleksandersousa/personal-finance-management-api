@@ -100,6 +100,19 @@ export interface ToggleEntryPaymentStatusResult {
   paidAt: Date | null;
 }
 
+export interface MonthlyRecurringEntriesQuery {
+  startDate: Date;
+  endDate: Date;
+}
+
+export interface EntryMonthlyMirrorExistsQuery {
+  userId: string;
+  recurrenceId: string;
+  issueDate: Date;
+  amount: number;
+  description: string;
+}
+
 export interface EntryRepository {
   create(data: CreateEntryData): Promise<EntryModel>;
   findById(id: string): Promise<EntryModel | null>;
@@ -112,6 +125,12 @@ export interface EntryRepository {
   findByUserIdAndMonthWithFilters(
     filters: FindEntriesByMonthFilters,
   ): Promise<FindEntriesByMonthResult>;
+  findMonthlyRecurringEntriesInRange(
+    query: MonthlyRecurringEntriesQuery,
+  ): Promise<EntryModel[]>;
+  existsMonthlyMirroredEntry(
+    query: EntryMonthlyMirrorExistsQuery,
+  ): Promise<boolean>;
   getMonthlySummaryStats(
     userId: string,
     year: number,

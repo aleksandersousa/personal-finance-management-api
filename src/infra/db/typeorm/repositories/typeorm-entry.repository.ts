@@ -7,6 +7,8 @@ import {
   EntryRepository,
   FindEntriesByMonthFilters,
   FindEntriesByMonthResult,
+  MonthlyRecurringEntriesQuery,
+  EntryMonthlyMirrorExistsQuery,
   MonthlySummaryStats,
   CategorySummaryResult,
   FixedEntriesSummary,
@@ -158,6 +160,39 @@ export class TypeormEntryRepository implements EntryRepository {
       totalIncome,
       totalExpenses,
     };
+  }
+
+  async findMonthlyRecurringEntriesInRange(
+    query: MonthlyRecurringEntriesQuery,
+  ): Promise<EntryModel[]> {
+    const entries = await this.entryRepository
+      .createQueryBuilder('entry')
+      .leftJoinAndSelect('entry.category', 'category')
+      .leftJoinAndSelect('entry.recurrence', 'recurrence')
+      .leftJoinAndSelect('entry.payment', 'payment')
+      .where('entry.recurrenceId IS NOT NULL')
+      .andWhere('recurrence.type = :type', { type: 'MONTHLY' })
+      .andWhere('entry.issueDate >= :startDate', { startDate: query.startDate })
+      .andWhere('entry.issueDate <= :endDate', { endDate: query.endDate })
+      .orderBy('entry.issueDate', 'ASC')
+      .getMany();
+
+    return entries.map(entry => this.mapToModel(entry));
+  }
+
+  async existsMonthlyMirroredEntry(
+    query: EntryMonthlyMirrorExistsQuery,
+  ): Promise<boolean> {
+    const count = await this.entryRepository.count({
+      where: {
+        userId: query.userId,
+        recurrenceId: query.recurrenceId,
+        issueDate: query.issueDate,
+        amount: query.amount,
+        description: query.description,
+      },
+    });
+    return count > 0;
   }
 
   async getMonthlySummaryStats(
