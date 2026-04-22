@@ -12,8 +12,6 @@ export class ListCategoriesUseCaseMockFactory {
       total: 1,
       income: 1,
       expense: 0,
-      custom: 1,
-      default: 0,
     },
   ): jest.Mocked<ListCategoriesUseCase> {
     const result: CategoryListResponse = {
@@ -45,8 +43,6 @@ export class ListCategoriesUseCaseMockFactory {
         total: 0,
         income: 0,
         expense: 0,
-        custom: 0,
-        default: 0,
       },
     };
 
@@ -61,12 +57,10 @@ export class ListCategoriesUseCaseMockFactory {
       MockCategoryFactory.create({
         name: 'Housing',
         type: 'EXPENSE' as any,
-        isDefault: true,
       }),
       MockCategoryFactory.create({
         name: 'Food',
         type: 'EXPENSE' as any,
-        isDefault: false,
       }),
     ];
 
@@ -76,8 +70,6 @@ export class ListCategoriesUseCaseMockFactory {
         total: 3,
         income: 1,
         expense: 2,
-        custom: 2,
-        default: 1,
       },
     };
 

@@ -18,17 +18,16 @@ export class NotificationSchedulerService {
   ) {}
 
   calculateScheduledTime(entry: EntryModel, user: UserModel): Date {
-    const notificationMinutes =
-      entry.notificationTimeMinutes ?? user.notificationTimeMinutes ?? 5;
+    const notificationMinutes = user.notificationTimeMinutes ?? 5;
 
     // Get user's timezone (default to America/Sao_Paulo if not set)
     const userTimezone = user.timezone || 'America/Sao_Paulo';
 
     this.logger.log(
-      `Calculating scheduled time: entry.date=${entry.date.toISOString()}, userTimezone=${userTimezone}, notificationMinutes=${notificationMinutes}`,
+      `Calculating scheduled time: entry.dueDate=${entry.dueDate.toISOString()}, userTimezone=${userTimezone}, notificationMinutes=${notificationMinutes}`,
     );
 
-    const entryDateInUserTimezone = toZonedTime(entry.date, userTimezone);
+    const entryDateInUserTimezone = toZonedTime(entry.dueDate, userTimezone);
 
     this.logger.log(
       `Entry date in user timezone: ${entryDateInUserTimezone.toISOString()}`,
@@ -69,7 +68,7 @@ export class NotificationSchedulerService {
           scheduledAt: scheduledAt.toISOString(),
           entryDescription: entry.description,
           entryAmount: entry.amount,
-          entryDate: entry.date.toISOString(),
+          entryDate: entry.dueDate.toISOString(),
         },
       };
 

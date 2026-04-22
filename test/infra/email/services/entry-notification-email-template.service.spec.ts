@@ -43,9 +43,10 @@ describe('EntryNotificationEmailService', () => {
       userId: 'user-123',
       description: 'Test Entry',
       amount: 10000, // 100.00 in cents
-      date: new Date('2024-01-15T10:30:00Z'),
-      type: 'EXPENSE' as const,
-      isFixed: false,
+      issueDate: new Date('2024-01-15T10:30:00Z'),
+      dueDate: new Date('2024-01-15T10:30:00Z'),
+      recurrenceId: null,
+      categoryId: null,
       createdAt: new Date('2024-01-01'),
       updatedAt: new Date('2024-01-01'),
       isPaid: true,
@@ -86,7 +87,8 @@ describe('EntryNotificationEmailService', () => {
         ...mockEntry,
         amount: 15000, // 150.00 in cents
         description: 'Monthly Rent Payment',
-        date: new Date('2024-01-15T14:30:00Z'),
+        issueDate: new Date('2024-01-15T14:30:00Z'),
+        dueDate: new Date('2024-01-15T14:30:00Z'),
       };
 
       mockRenderFile

@@ -3,3 +3,4 @@ export * from './email-job-data.interface';
 export * from './token-cleanup-job-data.interface';
 export * from './notification-cleanup-job-data.interface';
 export * from './notification-job-data.interface';
+export * from './recurring-entries-job-data.interface';

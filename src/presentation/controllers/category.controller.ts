@@ -471,7 +471,6 @@ export class CategoryController {
       type: category.type,
       color: category.color,
       icon: category.icon,
-      isDefault: category.isDefault,
       entriesCount: category.entriesCount || 0,
       totalAmount: category.totalAmount || 0,
       lastUsed: category.lastUsed,
@@ -488,8 +487,6 @@ export class CategoryController {
       type: category.type,
       color: category.color,
       icon: category.icon,
-      userId: category.userId,
-      isDefault: category.isDefault,
       createdAt: category.createdAt,
       updatedAt: category.updatedAt,
     };

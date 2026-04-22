@@ -89,6 +89,8 @@ export class AuthController {
         name: result.user.name,
         email: result.user.email,
         createdAt: result.user.createdAt,
+        updatedAt: result.user.updatedAt,
+        emailVerified: result.user.emailVerified ?? false,
         message: result.message,
       };
     } catch (error) {

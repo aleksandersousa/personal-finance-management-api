@@ -8,7 +8,7 @@ import { DeleteEntryUseCase } from '@domain/usecases/delete-entry.usecase';
 import { ListEntriesByMonthUseCase } from '@domain/usecases/list-entries-by-month.usecase';
 import { UpdateEntryUseCase } from '@domain/usecases/update-entry.usecase';
 import { GetEntriesMonthsYearsUseCase } from '@domain/usecases/get-entries-months-years.usecase';
-import { ToggleMonthlyPaymentStatusUseCase } from '@domain/usecases/toggle-monthly-payment-status.usecase';
+import { ToggleEntryPaymentStatusUseCase } from '@domain/usecases/toggle-entry-payment-status.usecase';
 import { LoggerSpy } from '../../../infra/mocks/logging/logger.spy';
 import { MetricsSpy } from '../../../infra/mocks/metrics/metrics.spy';
 import { JwtAuthGuard } from '@presentation/guards/jwt-auth.guard';
@@ -23,7 +23,7 @@ describe('EntryController (e2e)', () => {
   let mockListEntriesByMonthUseCase: jest.Mocked<ListEntriesByMonthUseCase>;
   let mockLoadEntriesMonthsYearsUseCase: jest.Mocked<GetEntriesMonthsYearsUseCase>;
   let mockUpdateEntryUseCase: jest.Mocked<UpdateEntryUseCase>;
-  let mockToggleMonthlyPaymentStatusUseCase: jest.Mocked<ToggleMonthlyPaymentStatusUseCase>;
+  let mockToggleEntryPaymentStatusUseCase: jest.Mocked<ToggleEntryPaymentStatusUseCase>;
 
   const createProviders = (
     addEntryUseCase: jest.Mocked<AddEntryUseCase>,
@@ -31,7 +31,7 @@ describe('EntryController (e2e)', () => {
     listEntriesByMonthUseCase: jest.Mocked<ListEntriesByMonthUseCase>,
     updateEntryUseCase: jest.Mocked<UpdateEntryUseCase>,
     getEntriesMonthsYearsUseCase: jest.Mocked<GetEntriesMonthsYearsUseCase>,
-    toggleMonthlyPaymentStatusUseCase: jest.Mocked<ToggleMonthlyPaymentStatusUseCase>,
+    toggleMonthlyPaymentStatusUseCase: jest.Mocked<ToggleEntryPaymentStatusUseCase>,
     logger: LoggerSpy,
     metrics: MetricsSpy,
   ) => [
@@ -56,7 +56,7 @@ describe('EntryController (e2e)', () => {
       useValue: getEntriesMonthsYearsUseCase,
     },
     {
-      provide: 'ToggleMonthlyPaymentStatusUseCase',
+      provide: 'ToggleEntryPaymentStatusUseCase',
       useValue: toggleMonthlyPaymentStatusUseCase,
     },
     {
@@ -66,6 +66,10 @@ describe('EntryController (e2e)', () => {
     {
       provide: 'Metrics',
       useValue: metrics,
+    },
+    {
+      provide: 'EntryRepository',
+      useValue: {},
     },
   ];
 
@@ -87,7 +91,7 @@ describe('EntryController (e2e)', () => {
     mockLoadEntriesMonthsYearsUseCase = {
       execute: jest.fn(),
     };
-    mockToggleMonthlyPaymentStatusUseCase = {
+    mockToggleEntryPaymentStatusUseCase = {
       execute: jest.fn(),
     };
 
@@ -105,7 +109,7 @@ describe('EntryController (e2e)', () => {
         mockListEntriesByMonthUseCase,
         mockUpdateEntryUseCase,
         mockLoadEntriesMonthsYearsUseCase,
-        mockToggleMonthlyPaymentStatusUseCase,
+        mockToggleEntryPaymentStatusUseCase,
         loggerSpy,
         metricsSpy,
       ),
@@ -155,7 +159,7 @@ describe('EntryController (e2e)', () => {
           mockListEntriesByMonthUseCase,
           mockUpdateEntryUseCase,
           mockLoadEntriesMonthsYearsUseCase,
-          mockToggleMonthlyPaymentStatusUseCase,
+          mockToggleEntryPaymentStatusUseCase,
           loggerSpy,
           metricsSpy,
         ),
@@ -168,8 +172,8 @@ describe('EntryController (e2e)', () => {
         amount: 1500.0,
         description: 'Test Entry',
         categoryId: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890',
-        date: '2024-01-15',
-        type: 'EXPENSE',
+        issueDate: '2024-01-15T00:00:00Z',
+        dueDate: '2024-01-15T00:00:00Z',
       };
 
       const response = await request(unguardedApp.getHttpServer())
@@ -198,7 +202,7 @@ describe('EntryController (e2e)', () => {
           mockListEntriesByMonthUseCase,
           mockUpdateEntryUseCase,
           mockLoadEntriesMonthsYearsUseCase,
-          mockToggleMonthlyPaymentStatusUseCase,
+          mockToggleEntryPaymentStatusUseCase,
           loggerSpy,
           metricsSpy,
         ),
@@ -211,8 +215,8 @@ describe('EntryController (e2e)', () => {
         amount: 1500.0,
         description: 'Test Entry',
         categoryId: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890',
-        date: '2024-01-15',
-        type: 'EXPENSE',
+        issueDate: '2024-01-15T00:00:00Z',
+        dueDate: '2024-01-15T00:00:00Z',
       };
 
       const response = await request(unguardedApp.getHttpServer())
@@ -234,9 +238,8 @@ describe('EntryController (e2e)', () => {
         description: 'Monthly Salary',
         amount: 5000.0,
         categoryId: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890',
-        type: 'INCOME',
-        isFixed: true,
-        date: '2025-06-01T00:00:00Z',
+        issueDate: '2025-06-01T00:00:00Z',
+        dueDate: '2025-06-01T00:00:00Z',
       };
 
       // Act
@@ -255,8 +258,6 @@ describe('EntryController (e2e)', () => {
             description: 'Monthly Salary',
             amount: 5000.0,
             categoryId: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890',
-            type: 'INCOME',
-            isFixed: true,
           }),
         );
       }
@@ -305,7 +306,7 @@ describe('EntryController (e2e)', () => {
     it('should handle query parameters', async () => {
       // Act
       const response = await request(app.getHttpServer())
-        .get('/entries?month=2025-06&page=1&limit=10&type=INCOME')
+        .get('/entries?month=2025-06&page=1&limit=10&entryType=INCOME')
         .set('Authorization', `Bearer ${authToken}`);
 
       // Assert
@@ -318,6 +319,7 @@ describe('EntryController (e2e)', () => {
             month: 6,
             page: 1,
             limit: 10,
+            entryType: 'INCOME',
             type: 'INCOME',
           }),
         );
@@ -336,9 +338,8 @@ describe('EntryController (e2e)', () => {
             description: 'Test Entry',
             amount: 100.0,
             categoryId: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890',
-            type: 'INCOME',
-            isFixed: false,
-            date: '2025-06-01T00:00:00Z',
+            issueDate: '2025-06-01T00:00:00Z',
+            dueDate: '2025-06-01T00:00:00Z',
           }),
         request(app.getHttpServer())
           .get('/entries?month=2025-06')
@@ -368,15 +369,19 @@ describe('EntryController (e2e)', () => {
         description: 'Updated Test Entry',
         amount: 15000,
         categoryId: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890',
-        type: 'INCOME' as const,
-        isFixed: true,
-        date: new Date('2025-06-15T00:00:00Z'),
+        issueDate: '2025-06-15T00:00:00Z',
+        dueDate: '2025-06-15T00:00:00Z',
       };
 
       mockUpdateEntryUseCase.execute.mockResolvedValue({
         id: entryId,
-        ...updateEntryData,
+        description: updateEntryData.description,
+        amount: updateEntryData.amount,
+        categoryId: updateEntryData.categoryId,
+        issueDate: new Date(updateEntryData.issueDate),
+        dueDate: new Date(updateEntryData.dueDate),
         userId: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890',
+        recurrenceId: null,
         createdAt: new Date(),
         updatedAt: new Date(),
         isPaid: true,
@@ -399,8 +404,6 @@ describe('EntryController (e2e)', () => {
             description: 'Updated Test Entry',
             amount: 15000,
             categoryId: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890',
-            type: 'INCOME',
-            isFixed: true,
           }),
         );
 
@@ -438,9 +441,8 @@ describe('EntryController (e2e)', () => {
       const updateEntryData = {
         description: 'Updated Entry',
         amount: 100,
-        type: 'EXPENSE',
-        isFixed: false,
-        date: '2025-06-01T00:00:00Z',
+        issueDate: '2025-06-01T00:00:00Z',
+        dueDate: '2025-06-01T00:00:00Z',
       };
 
       mockUpdateEntryUseCase.execute.mockRejectedValue(
@@ -463,9 +465,8 @@ describe('EntryController (e2e)', () => {
       const updateEntryData = {
         description: 'Updated Entry',
         amount: 100,
-        type: 'EXPENSE',
-        isFixed: false,
-        date: '2025-06-01T00:00:00Z',
+        issueDate: '2025-06-01T00:00:00Z',
+        dueDate: '2025-06-01T00:00:00Z',
       };
 
       mockUpdateEntryUseCase.execute.mockRejectedValue(
@@ -488,9 +489,8 @@ describe('EntryController (e2e)', () => {
       const updateEntryData = {
         description: 'Updated Entry',
         amount: 100,
-        type: 'EXPENSE',
-        isFixed: false,
-        date: '2025-06-01T00:00:00Z',
+        issueDate: '2025-06-01T00:00:00Z',
+        dueDate: '2025-06-01T00:00:00Z',
       };
 
       // Act

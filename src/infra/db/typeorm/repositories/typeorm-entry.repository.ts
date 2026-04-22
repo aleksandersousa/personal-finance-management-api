@@ -1,21 +1,26 @@
-import { Repository, Brackets, In } from 'typeorm';
+import { Repository } from 'typeorm';
 import { Injectable, Inject } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import {
   CreateEntryData,
+  UpdateEntryData,
   EntryRepository,
   FindEntriesByMonthFilters,
   FindEntriesByMonthResult,
+  MonthlyRecurringEntriesQuery,
+  EntryMonthlyMirrorExistsQuery,
   MonthlySummaryStats,
   CategorySummaryResult,
   FixedEntriesSummary,
   MonthYear,
   AccumulatedStats,
-  MonthlyPaymentStatus,
+  CategorySummaryItem,
+  ToggleEntryPaymentStatusResult,
 } from '@/data/protocols/repositories/entry-repository';
 import { EntryModel } from '@domain/models/entry.model';
 import { EntryEntity } from '../entities/entry.entity';
-import { EntryMonthlyPaymentEntity } from '../entities/entry-monthly-payment.entity';
+import { PaymentEntity } from '../entities/payment.entity';
+import { RecurrenceEntity } from '../entities/recurrence.entity';
 import type { Logger, Metrics } from '@/data/protocols';
 
 @Injectable()
@@ -23,33 +28,43 @@ export class TypeormEntryRepository implements EntryRepository {
   constructor(
     @InjectRepository(EntryEntity)
     private readonly entryRepository: Repository<EntryEntity>,
-    @InjectRepository(EntryMonthlyPaymentEntity)
-    private readonly monthlyPaymentRepository: Repository<EntryMonthlyPaymentEntity>,
+    @InjectRepository(PaymentEntity)
+    private readonly paymentRepository: Repository<PaymentEntity>,
+    @InjectRepository(RecurrenceEntity)
+    private readonly recurrenceRepository: Repository<RecurrenceEntity>,
     @Inject('Logger')
     private readonly logger: Logger,
     @Inject('Metrics')
     private readonly metrics: Metrics,
   ) {}
 
+  async findRecurrenceIdByType(type: string): Promise<string | null> {
+    const recurrence = await this.recurrenceRepository.findOne({
+      where: { type },
+      select: ['id'],
+    });
+
+    return recurrence?.id ?? null;
+  }
+
   async create(data: CreateEntryData): Promise<EntryModel> {
     const entity = this.entryRepository.create({
       userId: data.userId,
+      categoryId: data.categoryId,
+      recurrenceId: data.recurrenceId,
       description: data.description,
       amount: data.amount,
-      date: data.date,
-      type: data.type,
-      isFixed: data.isFixed,
-      categoryId: data.categoryId,
-      isPaid: data.isPaid ?? false,
+      issueDate: data.issueDate,
+      dueDate: data.dueDate,
     });
-    const savedEntry = await this.entryRepository.save(entity);
-    return this.mapToModel(savedEntry);
+    const saved = await this.entryRepository.save(entity);
+    return this.mapToModel(saved);
   }
 
   async findById(id: string): Promise<EntryModel | null> {
     const entry = await this.entryRepository.findOne({
       where: { id },
-      relations: ['user', 'category'],
+      relations: ['category', 'recurrence', 'payment'],
     });
     return entry ? this.mapToModel(entry) : null;
   }
@@ -57,10 +72,10 @@ export class TypeormEntryRepository implements EntryRepository {
   async findByUserId(userId: string): Promise<EntryModel[]> {
     const entries = await this.entryRepository.find({
       where: { userId },
-      relations: ['user', 'category'],
-      order: { date: 'DESC' },
+      relations: ['category', 'recurrence', 'payment'],
+      order: { dueDate: 'DESC' },
     });
-    return entries.map(this.mapToModel);
+    return entries.map(entry => this.mapToModel(entry));
   }
 
   async findByUserIdAndMonth(
@@ -70,294 +85,376 @@ export class TypeormEntryRepository implements EntryRepository {
   ): Promise<EntryModel[]> {
     const startDate = new Date(year, month - 1, 1);
     const endDate = new Date(year, month, 0, 23, 59, 59);
-
     const entries = await this.entryRepository
       .createQueryBuilder('entry')
-      .where('entry.userId = :userId', { userId })
-      .andWhere('entry.date >= :startDate', { startDate })
-      .andWhere('entry.date <= :endDate', { endDate })
-      .leftJoinAndSelect('entry.user', 'user')
       .leftJoinAndSelect('entry.category', 'category')
-      .orderBy('entry.date', 'DESC')
+      .leftJoinAndSelect('entry.recurrence', 'recurrence')
+      .leftJoinAndSelect('entry.payment', 'payment')
+      .where('entry.userId = :userId', { userId })
+      .andWhere('entry.dueDate >= :startDate', { startDate })
+      .andWhere('entry.dueDate <= :endDate', { endDate })
+      .orderBy('entry.dueDate', 'DESC')
       .getMany();
-
-    return entries.map(this.mapToModel);
+    return entries.map(entry => this.mapToModel(entry));
   }
 
   async findByUserIdAndMonthWithFilters(
     filters: FindEntriesByMonthFilters,
   ): Promise<FindEntriesByMonthResult> {
-    const operation = 'find_entries_by_month_with_filters';
-    const table = 'entries';
     const startTime = Date.now();
-
     const {
       userId,
       year,
       month,
       page = 1,
       limit = 20,
-      sort = 'date',
-      order = 'desc',
-      type = 'all',
+      sort,
+      order,
       categoryId,
+      entryType,
       search,
-      isPaid,
     } = filters;
-
     const startDate = new Date(year, month - 1, 1);
     const endDate = new Date(year, month, 0, 23, 59, 59);
 
-    let queryBuilder = this.entryRepository
+    const query = this.entryRepository
       .createQueryBuilder('entry')
-      .where('entry.userId = :userId', { userId })
-      .andWhere(
-        new Brackets(qb => {
-          qb.where('(entry.date >= :startDate AND entry.date <= :endDate)', {
-            startDate,
-            endDate,
-          }).orWhere('(entry.isFixed = true AND entry.date <= :endDate)', {
-            endDate,
-          });
-        }),
-      )
-      .leftJoinAndSelect('entry.user', 'user')
       .leftJoinAndSelect('entry.category', 'category')
-      .leftJoin(
-        'entry_monthly_payments',
-        'payment',
-        'payment.entry_id = entry.id AND payment.year = :year AND payment.month = :month',
-        { year, month },
-      )
-      .addSelect('COALESCE(payment.is_paid, entry.is_paid)', 'entry_isPaid')
-      .addSelect('payment.paid_at', 'entry_paidAt');
-
-    const paymentStatusExpr = `
-      CASE 
-        WHEN entry.is_fixed = false THEN entry.is_paid
-        WHEN EXTRACT(YEAR FROM entry.date) = ${year} AND EXTRACT(MONTH FROM entry.date) = ${month} 
-          THEN COALESCE(payment.is_paid, entry.is_paid)
-        ELSE COALESCE(payment.is_paid, false)
-      END
-    `;
-
-    // Apply type filter
-    if (type !== 'all') {
-      queryBuilder = queryBuilder.andWhere('entry.type = :type', { type });
-    }
-
-    // Apply category filter
-    if (categoryId && categoryId !== 'all') {
-      queryBuilder = queryBuilder.andWhere('entry.categoryId = :categoryId', {
-        categoryId,
-      });
-    }
-
-    // Apply search filter (case-insensitive)
-    if (search && search.trim()) {
-      queryBuilder = queryBuilder.andWhere('entry.description ILIKE :search', {
-        search: `%${search.trim()}%`,
-      });
-    }
-
-    if (isPaid !== undefined && isPaid !== 'all') {
-      queryBuilder = queryBuilder.andWhere(
-        `(${paymentStatusExpr}) = :isPaidFilter`,
-        { isPaidFilter: isPaid === true },
-      );
-    }
-
-    // Apply sorting
-    const validSortFields = ['date', 'amount', 'description'];
-    const sortField = validSortFields.includes(sort) ? sort : 'date';
-    queryBuilder = queryBuilder.orderBy(
-      `entry.${sortField}`,
-      order.toUpperCase() as 'ASC' | 'DESC',
-    );
-
-    // Get total count
-    const total = await queryBuilder.getCount();
-
-    // Apply pagination
-    const skip = (page - 1) * limit;
-    queryBuilder = queryBuilder.skip(skip).take(limit);
-
-    // Get paginated results
-    const entries = await queryBuilder.getMany();
-
-    // Fetch monthly payment statuses for fixed entries
-    const entryIds = entries.filter(e => e.isFixed).map(e => e.id);
-
-    const monthlyPayments: Map<string, EntryMonthlyPaymentEntity> = new Map();
-    if (entryIds.length > 0) {
-      const payments = await this.monthlyPaymentRepository.find({
-        where: {
-          entryId: In(entryIds),
-          year,
-          month,
-        },
-      });
-      payments.forEach(p => monthlyPayments.set(p.entryId, p));
-    }
-
-    const summaryQuery = this.entryRepository
-      .createQueryBuilder('entry')
-      .leftJoin(
-        'entry_monthly_payments',
-        'payment',
-        'payment.entry_id = entry.id AND payment.year = :paymentYear AND payment.month = :paymentMonth',
-        { paymentYear: year, paymentMonth: month },
-      )
-      .select(
-        "SUM(CASE WHEN entry.type = 'INCOME' THEN entry.amount ELSE 0 END)",
-        'totalIncome',
-      )
-      .addSelect(
-        `SUM(CASE WHEN entry.type = 'EXPENSE' AND (${paymentStatusExpr}) = true THEN entry.amount ELSE 0 END)`,
-        'totalExpenses',
-      )
+      .leftJoinAndSelect('entry.recurrence', 'recurrence')
+      .leftJoinAndSelect('entry.payment', 'payment')
       .where('entry.userId = :userId', { userId })
-      .andWhere(
-        new Brackets(qb => {
-          qb.where('(entry.date >= :startDate AND entry.date <= :endDate)', {
-            startDate,
-            endDate,
-          }).orWhere('(entry.isFixed = true AND entry.date <= :endDate)', {
-            endDate,
-          });
-        }),
-      );
-
-    // Apply same filters to summary query
-    if (type !== 'all') {
-      summaryQuery.andWhere('entry.type = :type', { type });
-    }
+      .andWhere('entry.dueDate >= :startDate', { startDate })
+      .andWhere('entry.dueDate <= :endDate', { endDate });
 
     if (categoryId && categoryId !== 'all') {
-      summaryQuery.andWhere('entry.categoryId = :categoryId', { categoryId });
+      query.andWhere('entry.categoryId = :categoryId', { categoryId });
     }
-
+    if (entryType) {
+      query.andWhere('category.type = :entryType', { entryType });
+    }
     if (search && search.trim()) {
-      summaryQuery.andWhere('entry.description ILIKE :search', {
+      query.andWhere('entry.description ILIKE :search', {
         search: `%${search.trim()}%`,
       });
     }
 
-    if (isPaid !== undefined && isPaid !== 'all') {
-      summaryQuery.andWhere(`(${paymentStatusExpr}) = :isPaidFilter`, {
-        isPaidFilter: isPaid === true,
-      });
-    }
+    const validSort = ['dueDate', 'amount', 'description'];
+    const sortField = validSort.includes(sort || '') ? sort! : 'dueDate';
+    const sortOrder = (order || 'desc').toUpperCase() as 'ASC' | 'DESC';
+    query
+      .orderBy(`entry.${sortField}`, sortOrder)
+      .skip((page - 1) * limit)
+      .take(limit);
 
-    const summaryResult = await summaryQuery.getRawOne();
+    const [entries, total] = await query.getManyAndCount();
 
-    // Map entries and apply monthly payment status for fixed entries
-    const data = entries.map(entry => {
-      const model = this.mapToModel(entry);
-
-      if (entry.isFixed) {
-        const entryDate = new Date(entry.date);
-        const entryYear = entryDate.getFullYear();
-        const entryMonth = entryDate.getMonth() + 1;
-
-        const isOriginalMonth = entryYear === year && entryMonth === month;
-
-        if (isOriginalMonth) {
-          const monthlyPayment = monthlyPayments.get(entry.id);
-          if (monthlyPayment) {
-            model.isPaid = monthlyPayment.isPaid;
-          }
-        } else {
-          const monthlyPayment = monthlyPayments.get(entry.id);
-          if (monthlyPayment) {
-            model.isPaid = monthlyPayment.isPaid;
-          } else {
-            model.isPaid = false;
-          }
-        }
+    let totalIncome = 0;
+    let totalExpenses = 0;
+    entries.forEach(entry => {
+      const value = Number(entry.amount);
+      if (entry.category?.type === 'INCOME') {
+        totalIncome += value;
+      } else if (entry.category?.type === 'EXPENSE' && entry.payment) {
+        totalExpenses += value;
       }
-
-      return model;
     });
 
-    const duration = Date.now() - startTime;
-    this.metrics.recordDbQuery(operation, table, 'success', duration);
+    this.metrics.recordDbQuery(
+      'find_entries_by_month_with_filters',
+      'entries',
+      'success',
+      Date.now() - startTime,
+    );
 
     return {
-      data,
+      data: entries.map(entry => this.mapToModel(entry)),
       total,
-      totalIncome: parseFloat(summaryResult?.totalIncome || '0'),
-      totalExpenses: parseFloat(summaryResult?.totalExpenses || '0'),
+      totalIncome,
+      totalExpenses,
     };
   }
 
-  async update(
-    id: string,
-    data: Partial<CreateEntryData>,
-  ): Promise<EntryModel> {
-    const startTime = Date.now();
+  async findMonthlyRecurringEntriesInRange(
+    query: MonthlyRecurringEntriesQuery,
+  ): Promise<EntryModel[]> {
+    const entries = await this.entryRepository
+      .createQueryBuilder('entry')
+      .leftJoinAndSelect('entry.category', 'category')
+      .leftJoinAndSelect('entry.recurrence', 'recurrence')
+      .leftJoinAndSelect('entry.payment', 'payment')
+      .where('entry.recurrenceId IS NOT NULL')
+      .andWhere('recurrence.type = :type', { type: 'MONTHLY' })
+      .andWhere('entry.issueDate >= :startDate', { startDate: query.startDate })
+      .andWhere('entry.issueDate <= :endDate', { endDate: query.endDate })
+      .orderBy('entry.issueDate', 'ASC')
+      .getMany();
 
-    try {
-      const updateData: any = {};
-      if (data.userId) {
-        updateData.userId = data.userId;
-      }
-      if (data.description) {
-        updateData.description = data.description;
-      }
-      if (data.amount !== undefined) {
-        updateData.amount = data.amount;
-      }
-      if (data.date) {
-        updateData.date = data.date;
-      }
-      if (data.type) {
-        updateData.type = data.type;
-      }
-      if (data.isFixed !== undefined) {
-        updateData.isFixed = data.isFixed;
-      }
-      if (data.categoryId !== undefined) {
-        updateData.categoryId = data.categoryId;
-      }
-      if (data.isPaid !== undefined) {
-        updateData.isPaid = data.isPaid;
-      }
+    return entries.map(entry => this.mapToModel(entry));
+  }
 
-      await this.entryRepository.update(id, updateData);
-      const updatedEntry = await this.entryRepository.findOne({
-        where: { id },
-        relations: ['user', 'category'],
-      });
+  async existsMonthlyMirroredEntry(
+    query: EntryMonthlyMirrorExistsQuery,
+  ): Promise<boolean> {
+    const count = await this.entryRepository.count({
+      where: {
+        userId: query.userId,
+        recurrenceId: query.recurrenceId,
+        issueDate: query.issueDate,
+        amount: query.amount,
+        description: query.description,
+      },
+    });
+    return count > 0;
+  }
 
-      if (!updatedEntry) {
-        throw new Error('Entry not found');
+  async getMonthlySummaryStats(
+    userId: string,
+    year: number,
+    month: number,
+  ): Promise<MonthlySummaryStats> {
+    const entries = await this.findByUserIdAndMonth(userId, year, month);
+    let totalIncome = 0;
+    let totalPaidExpenses = 0;
+    const totalUnpaidExpenses = 0;
+    let fixedIncome = 0;
+    let dynamicIncome = 0;
+    let fixedPaidExpenses = 0;
+    let fixedUnpaidExpenses = 0;
+    let dynamicPaidExpenses = 0;
+    let dynamicUnpaidExpenses = 0;
+    let incomeEntries = 0;
+    let expenseEntries = 0;
+
+    entries.forEach(entry => {
+      const isFixed = !!entry.recurrenceId;
+      const isPaid = !!entry.payment;
+      const entryType = entry.category?.type;
+      if (entryType === 'INCOME') {
+        totalIncome += entry.amount;
+        incomeEntries += 1;
+        if (isFixed) {
+          fixedIncome += entry.amount;
+        } else {
+          dynamicIncome += entry.amount;
+        }
+        return;
       }
+      if (entryType === 'EXPENSE') {
+        expenseEntries += 1;
+        if (isPaid) {
+          totalPaidExpenses += entry.amount;
+          if (isFixed) {
+            fixedPaidExpenses += entry.amount;
+          } else {
+            dynamicPaidExpenses += entry.amount;
+          }
+        } else if (isFixed) {
+          fixedUnpaidExpenses += entry.amount;
+        } else {
+          dynamicUnpaidExpenses += entry.amount;
+        }
+      }
+    });
 
-      const duration = Date.now() - startTime;
+    return {
+      totalIncome,
+      totalExpenses: totalPaidExpenses,
+      totalPaidExpenses,
+      totalUnpaidExpenses,
+      fixedIncome,
+      dynamicIncome,
+      fixedExpenses: fixedPaidExpenses,
+      dynamicExpenses: dynamicPaidExpenses,
+      fixedPaidExpenses,
+      fixedUnpaidExpenses,
+      dynamicPaidExpenses,
+      dynamicUnpaidExpenses,
+      totalEntries: entries.length,
+      incomeEntries,
+      expenseEntries,
+    };
+  }
 
-      // Log business event
-      this.logger.logBusinessEvent({
-        event: 'entry_updated',
-        entityId: id,
-        userId: data.userId || 'unknown',
-        duration,
-        changes: Object.keys(updateData),
-      });
+  async getCategorySummaryForMonth(
+    userId: string,
+    year: number,
+    month: number,
+  ): Promise<CategorySummaryResult> {
+    const entries = await this.findByUserIdAndMonth(userId, year, month);
+    const grouped = new Map<string, CategorySummaryItem>();
+    entries.forEach(entry => {
+      if (!entry.categoryId || !entry.category) {
+        return;
+      }
+      const type = entry.category.type;
+      const key = `${entry.categoryId}:${type}`;
+      if (!grouped.has(key)) {
+        grouped.set(key, {
+          categoryId: entry.categoryId,
+          categoryName: entry.category.name,
+          type,
+          total: 0,
+          count: 0,
+          unpaidAmount: 0,
+        });
+      }
+      const item = grouped.get(key)!;
+      item.count += 1;
+      if (type === 'INCOME') {
+        item.total += entry.amount;
+      } else if (entry.payment) {
+        item.total += entry.amount;
+      } else {
+        item.unpaidAmount += entry.amount;
+      }
+    });
 
-      // Record metrics
-      this.metrics.recordTransaction('update', 'success');
+    const allItems = [...grouped.values()].sort((a, b) => b.total - a.total);
+    return {
+      items: allItems.slice(0, 3),
+      allItems,
+      incomeTotal: allItems.filter(item => item.type === 'INCOME').length,
+      expenseTotal: allItems.filter(item => item.type === 'EXPENSE').length,
+    };
+  }
 
-      return this.mapToModel(updatedEntry);
-    } catch (error) {
-      // Log error
-      this.logger.error(`Failed to update entry ${id}`, error.stack);
+  async getFixedEntriesSummary(userId: string): Promise<FixedEntriesSummary> {
+    const entries = await this.findByUserId(userId);
+    const fixed = entries.filter(entry => !!entry.recurrenceId);
+    const fixedIncome = fixed
+      .filter(entry => entry.category?.type === 'INCOME')
+      .reduce((sum, entry) => sum + entry.amount, 0);
+    const fixedExpenses = fixed
+      .filter(entry => entry.category?.type === 'EXPENSE' && !!entry.payment)
+      .reduce((sum, entry) => sum + entry.amount, 0);
+    return {
+      fixedIncome,
+      fixedExpenses,
+      fixedNetFlow: fixedIncome - fixedExpenses,
+      entriesCount: fixed.length,
+    };
+  }
 
-      // Record error metrics
-      this.metrics.recordApiError('entry_repository_update', error.message);
+  async getCurrentBalance(userId: string): Promise<number> {
+    const entries = await this.findByUserId(userId);
+    const totalIncome = entries
+      .filter(entry => entry.category?.type === 'INCOME')
+      .reduce((sum, entry) => sum + entry.amount, 0);
+    const totalExpenses = entries
+      .filter(entry => entry.category?.type === 'EXPENSE' && !!entry.payment)
+      .reduce((sum, entry) => sum + entry.amount, 0);
+    return totalIncome - totalExpenses;
+  }
 
-      throw error;
+  async getDistinctMonthsYears(userId: string): Promise<MonthYear[]> {
+    const result = await this.entryRepository
+      .createQueryBuilder('entry')
+      .select('EXTRACT(YEAR FROM entry.dueDate)', 'year')
+      .addSelect('EXTRACT(MONTH FROM entry.dueDate)', 'month')
+      .where('entry.userId = :userId', { userId })
+      .groupBy('EXTRACT(YEAR FROM entry.dueDate)')
+      .addGroupBy('EXTRACT(MONTH FROM entry.dueDate)')
+      .orderBy('EXTRACT(YEAR FROM entry.dueDate)', 'DESC')
+      .addOrderBy('EXTRACT(MONTH FROM entry.dueDate)', 'DESC')
+      .getRawMany();
+
+    return result.map(row => ({
+      year: parseInt(row.year, 10),
+      month: parseInt(row.month, 10),
+    }));
+  }
+
+  async getAccumulatedStats(
+    userId: string,
+    year: number,
+    month: number,
+  ): Promise<AccumulatedStats> {
+    const endDate = new Date(year, month, 0, 23, 59, 59);
+    const startOfMonth = new Date(year, month - 1, 1);
+    const entries = await this.findByUserId(userId);
+    const accumulated = entries.filter(entry => entry.dueDate <= endDate);
+    const totalAccumulatedIncome = accumulated
+      .filter(entry => entry.category?.type === 'INCOME')
+      .reduce((sum, entry) => sum + entry.amount, 0);
+    const totalAccumulatedPaidExpenses = accumulated
+      .filter(entry => entry.category?.type === 'EXPENSE' && !!entry.payment)
+      .reduce((sum, entry) => sum + entry.amount, 0);
+    const previousMonthsUnpaidExpenses = entries
+      .filter(
+        entry =>
+          entry.category?.type === 'EXPENSE' &&
+          !entry.payment &&
+          entry.dueDate < startOfMonth,
+      )
+      .reduce((sum, entry) => sum + entry.amount, 0);
+    return {
+      totalAccumulatedIncome,
+      totalAccumulatedPaidExpenses,
+      previousMonthsUnpaidExpenses,
+      accumulatedBalance: totalAccumulatedIncome - totalAccumulatedPaidExpenses,
+    };
+  }
+
+  async update(id: string, data: UpdateEntryData): Promise<EntryModel> {
+    await this.entryRepository.update(id, data);
+    const updated = await this.entryRepository.findOne({
+      where: { id },
+      relations: ['category', 'recurrence', 'payment'],
+    });
+    if (!updated) {
+      throw new Error('Entry not found');
     }
+    return this.mapToModel(updated);
+  }
+
+  async togglePaymentStatus(
+    userId: string,
+    entryId: string,
+    isPaid: boolean,
+  ): Promise<ToggleEntryPaymentStatusResult> {
+    const entry = await this.entryRepository.findOne({
+      where: { id: entryId },
+      relations: ['payment'],
+    });
+
+    if (!entry) {
+      throw new Error('Entry not found');
+    }
+
+    if (entry.userId !== userId) {
+      throw new Error('Unauthorized');
+    }
+
+    if (isPaid) {
+      if (entry.payment) {
+        return {
+          entryId,
+          isPaid: true,
+          paidAt: entry.payment.createdAt,
+        };
+      }
+
+      const payment = this.paymentRepository.create({
+        entryId,
+        amount: entry.amount,
+      });
+      const savedPayment = await this.paymentRepository.save(payment);
+      return {
+        entryId,
+        isPaid: true,
+        paidAt: savedPayment.createdAt,
+      };
+    }
+
+    if (entry.payment) {
+      await this.paymentRepository.delete({ entryId });
+    }
+
+    return {
+      entryId,
+      isPaid: false,
+      paidAt: null,
+    };
   }
 
   async delete(id: string): Promise<void> {
@@ -368,764 +465,59 @@ export class TypeormEntryRepository implements EntryRepository {
   }
 
   async softDelete(id: string): Promise<Date> {
-    try {
-      const deletedAt = new Date();
-      const result = await this.entryRepository.update(id, { deletedAt });
-
-      if (result.affected === 0) {
-        this.logger.error(
-          'Failed to soft delete entry - entry not found',
-          '',
-          'TypeormEntryRepository',
-        );
-        this.metrics.recordTransaction('delete', 'not_found');
-        throw new Error('Entry not found');
-      }
-
-      this.logger.log('Entry soft deleted', 'TypeormEntryRepository');
-
-      this.metrics.recordTransaction('delete', 'success');
-      return deletedAt;
-    } catch (error) {
-      this.metrics.recordTransaction('delete', 'error');
-      this.logger.error(`Failed to soft delete entry ${id}`, error.stack);
-      throw error;
-    }
-  }
-
-  async getMonthlySummaryStats(
-    userId: string,
-    year: number,
-    month: number,
-  ): Promise<MonthlySummaryStats> {
-    const startTime = Date.now();
-
-    try {
-      const startDate = new Date(year, month - 1, 1);
-      const endDate = new Date(year, month, 0, 23, 59, 59);
-
-      // Build payment status expression that considers monthly payments for fixed entries
-      const paymentStatusExpr = `
-        CASE 
-          WHEN entry.is_fixed = false THEN entry.is_paid
-          WHEN EXTRACT(YEAR FROM entry.date) = :year AND EXTRACT(MONTH FROM entry.date) = :month 
-            THEN COALESCE(payment.is_paid, entry.is_paid)
-          ELSE COALESCE(payment.is_paid, false)
-        END
-      `;
-
-      const result = await this.entryRepository
-        .createQueryBuilder('entry')
-        .leftJoin(
-          'entry_monthly_payments',
-          'payment',
-          'payment.entry_id = entry.id AND payment.year = :year AND payment.month = :month',
-          { year, month },
-        )
-        .select(
-          "SUM(CASE WHEN entry.type = 'INCOME' THEN entry.amount ELSE 0 END)",
-          'totalIncome',
-        )
-        .addSelect(
-          `SUM(CASE WHEN entry.type = 'EXPENSE' AND (${paymentStatusExpr}) = true THEN entry.amount ELSE 0 END)`,
-          'totalExpenses',
-        )
-        .addSelect(
-          `SUM(CASE WHEN entry.type = 'EXPENSE' AND (${paymentStatusExpr}) = true THEN entry.amount ELSE 0 END)`,
-          'totalPaidExpenses',
-        )
-        .addSelect(
-          `SUM(CASE WHEN entry.type = 'EXPENSE' AND (${paymentStatusExpr}) = false THEN entry.amount ELSE 0 END)`,
-          'totalUnpaidExpenses',
-        )
-        .addSelect(
-          "SUM(CASE WHEN entry.type = 'INCOME' AND entry.is_fixed = true THEN entry.amount ELSE 0 END)",
-          'fixedIncome',
-        )
-        .addSelect(
-          "SUM(CASE WHEN entry.type = 'INCOME' AND entry.is_fixed = false THEN entry.amount ELSE 0 END)",
-          'dynamicIncome',
-        )
-        .addSelect(
-          `SUM(CASE WHEN entry.type = 'EXPENSE' AND entry.is_fixed = true AND (${paymentStatusExpr}) = true THEN entry.amount ELSE 0 END)`,
-          'fixedExpenses',
-        )
-        .addSelect(
-          `SUM(CASE WHEN entry.type = 'EXPENSE' AND entry.is_fixed = true AND (${paymentStatusExpr}) = true THEN entry.amount ELSE 0 END)`,
-          'fixedPaidExpenses',
-        )
-        .addSelect(
-          `SUM(CASE WHEN entry.type = 'EXPENSE' AND entry.is_fixed = true AND (${paymentStatusExpr}) = false THEN entry.amount ELSE 0 END)`,
-          'fixedUnpaidExpenses',
-        )
-        .addSelect(
-          `SUM(CASE WHEN entry.type = 'EXPENSE' AND entry.is_fixed = false AND (${paymentStatusExpr}) = true THEN entry.amount ELSE 0 END)`,
-          'dynamicExpenses',
-        )
-        .addSelect(
-          `SUM(CASE WHEN entry.type = 'EXPENSE' AND entry.is_fixed = false AND (${paymentStatusExpr}) = true THEN entry.amount ELSE 0 END)`,
-          'dynamicPaidExpenses',
-        )
-        .addSelect(
-          `SUM(CASE WHEN entry.type = 'EXPENSE' AND entry.is_fixed = false AND (${paymentStatusExpr}) = false THEN entry.amount ELSE 0 END)`,
-          'dynamicUnpaidExpenses',
-        )
-        .addSelect('COUNT(*)', 'totalEntries')
-        .addSelect(
-          "COUNT(CASE WHEN entry.type = 'INCOME' THEN 1 END)",
-          'incomeEntries',
-        )
-        .addSelect(
-          "COUNT(CASE WHEN entry.type = 'EXPENSE' THEN 1 END)",
-          'expenseEntries',
-        )
-        .where('entry.user_id = :userId', { userId })
-        .andWhere(
-          new Brackets(qb => {
-            qb.where('(entry.date >= :startDate AND entry.date <= :endDate)', {
-              startDate,
-              endDate,
-            }).orWhere('(entry.is_fixed = true AND entry.date <= :endDate)', {
-              endDate,
-            });
-          }),
-        )
-        .andWhere('entry.deleted_at IS NULL')
-        .getRawOne();
-
-      const duration = Date.now() - startTime;
-
-      // Log business event
-      this.logger.logBusinessEvent({
-        event: 'monthly_summary_stats_calculated',
-        userId,
-        metadata: {
-          year,
-          month,
-          duration,
-        },
-      });
-
-      // Record metrics
-      this.metrics.recordTransaction('get_monthly_summary_stats', 'success');
-      this.metrics.recordDbQuery(
-        'get_monthly_summary_stats',
-        'entries',
-        'success',
-        duration,
-      );
-
-      return {
-        totalIncome: parseFloat(result?.totalIncome || '0'),
-        totalExpenses: parseFloat(result?.totalExpenses || '0'),
-        totalPaidExpenses: parseFloat(result?.totalPaidExpenses || '0'),
-        totalUnpaidExpenses: parseFloat(result?.totalUnpaidExpenses || '0'),
-        fixedIncome: parseFloat(result?.fixedIncome || '0'),
-        dynamicIncome: parseFloat(result?.dynamicIncome || '0'),
-        fixedExpenses: parseFloat(result?.fixedExpenses || '0'),
-        dynamicExpenses: parseFloat(result?.dynamicExpenses || '0'),
-        fixedPaidExpenses: parseFloat(result?.fixedPaidExpenses || '0'),
-        fixedUnpaidExpenses: parseFloat(result?.fixedUnpaidExpenses || '0'),
-        dynamicPaidExpenses: parseFloat(result?.dynamicPaidExpenses || '0'),
-        dynamicUnpaidExpenses: parseFloat(result?.dynamicUnpaidExpenses || '0'),
-        totalEntries: parseInt(result?.totalEntries || '0'),
-        incomeEntries: parseInt(result?.incomeEntries || '0'),
-        expenseEntries: parseInt(result?.expenseEntries || '0'),
-      };
-    } catch (error) {
-      this.logger.error(
-        `Failed to get monthly summary stats for user ${userId}`,
-        error.stack,
-      );
-
-      this.metrics.recordApiError('get_monthly_summary_stats', error.message);
-
-      throw error;
-    }
-  }
-
-  async getCategorySummaryForMonth(
-    userId: string,
-    year: number,
-    month: number,
-  ): Promise<CategorySummaryResult> {
-    const startTime = Date.now();
-
-    try {
-      const startDate = new Date(year, month - 1, 1);
-      const endDate = new Date(year, month, 0, 23, 59, 59);
-
-      // Get all results first to count total (before limiting to top 3)
-      // This is acceptable since category summaries are typically small datasets
-      // Count only paid expenses in totals, but track unpaid amounts
-      const allResults = await this.entryRepository
-        .createQueryBuilder('entry')
-        .leftJoin('entry.category', 'category')
-        .leftJoin(
-          EntryMonthlyPaymentEntity,
-          'payment',
-          'payment.entry_id = entry.id AND payment.year = :year AND payment.month = :month',
-          { year, month },
-        )
-        .select('entry.categoryId')
-        .addSelect('category.name')
-        .addSelect('entry.type')
-        .addSelect(
-          `SUM(CASE 
-            WHEN entry.type = 'EXPENSE' AND 
-              COALESCE(
-                payment.is_paid,
-                CASE 
-                  WHEN entry.is_fixed = true 
-                    AND (EXTRACT(YEAR FROM entry.date)::int != :year OR EXTRACT(MONTH FROM entry.date)::int != :month)
-                  THEN false
-                  ELSE entry.is_paid
-                END
-              ) = true 
-            THEN entry.amount 
-            WHEN entry.type = 'INCOME' THEN entry.amount 
-            ELSE 0 
-          END)`,
-          'sum',
-        )
-        .addSelect(
-          `SUM(CASE 
-            WHEN entry.type = 'EXPENSE' AND 
-              COALESCE(
-                payment.is_paid,
-                CASE 
-                  WHEN entry.is_fixed = true 
-                    AND (EXTRACT(YEAR FROM entry.date)::int != :year OR EXTRACT(MONTH FROM entry.date)::int != :month)
-                  THEN false
-                  ELSE entry.is_paid
-                END
-              ) = false 
-            THEN entry.amount 
-            ELSE 0 
-          END)`,
-          'unpaidSum',
-        )
-        .addSelect('COUNT(*)', 'count')
-        .where('entry.userId = :userId', { userId })
-        .andWhere(
-          new Brackets(qb => {
-            qb.where('(entry.date >= :startDate AND entry.date <= :endDate)', {
-              startDate,
-              endDate,
-            }).orWhere('(entry.is_fixed = true AND entry.date <= :endDate)', {
-              endDate,
-            });
-          }),
-        )
-        .andWhere('entry.deletedAt IS NULL')
-        .andWhere('entry.categoryId IS NOT NULL')
-        .groupBy('entry.categoryId, category.name, entry.type')
-        .orderBy(
-          `SUM(CASE 
-            WHEN entry.type = 'EXPENSE' AND 
-              COALESCE(
-                payment.is_paid,
-                CASE 
-                  WHEN entry.is_fixed = true 
-                    AND (EXTRACT(YEAR FROM entry.date)::int != :year OR EXTRACT(MONTH FROM entry.date)::int != :month)
-                  THEN false
-                  ELSE entry.is_paid
-                END
-              ) = true 
-            THEN entry.amount 
-            WHEN entry.type = 'INCOME' THEN entry.amount 
-            ELSE 0 
-          END)`,
-          'DESC',
-        )
-        .getRawMany();
-
-      // Calculate totals by type (count of categories, not sum of amounts)
-      const incomeTotal = allResults.filter(
-        result => result.entry_type === 'INCOME' || result.type === 'INCOME',
-      ).length;
-      const expenseTotal = allResults.filter(
-        result => result.entry_type === 'EXPENSE' || result.type === 'EXPENSE',
-      ).length;
-
-      const mapRow = (result: Record<string, unknown>) => ({
-        categoryId: (result.entry_categoryId || result.categoryId) as string,
-        categoryName: (result.category_name ||
-          result.categoryName ||
-          'Unknown Category') as string,
-        type: (result.entry_type || result.type) as 'INCOME' | 'EXPENSE',
-        total: parseFloat(String(result.sum || '0')),
-        count: parseInt(String(result.count || '0'), 10),
-        unpaidAmount:
-          result.entry_type === 'EXPENSE' || result.type === 'EXPENSE'
-            ? parseFloat(String(result.unpaidSum || '0'))
-            : 0,
-      });
-
-      const allItems = allResults.map(mapRow);
-      const items = allItems.slice(0, 3);
-
-      const duration = Date.now() - startTime;
-
-      // Log business event
-      this.logger.logBusinessEvent({
-        event: 'category_summary_calculated',
-        userId,
-        metadata: {
-          year,
-          month,
-          categoriesCount: allItems.length,
-          incomeTotal,
-          expenseTotal,
-          duration,
-        },
-      });
-
-      // Record metrics
-      this.metrics.recordTransaction('get_category_summary', 'success');
-      this.metrics.recordDbQuery(
-        'get_category_summary',
-        'entries',
-        'success',
-        duration,
-      );
-
-      return {
-        items,
-        allItems,
-        incomeTotal,
-        expenseTotal,
-      };
-    } catch (error) {
-      this.logger.error(
-        `Failed to get category summary for user ${userId}`,
-        error.stack,
-      );
-
-      this.metrics.recordApiError('get_category_summary', error.message);
-
-      throw error;
-    }
-  }
-
-  async getFixedEntriesSummary(userId: string): Promise<FixedEntriesSummary> {
-    const startTime = Date.now();
-
-    try {
-      const result = await this.entryRepository
-        .createQueryBuilder('entry')
-        .select(
-          "SUM(CASE WHEN entry.type = 'INCOME' AND entry.isFixed = true THEN entry.amount ELSE 0 END)",
-          'fixedIncome',
-        )
-        .addSelect(
-          "SUM(CASE WHEN entry.type = 'EXPENSE' AND entry.isFixed = true AND entry.isPaid = true THEN entry.amount ELSE 0 END)",
-          'fixedExpenses',
-        )
-        .addSelect(
-          'COUNT(CASE WHEN entry.isFixed = true THEN 1 END)',
-          'entriesCount',
-        )
-        .where('entry.userId = :userId', { userId })
-        .andWhere('entry.deletedAt IS NULL')
-        .getRawOne();
-
-      const fixedIncome = parseFloat(result?.fixedIncome || '0');
-      const fixedExpenses = parseFloat(result?.fixedExpenses || '0');
-      const fixedNetFlow = fixedIncome - fixedExpenses;
-
-      const duration = Date.now() - startTime;
-
-      // Log business event
-      this.logger.logBusinessEvent({
-        event: 'fixed_entries_summary_calculated',
-        userId,
-        metadata: {
-          fixedIncome,
-          fixedExpenses,
-          fixedNetFlow,
-          entriesCount: parseInt(result?.entriesCount || '0'),
-          duration,
-        },
-      });
-
-      // Record metrics
-      this.metrics.recordTransaction('get_fixed_entries_summary', 'success');
-      this.metrics.recordDbQuery(
-        'get_fixed_entries_summary',
-        'entries',
-        'success',
-        duration,
-      );
-
-      return {
-        fixedIncome,
-        fixedExpenses,
-        fixedNetFlow,
-        entriesCount: parseInt(result?.entriesCount || '0'),
-      };
-    } catch (error) {
-      this.logger.error(
-        `Failed to get fixed entries summary for user ${userId}`,
-        error.stack,
-      );
-
-      this.metrics.recordApiError('get_fixed_entries_summary', error.message);
-      throw error;
-    }
-  }
-
-  async getCurrentBalance(userId: string): Promise<number> {
-    const startTime = Date.now();
-
-    try {
-      const result = await this.entryRepository
-        .createQueryBuilder('entry')
-        .select(
-          "SUM(CASE WHEN entry.type = 'INCOME' THEN entry.amount ELSE 0 END)",
-          'totalIncome',
-        )
-        .addSelect(
-          "SUM(CASE WHEN entry.type = 'EXPENSE' AND entry.isPaid = true THEN entry.amount ELSE 0 END)",
-          'totalExpenses',
-        )
-        .where('entry.userId = :userId', { userId })
-        .andWhere('entry.deletedAt IS NULL')
-        .getRawOne();
-
-      const totalIncome = parseFloat(result?.totalIncome || '0');
-      const totalExpenses = parseFloat(result?.totalExpenses || '0');
-      const currentBalance = totalIncome - totalExpenses;
-
-      const duration = Date.now() - startTime;
-
-      // Log business event
-      this.logger.logBusinessEvent({
-        event: 'current_balance_calculated',
-        userId,
-        metadata: {
-          totalIncome,
-          totalExpenses,
-          currentBalance,
-          duration,
-        },
-      });
-
-      // Record metrics
-      this.metrics.recordTransaction('get_current_balance', 'success');
-      this.metrics.recordDbQuery(
-        'get_current_balance',
-        'entries',
-        'success',
-        duration,
-      );
-
-      return currentBalance;
-    } catch (error) {
-      this.logger.error(
-        `Failed to get current balance for user ${userId}`,
-        error.stack,
-      );
-
-      this.metrics.recordApiError('get_current_balance', error.message);
-      throw error;
-    }
-  }
-
-  async getDistinctMonthsYears(userId: string): Promise<MonthYear[]> {
-    const startTime = Date.now();
-
-    try {
-      const results = await this.entryRepository
-        .createQueryBuilder('entry')
-        .select('EXTRACT(YEAR FROM entry.date)', 'year')
-        .addSelect('EXTRACT(MONTH FROM entry.date)', 'month')
-        .where('entry.userId = :userId', { userId })
-        .andWhere('entry.deletedAt IS NULL')
-        .groupBy('EXTRACT(YEAR FROM entry.date)')
-        .addGroupBy('EXTRACT(MONTH FROM entry.date)')
-        .orderBy('EXTRACT(YEAR FROM entry.date)', 'DESC')
-        .addOrderBy('EXTRACT(MONTH FROM entry.date)', 'DESC')
-        .getRawMany();
-
-      const monthsYears: MonthYear[] = results.map(result => ({
-        year: parseInt(result.year, 10),
-        month: parseInt(result.month, 10),
-      }));
-
-      const duration = Date.now() - startTime;
-
-      // Log business event
-      this.logger.logBusinessEvent({
-        event: 'distinct_months_years_retrieved',
-        userId,
-        metadata: {
-          count: monthsYears.length,
-          duration,
-        },
-      });
-
-      // Record metrics
-      this.metrics.recordTransaction('get_distinct_months_years', 'success');
-
-      return monthsYears;
-    } catch (error) {
-      this.logger.error(
-        `Failed to get distinct months and years for user ${userId}`,
-        error.stack,
-      );
-
-      this.metrics.recordApiError('get_distinct_months_years', error.message);
-      throw error;
-    }
-  }
-
-  async getAccumulatedStats(
-    userId: string,
-    year: number,
-    month: number,
-  ): Promise<AccumulatedStats> {
-    const startTime = Date.now();
-
-    try {
-      const startDate = new Date(year, month - 1, 1);
-      const endDate = new Date(year, month, 0, 23, 59, 59);
-
-      const result = await this.entryRepository
-        .createQueryBuilder('entry')
-        .leftJoin(
-          EntryMonthlyPaymentEntity,
-          'payment',
-          'payment.entry_id = entry.id AND payment.year = :year AND payment.month = :month',
-          { year, month },
-        )
-        .select(
-          "SUM(CASE WHEN entry.type = 'INCOME' AND entry.date <= :endDate THEN entry.amount ELSE 0 END)",
-          'totalAccumulatedIncome',
-        )
-        .addSelect(
-          "SUM(CASE WHEN entry.type = 'EXPENSE' AND COALESCE(payment.is_paid, entry.is_paid) = true AND entry.date <= :endDate THEN entry.amount ELSE 0 END)",
-          'totalAccumulatedPaidExpenses',
-        )
-        .addSelect(
-          "SUM(CASE WHEN entry.type = 'EXPENSE' AND COALESCE(payment.is_paid, entry.is_paid) = false AND entry.date <= :endDate THEN entry.amount ELSE 0 END)",
-          'previousMonthsUnpaidExpenses',
-        )
-        .where('entry.user_id = :userId', { userId })
-        .andWhere('entry.deleted_at IS NULL')
-        .setParameters({ startDate, endDate, year, month })
-        .getRawOne();
-
-      const totalAccumulatedIncome = parseFloat(
-        result?.totalAccumulatedIncome || '0',
-      );
-      const totalAccumulatedPaidExpenses = parseFloat(
-        result?.totalAccumulatedPaidExpenses || '0',
-      );
-      const previousMonthsUnpaidExpenses = parseFloat(
-        result?.previousMonthsUnpaidExpenses || '0',
-      );
-      const accumulatedBalance =
-        totalAccumulatedIncome - totalAccumulatedPaidExpenses;
-
-      const duration = Date.now() - startTime;
-
-      // Log business event
-      this.logger.logBusinessEvent({
-        event: 'accumulated_stats_calculated',
-        userId,
-        metadata: {
-          year,
-          month,
-          totalAccumulatedIncome,
-          totalAccumulatedPaidExpenses,
-          previousMonthsUnpaidExpenses,
-          accumulatedBalance,
-          duration,
-        },
-      });
-
-      // Record metrics
-      this.metrics.recordTransaction('get_accumulated_stats', 'success');
-      this.metrics.recordDbQuery(
-        'get_accumulated_stats',
-        'entries',
-        'success',
-        duration,
-      );
-
-      return {
-        totalAccumulatedIncome,
-        totalAccumulatedPaidExpenses,
-        previousMonthsUnpaidExpenses,
-        accumulatedBalance,
-      };
-    } catch (error) {
-      this.logger.error(
-        `Failed to get accumulated stats for user ${userId}`,
-        error.stack,
-      );
-
-      this.metrics.recordApiError('get_accumulated_stats', error.message);
-      throw error;
-    }
-  }
-
-  async setMonthlyPaymentStatus(
-    entryId: string,
-    year: number,
-    month: number,
-    isPaid: boolean,
-  ): Promise<MonthlyPaymentStatus> {
-    const startTime = Date.now();
-
-    try {
-      // Find existing record or create new one
-      let payment = await this.monthlyPaymentRepository.findOne({
-        where: { entryId, year, month },
-      });
-
-      if (payment) {
-        // Update existing record
-        payment.isPaid = isPaid;
-        payment.paidAt = isPaid ? new Date() : null;
-        await this.monthlyPaymentRepository.save(payment);
-      } else {
-        // Create new record
-        payment = this.monthlyPaymentRepository.create({
-          entryId,
-          year,
-          month,
-          isPaid,
-          paidAt: isPaid ? new Date() : null,
-        });
-        await this.monthlyPaymentRepository.save(payment);
-      }
-
-      const duration = Date.now() - startTime;
-
-      this.logger.logBusinessEvent({
-        event: 'monthly_payment_status_updated',
-        metadata: {
-          entryId,
-          year,
-          month,
-          isPaid,
-          duration,
-        },
-      });
-
-      this.metrics.recordTransaction('set_monthly_payment_status', 'success');
-
-      return {
-        entryId: payment.entryId,
-        year: payment.year,
-        month: payment.month,
-        isPaid: payment.isPaid,
-        paidAt: payment.paidAt,
-      };
-    } catch (error) {
-      this.logger.error(
-        `Failed to set monthly payment status for entry ${entryId}`,
-        error.stack,
-      );
-
-      this.metrics.recordApiError('set_monthly_payment_status', error.message);
-      throw error;
-    }
-  }
-
-  async getMonthlyPaymentStatus(
-    entryId: string,
-    year: number,
-    month: number,
-  ): Promise<MonthlyPaymentStatus | null> {
-    const startTime = Date.now();
-
-    try {
-      const payment = await this.monthlyPaymentRepository.findOne({
-        where: { entryId, year, month },
-      });
-
-      const duration = Date.now() - startTime;
-
-      this.logger.debug(
-        `Get monthly payment status for entry ${entryId} (${year}-${month}): ${duration}ms`,
-      );
-
-      this.metrics.recordTransaction('get_monthly_payment_status', 'success');
-
-      if (!payment) {
-        return null;
-      }
-
-      return {
-        entryId: payment.entryId,
-        year: payment.year,
-        month: payment.month,
-        isPaid: payment.isPaid,
-        paidAt: payment.paidAt,
-      };
-    } catch (error) {
-      this.logger.error(
-        `Failed to get monthly payment status for entry ${entryId}`,
-        error.stack,
-      );
-
-      this.metrics.recordApiError('get_monthly_payment_status', error.message);
-      throw error;
-    }
-  }
-
-  async deleteMonthlyPaymentStatuses(entryId: string): Promise<void> {
-    const startTime = Date.now();
-
-    try {
-      await this.monthlyPaymentRepository.delete({ entryId });
-
-      const duration = Date.now() - startTime;
-
-      this.logger.logBusinessEvent({
-        event: 'monthly_payment_statuses_deleted',
-        metadata: {
-          entryId,
-          duration,
-        },
-      });
-
-      this.metrics.recordTransaction(
-        'delete_monthly_payment_statuses',
-        'success',
-      );
-    } catch (error) {
-      this.logger.error(
-        `Failed to delete monthly payment statuses for entry ${entryId}`,
-        error.stack,
-      );
-
-      this.metrics.recordApiError(
-        'delete_monthly_payment_statuses',
-        error.message,
-      );
-      throw error;
-    }
+    const deletedAt = new Date();
+    await this.delete(id);
+    this.logger.logBusinessEvent({
+      event: 'entry_deleted',
+      entityId: id,
+      deletedAt: deletedAt.toISOString(),
+    });
+    this.metrics.recordTransaction('delete', 'success');
+    return deletedAt;
   }
 
   private mapToModel(entity: EntryEntity): EntryModel {
     return {
       id: entity.id,
+      recurrenceId: entity.recurrenceId,
       userId: entity.userId,
+      categoryId: entity.categoryId,
       description: entity.description,
       amount: Number(entity.amount),
-      date: entity.date,
-      type: entity.type,
-      isFixed: entity.isFixed,
-      categoryId: entity.categoryId,
-      categoryName: entity.category?.name,
-      isPaid: entity.isPaid,
+      issueDate: entity.issueDate,
+      dueDate: entity.dueDate,
+      recurrence: entity.recurrence
+        ? {
+            id: entity.recurrence.id,
+            type: entity.recurrence.type,
+            createdAt: entity.recurrence.createdAt,
+          }
+        : null,
+      payment: entity.payment
+        ? {
+            id: entity.payment.id,
+            entryId: entity.payment.entryId,
+            amount: Number(entity.payment.amount),
+            createdAt: entity.payment.createdAt,
+          }
+        : null,
+      isPaid: !!entity.payment,
+      entryType: entity.category?.type,
+      category: entity.category
+        ? {
+            id: entity.category.id,
+            name: entity.category.name,
+            description: entity.category.description,
+            icon: entity.category.icon,
+            color: entity.category.color,
+            type: entity.category.type,
+            createdAt: entity.category.createdAt,
+            updatedAt: entity.category.updatedAt,
+          }
+        : null,
       createdAt: entity.createdAt,
       updatedAt: entity.updatedAt,
-      deletedAt: entity.deletedAt,
+      categoryName: entity.category?.name ?? null,
     };
   }
 }

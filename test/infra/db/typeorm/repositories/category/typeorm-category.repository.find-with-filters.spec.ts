@@ -18,7 +18,6 @@ describe('TypeormCategoryRepository - findWithFilters', () => {
 
   const mockUserId = 'a1b2c3d4-e5f6-7890-abcd-ef1234567890';
 
-  // Mock data for testing
   const mockCategoryEntity = {
     id: 'test-id',
     name: 'Test Category',
@@ -26,17 +25,14 @@ describe('TypeormCategoryRepository - findWithFilters', () => {
     type: CategoryType.INCOME,
     color: '#4CAF50',
     icon: 'work',
-    userId: mockUserId,
-    isDefault: false,
     createdAt: new Date('2023-01-01'),
     updatedAt: new Date('2023-01-01'),
     deletedAt: null,
     entries: [],
   };
 
-  // Mock QueryBuilder
   const mockQueryBuilder = {
-    where: jest.fn().mockReturnThis(),
+    innerJoin: jest.fn().mockReturnThis(),
     andWhere: jest.fn().mockReturnThis(),
     leftJoin: jest.fn().mockReturnThis(),
     addSelect: jest.fn().mockReturnThis(),
@@ -45,14 +41,18 @@ describe('TypeormCategoryRepository - findWithFilters', () => {
     skip: jest.fn().mockReturnThis(),
     take: jest.fn().mockReturnThis(),
     getRawAndEntities: jest.fn(),
-    getCount: jest.fn().mockResolvedValue(0),
+  };
+
+  const mockCountQueryBuilder = {
+    innerJoin: jest.fn().mockReturnThis(),
+    andWhere: jest.fn().mockReturnThis(),
+    getCount: jest.fn(),
   };
 
   beforeEach(async () => {
     loggerSpy = new LoggerSpy();
     metricsSpy = new MetricsSpy();
 
-    // Create mock repository
     mockTypeormRepository = {
       create: jest.fn(),
       save: jest.fn(),
@@ -60,15 +60,17 @@ describe('TypeormCategoryRepository - findWithFilters', () => {
       find: jest.fn(),
       update: jest.fn(),
       delete: jest.fn(),
-      softDelete: jest.fn(),
       createQueryBuilder: jest.fn(),
       count: jest.fn(),
     } as any;
 
-    // Setup query builder mock
-    mockTypeormRepository.createQueryBuilder.mockReturnValue(
-      mockQueryBuilder as any,
-    );
+    let qbCall = 0;
+    mockTypeormRepository.createQueryBuilder.mockImplementation(() => {
+      qbCall += 1;
+      return (
+        qbCall % 2 === 1 ? mockQueryBuilder : mockCountQueryBuilder
+      ) as any;
+    });
 
     testingModule = await Test.createTestingModule({
       providers: [
@@ -101,14 +103,7 @@ describe('TypeormCategoryRepository - findWithFilters', () => {
   });
 
   describe('findWithFilters', () => {
-    beforeEach(() => {
-      mockTypeormRepository.createQueryBuilder.mockReturnValue(
-        mockQueryBuilder as any,
-      );
-    });
-
     it('should find all categories for user without filters', async () => {
-      // Arrange
       const filters: CategoryListFilters = {
         userId: mockUserId,
       };
@@ -125,23 +120,22 @@ describe('TypeormCategoryRepository - findWithFilters', () => {
       };
 
       mockQueryBuilder.getRawAndEntities.mockResolvedValue(mockResults);
-      mockQueryBuilder.getCount.mockResolvedValue(2);
+      mockCountQueryBuilder.getCount.mockResolvedValue(2);
 
-      // Act
       const result = await repository.findWithFilters(filters);
 
-      // Assert
       expect(result.data).toHaveLength(2);
       expect(result.total).toBe(2);
       expect(mockTypeormRepository.createQueryBuilder).toHaveBeenCalledWith(
         'category',
       );
-      expect(mockQueryBuilder.where).toHaveBeenCalledWith(
-        'category.userId = :userId',
+      expect(mockQueryBuilder.innerJoin).toHaveBeenCalledWith(
+        'category.users',
+        'user',
+        'user.id = :userId',
         { userId: mockUserId },
       );
 
-      // Verify logging
       const businessEvents = loggerSpy.getBusinessEvents(
         'categories_found_with_filters',
       );
@@ -156,7 +150,6 @@ describe('TypeormCategoryRepository - findWithFilters', () => {
         },
       });
 
-      // Verify metrics
       expect(metricsSpy.hasRecordedMetric('financial_transactions_total')).toBe(
         true,
       );
@@ -170,7 +163,6 @@ describe('TypeormCategoryRepository - findWithFilters', () => {
     });
 
     it('should filter categories by type', async () => {
-      // Arrange
       const filters: CategoryListFilters = {
         userId: mockUserId,
         type: CategoryType.INCOME,
@@ -182,12 +174,10 @@ describe('TypeormCategoryRepository - findWithFilters', () => {
       };
 
       mockQueryBuilder.getRawAndEntities.mockResolvedValue(mockResults);
-      mockQueryBuilder.getCount.mockResolvedValue(1);
+      mockCountQueryBuilder.getCount.mockResolvedValue(1);
 
-      // Act
       const result = await repository.findWithFilters(filters);
 
-      // Assert
       expect(result.data).toHaveLength(1);
       expect(result.total).toBe(1);
       expect(mockQueryBuilder.andWhere).toHaveBeenCalledWith(
@@ -197,7 +187,6 @@ describe('TypeormCategoryRepository - findWithFilters', () => {
     });
 
     it('should not filter when type is "all"', async () => {
-      // Arrange
       const filters: CategoryListFilters = {
         userId: mockUserId,
         type: 'all' as any,
@@ -209,12 +198,10 @@ describe('TypeormCategoryRepository - findWithFilters', () => {
       };
 
       mockQueryBuilder.getRawAndEntities.mockResolvedValue(mockResults);
-      mockQueryBuilder.getCount.mockResolvedValue(1);
+      mockCountQueryBuilder.getCount.mockResolvedValue(1);
 
-      // Act
       const result = await repository.findWithFilters(filters);
 
-      // Assert
       expect(result.data).toHaveLength(1);
       expect(result.total).toBe(1);
       expect(mockQueryBuilder.andWhere).not.toHaveBeenCalledWith(
@@ -224,7 +211,6 @@ describe('TypeormCategoryRepository - findWithFilters', () => {
     });
 
     it('should include stats when requested', async () => {
-      // Arrange
       const filters: CategoryListFilters = {
         userId: mockUserId,
         includeStats: true,
@@ -237,29 +223,22 @@ describe('TypeormCategoryRepository - findWithFilters', () => {
         ],
       };
 
-      // Create a separate mock for the count query builder
-      const mockCountQueryBuilder = {
-        where: jest.fn().mockReturnThis(),
-        andWhere: jest.fn().mockReturnThis(),
-        getCount: jest.fn().mockResolvedValue(1),
-      };
-
-      // Make createQueryBuilder return different builders for main query and count query
       mockTypeormRepository.createQueryBuilder
         .mockReturnValueOnce(mockQueryBuilder as any)
         .mockReturnValueOnce(mockCountQueryBuilder as any);
 
       mockQueryBuilder.getRawAndEntities.mockResolvedValue(mockResults);
+      mockCountQueryBuilder.getCount.mockResolvedValue(1);
 
-      // Act
       const result = await repository.findWithFilters(filters);
 
-      // Assert
       expect(result.data).toHaveLength(1);
       expect(result.total).toBe(1);
       expect(mockQueryBuilder.leftJoin).toHaveBeenCalledWith(
         'category.entries',
         'entry',
+        'entry.userId = :userId',
+        { userId: mockUserId },
       );
       expect(mockQueryBuilder.addSelect).toHaveBeenCalledTimes(3);
       expect(mockQueryBuilder.addSelect).toHaveBeenCalledWith(
@@ -271,7 +250,7 @@ describe('TypeormCategoryRepository - findWithFilters', () => {
         'totalAmount',
       );
       expect(mockQueryBuilder.addSelect).toHaveBeenCalledWith(
-        'MAX(entry.date)',
+        'MAX(entry.dueDate)',
         'lastUsed',
       );
       expect(mockQueryBuilder.groupBy).toHaveBeenCalledWith('category.id');
@@ -281,7 +260,6 @@ describe('TypeormCategoryRepository - findWithFilters', () => {
     });
 
     it('should not include stats when not requested', async () => {
-      // Arrange
       const filters: CategoryListFilters = {
         userId: mockUserId,
         includeStats: false,
@@ -293,12 +271,10 @@ describe('TypeormCategoryRepository - findWithFilters', () => {
       };
 
       mockQueryBuilder.getRawAndEntities.mockResolvedValue(mockResults);
-      mockQueryBuilder.getCount.mockResolvedValue(1);
+      mockCountQueryBuilder.getCount.mockResolvedValue(1);
 
-      // Act
       const result = await repository.findWithFilters(filters);
 
-      // Assert
       expect(result.data).toHaveLength(1);
       expect(result.total).toBe(1);
       expect(mockQueryBuilder.leftJoin).not.toHaveBeenCalled();
@@ -308,7 +284,6 @@ describe('TypeormCategoryRepository - findWithFilters', () => {
     });
 
     it('should handle edge cases in stats parsing', async () => {
-      // Arrange
       const filters: CategoryListFilters = {
         userId: mockUserId,
         includeStats: true,
@@ -319,24 +294,15 @@ describe('TypeormCategoryRepository - findWithFilters', () => {
         raw: [{ entriesCount: null, totalAmount: undefined, lastUsed: null }],
       };
 
-      // Create a separate mock for the count query builder
-      const mockCountQueryBuilder = {
-        where: jest.fn().mockReturnThis(),
-        andWhere: jest.fn().mockReturnThis(),
-        getCount: jest.fn().mockResolvedValue(1),
-      };
-
-      // Make createQueryBuilder return different builders for main query and count query
       mockTypeormRepository.createQueryBuilder
         .mockReturnValueOnce(mockQueryBuilder as any)
         .mockReturnValueOnce(mockCountQueryBuilder as any);
 
       mockQueryBuilder.getRawAndEntities.mockResolvedValue(mockResults);
+      mockCountQueryBuilder.getCount.mockResolvedValue(1);
 
-      // Act
       const result = await repository.findWithFilters(filters);
 
-      // Assert
       expect(result.data).toHaveLength(1);
       expect(result.total).toBe(1);
       expect((result.data[0] as any).entriesCount).toBe(0);
@@ -347,23 +313,19 @@ describe('TypeormCategoryRepository - findWithFilters', () => {
     });
 
     it('should handle database errors', async () => {
-      // Arrange
       const filters: CategoryListFilters = {
         userId: mockUserId,
       };
       const error = new Error('Database error');
-      mockQueryBuilder.getCount.mockRejectedValue(error);
+      mockCountQueryBuilder.getCount.mockRejectedValue(error);
 
-      // Act & Assert
       await expect(repository.findWithFilters(filters)).rejects.toThrow();
 
-      // Verify error logging
       expect(loggerSpy.getErrorsCount()).toBeGreaterThan(0);
       expect(loggerSpy.loggedErrors[0].message).toContain(
         'Failed to find categories with filters',
       );
 
-      // Verify error metrics
       expect(metricsSpy.hasRecordedMetric('api_errors_total')).toBe(true);
       const errorMetrics = metricsSpy.getMetricsByFilter('api_errors_total');
       expect(errorMetrics[0].labels.endpoint).toBe(
@@ -373,7 +335,7 @@ describe('TypeormCategoryRepository - findWithFilters', () => {
 
     it('should log and rethrow on error', async () => {
       const qb = {
-        where: jest.fn().mockReturnThis(),
+        innerJoin: jest.fn().mockReturnThis(),
         andWhere: jest.fn().mockReturnThis(),
         leftJoin: jest.fn().mockReturnThis(),
         addSelect: jest.fn().mockReturnThis(),
@@ -403,15 +365,12 @@ describe('TypeormCategoryRepository - findWithFilters', () => {
         type: CategoryType.EXPENSE,
         color: '#000',
         icon: 'i',
-        userId: 'user-1',
-        isDefault: false,
         createdAt: new Date('2023-01-01'),
         updatedAt: new Date('2023-01-01'),
         deletedAt: null as any,
         entries: [],
       } as any;
 
-      // Create repository without metrics
       const repositoryWithoutMetrics = new TypeormCategoryRepository(
         mockTypeormRepository,
         loggerSpy,
@@ -419,7 +378,7 @@ describe('TypeormCategoryRepository - findWithFilters', () => {
       );
 
       const qb = {
-        where: jest.fn().mockReturnThis(),
+        innerJoin: jest.fn().mockReturnThis(),
         andWhere: jest.fn().mockReturnThis(),
         leftJoin: jest.fn().mockReturnThis(),
         addSelect: jest.fn().mockReturnThis(),
@@ -432,7 +391,14 @@ describe('TypeormCategoryRepository - findWithFilters', () => {
           .mockResolvedValue({ raw: [], entities: [baseEntity] }),
         getCount: jest.fn().mockResolvedValue(1),
       } as unknown as jest.Mocked<SelectQueryBuilder<CategoryEntity>>;
-      (mockTypeormRepository.createQueryBuilder as any).mockReturnValue(qb);
+
+      let call = 0;
+      (mockTypeormRepository.createQueryBuilder as any).mockImplementation(
+        () => {
+          call += 1;
+          return qb as any;
+        },
+      );
 
       const result = await repositoryWithoutMetrics.findWithFilters({
         userId: 'user-1',

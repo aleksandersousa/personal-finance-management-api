@@ -40,7 +40,6 @@ describe('DbUpdateEntryUseCase', () => {
       const user = MockUserFactory.create({ id: existingEntry.userId });
       const category = MockCategoryFactory.create({
         id: 'category-456',
-        userId: existingEntry.userId,
       });
       const updateRequest = MockEntryFactory.createUpdateRequest({
         id: existingEntry.id,
@@ -50,7 +49,7 @@ describe('DbUpdateEntryUseCase', () => {
 
       entryRepositoryStub.seed([existingEntry]);
       userRepositoryStub.seed([user]);
-      categoryRepositoryStub.seed([category]);
+      categoryRepositoryStub.seed([category], existingEntry.userId);
 
       // Act
       const result = await useCase.execute(updateRequest);
@@ -59,8 +58,6 @@ describe('DbUpdateEntryUseCase', () => {
       expect(result).toHaveProperty('id', existingEntry.id);
       expect(result.description).toBe(updateRequest.description);
       expect(result.amount).toBe(updateRequest.amount);
-      expect(result.type).toBe(updateRequest.type);
-      expect(result.isFixed).toBe(updateRequest.isFixed);
       expect(result.categoryId).toBe(updateRequest.categoryId);
       expect(result.userId).toBe(updateRequest.userId);
     });
@@ -106,6 +103,17 @@ describe('DbUpdateEntryUseCase', () => {
       // Act & Assert
       await expect(useCase.execute(updateRequest)).rejects.toThrow(
         'Description is required',
+      );
+    });
+
+    it('should throw error when due date is before issue date', async () => {
+      const updateRequest = MockEntryFactory.createUpdateRequest({
+        issueDate: new Date('2025-01-20T15:00:00Z'),
+        dueDate: new Date('2025-01-19T10:00:00Z'),
+      });
+
+      await expect(useCase.execute(updateRequest)).rejects.toThrow(
+        'Due date cannot be before issue date',
       );
     });
 
@@ -177,7 +185,6 @@ describe('DbUpdateEntryUseCase', () => {
       const user = MockUserFactory.create({ id: existingEntry.userId });
       const category = MockCategoryFactory.create({
         id: 'category-456',
-        userId: 'different-user',
       });
       const updateRequest = MockEntryFactory.createUpdateRequest({
         id: existingEntry.id,
@@ -187,7 +194,7 @@ describe('DbUpdateEntryUseCase', () => {
 
       entryRepositoryStub.seed([existingEntry]);
       userRepositoryStub.seed([user]);
-      categoryRepositoryStub.seed([category]);
+      categoryRepositoryStub.seed([category], 'different-user');
 
       // Act & Assert
       await expect(useCase.execute(updateRequest)).rejects.toThrow(
@@ -195,25 +202,79 @@ describe('DbUpdateEntryUseCase', () => {
       );
     });
 
-    it('should update entry without category when categoryId is not provided', async () => {
+    it('should update entry with provided category', async () => {
       // Arrange
       const existingEntry = MockEntryFactory.create();
       const user = MockUserFactory.create({ id: existingEntry.userId });
+      const category = MockCategoryFactory.create({
+        id: existingEntry.categoryId!,
+      });
       const updateRequest = MockEntryFactory.createUpdateRequest({
         id: existingEntry.id,
         userId: existingEntry.userId,
-        categoryId: undefined,
+        categoryId: existingEntry.categoryId,
       });
 
       entryRepositoryStub.seed([existingEntry]);
       userRepositoryStub.seed([user]);
+      categoryRepositoryStub.seed([category], existingEntry.userId);
 
       // Act
       const result = await useCase.execute(updateRequest);
 
       // Assert
       expect(result).toHaveProperty('id', existingEntry.id);
-      expect(result.categoryId).toBeUndefined();
+      expect(result.categoryId).toBe(existingEntry.categoryId);
+    });
+
+    it('should update entry when due date is the same day as issue date', async () => {
+      const existingEntry = MockEntryFactory.create();
+      const user = MockUserFactory.create({ id: existingEntry.userId });
+      const category = MockCategoryFactory.create({
+        id: existingEntry.categoryId!,
+      });
+      const updateRequest = MockEntryFactory.createUpdateRequest({
+        id: existingEntry.id,
+        userId: existingEntry.userId,
+        categoryId: existingEntry.categoryId,
+        issueDate: new Date('2025-01-20T01:00:00Z'),
+        dueDate: new Date('2025-01-20T22:30:00Z'),
+      });
+
+      entryRepositoryStub.seed([existingEntry]);
+      userRepositoryStub.seed([user]);
+      categoryRepositoryStub.seed([category], existingEntry.userId);
+
+      const result = await useCase.execute(updateRequest);
+
+      expect(result.id).toBe(existingEntry.id);
+      expect(result.issueDate).toEqual(updateRequest.issueDate);
+      expect(result.dueDate).toEqual(updateRequest.dueDate);
+    });
+
+    it('should update entry when due date is after issue date', async () => {
+      const existingEntry = MockEntryFactory.create();
+      const user = MockUserFactory.create({ id: existingEntry.userId });
+      const category = MockCategoryFactory.create({
+        id: existingEntry.categoryId!,
+      });
+      const updateRequest = MockEntryFactory.createUpdateRequest({
+        id: existingEntry.id,
+        userId: existingEntry.userId,
+        categoryId: existingEntry.categoryId,
+        issueDate: new Date('2025-01-20T10:00:00Z'),
+        dueDate: new Date('2025-01-21T10:00:00Z'),
+      });
+
+      entryRepositoryStub.seed([existingEntry]);
+      userRepositoryStub.seed([user]);
+      categoryRepositoryStub.seed([category], existingEntry.userId);
+
+      const result = await useCase.execute(updateRequest);
+
+      expect(result.id).toBe(existingEntry.id);
+      expect(result.issueDate).toEqual(updateRequest.issueDate);
+      expect(result.dueDate).toEqual(updateRequest.dueDate);
     });
 
     it('should handle repository errors', async () => {

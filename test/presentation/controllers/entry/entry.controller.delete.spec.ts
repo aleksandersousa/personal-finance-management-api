@@ -28,9 +28,10 @@ describe('EntryController - DELETE', () => {
         { provide: 'UpdateEntryUseCase', useValue: {} },
         { provide: 'DeleteEntryUseCase', useValue: deleteEntryUseCase },
         { provide: 'GetEntriesMonthsYearsUseCase', useValue: {} },
-        { provide: 'ToggleMonthlyPaymentStatusUseCase', useValue: {} },
+        { provide: 'ToggleEntryPaymentStatusUseCase', useValue: {} },
         { provide: 'Logger', useValue: loggerSpy },
         { provide: 'Metrics', useValue: metricsSpy },
+        { provide: 'EntryRepository', useValue: {} },
       ],
     }).compile();
 

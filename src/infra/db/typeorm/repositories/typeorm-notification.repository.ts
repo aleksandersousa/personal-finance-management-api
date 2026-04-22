@@ -28,7 +28,8 @@ export class TypeormNotificationRepository implements NotificationRepository {
         entryId: data.entryId,
         userId: data.userId,
         scheduledAt: data.scheduledAt,
-        jobId: data.jobId,
+        sentAt: null,
+        jobId: data.jobId ?? null,
         status: NotificationStatus.PENDING,
       });
 
@@ -250,7 +251,6 @@ export class TypeormNotificationRepository implements NotificationRepository {
       jobId: entity.jobId,
       createdAt: entity.createdAt,
       updatedAt: entity.updatedAt,
-      deletedAt: entity.deletedAt,
     };
   }
 }

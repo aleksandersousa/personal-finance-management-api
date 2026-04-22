@@ -2,14 +2,20 @@ import {
   Column,
   CreateDateColumn,
   Entity,
+  JoinTable,
+  ManyToMany,
   OneToMany,
+  OneToOne,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
 import { EntryEntity } from './entry.entity';
-import { CategoryEntity } from './category.entity';
 import { EmailVerificationTokenEntity } from './email-verification-token.entity';
 import { TABLE_NAMES } from '@/domain/constants';
+import { PasswordResetTokenEntity } from './password-reset-token.entity';
+import { NotificationEntity } from './notification.entity';
+import { UserSettingEntity } from './user-setting.entity';
+import { CategoryEntity } from './category.entity';
 
 @Entity(TABLE_NAMES.USERS)
 export class UserEntity {
@@ -31,23 +37,28 @@ export class UserEntity {
   @Column({ name: 'email_verified', type: 'boolean', default: false })
   emailVerified: boolean;
 
-  @Column({ name: 'notification_enabled', type: 'boolean', default: true })
-  notificationEnabled: boolean;
-
-  @Column({ name: 'notification_time_minutes', type: 'integer', default: 30 })
-  notificationTimeMinutes: number;
-
-  @Column({ name: 'timezone', default: 'America/Sao_Paulo' })
-  timezone: string;
-
   @OneToMany(() => EntryEntity, entry => entry.user)
-  entries: EntryEntity[];
+  entries?: EntryEntity[];
 
-  @OneToMany(() => CategoryEntity, category => category.user)
+  @OneToMany(() => NotificationEntity, notification => notification.user)
+  notifications?: NotificationEntity[];
+
+  @ManyToMany(() => CategoryEntity, category => category.users)
+  @JoinTable({
+    name: TABLE_NAMES.USER_CATEGORIES,
+    joinColumn: { name: 'id_user', referencedColumnName: 'id' },
+    inverseJoinColumn: { name: 'id_category', referencedColumnName: 'id' },
+  })
   categories: CategoryEntity[];
 
   @OneToMany(() => EmailVerificationTokenEntity, token => token.user)
-  emailVerificationTokens: EmailVerificationTokenEntity[];
+  emailVerificationTokens?: EmailVerificationTokenEntity[];
+
+  @OneToMany(() => PasswordResetTokenEntity, token => token.user)
+  passwordResetTokens?: PasswordResetTokenEntity[];
+
+  @OneToOne(() => UserSettingEntity, setting => setting.user)
+  userSetting?: UserSettingEntity;
 
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;

@@ -6,7 +6,7 @@ import { LoggerSpy } from '../../../infra/mocks/logging/logger.spy';
 import { MetricsSpy } from '../../../infra/mocks/metrics/metrics.spy';
 
 describe('EntryController - LIST_BY_MONTH', () => {
-  let controller: EntryController;
+  let controller: any;
   let listEntriesByMonthUseCase: jest.Mocked<ListEntriesByMonthUseCase>;
   let loggerSpy: LoggerSpy;
   let metricsSpy: MetricsSpy;
@@ -29,9 +29,10 @@ describe('EntryController - LIST_BY_MONTH', () => {
         { provide: 'DeleteEntryUseCase', useValue: {} },
         { provide: 'UpdateEntryUseCase', useValue: {} },
         { provide: 'GetEntriesMonthsYearsUseCase', useValue: {} },
-        { provide: 'ToggleMonthlyPaymentStatusUseCase', useValue: {} },
+        { provide: 'ToggleEntryPaymentStatusUseCase', useValue: {} },
         { provide: 'Logger', useValue: loggerSpy },
         { provide: 'Metrics', useValue: metricsSpy },
+        { provide: 'EntryRepository', useValue: {} },
       ],
     }).compile();
 
@@ -117,6 +118,7 @@ describe('EntryController - LIST_BY_MONTH', () => {
         sort: 'date',
         order: 'desc',
         type: 'all',
+        entryType: undefined,
         categoryId: undefined,
         search: undefined,
         isPaid: 'all',
@@ -189,9 +191,10 @@ describe('EntryController - LIST_BY_MONTH', () => {
         month: 1,
         page: 1,
         limit: 20,
-        sort: 'date',
+        sort: 'dueDate',
         order: 'desc',
         type: 'all',
+        entryType: undefined,
         categoryId: undefined,
         search: undefined,
         isPaid: 'all',
@@ -406,7 +409,7 @@ describe('EntryController - LIST_BY_MONTH', () => {
           mockUser,
         ),
       ).rejects.toThrow(
-        'Invalid sort field. Must be one of: date, amount, description',
+        'Invalid sort field. Must be one of: date, dueDate, amount, description',
       );
     });
 
@@ -445,8 +448,8 @@ describe('EntryController - LIST_BY_MONTH', () => {
           '20',
           'date',
           'desc',
-          'INVALID_TYPE', // Invalid type
           'all',
+          'INVALID_TYPE', // Invalid type
           '',
           'all',
           mockUser,
@@ -566,8 +569,8 @@ describe('EntryController - LIST_BY_MONTH', () => {
         '10',
         'amount',
         'asc',
-        'INCOME',
         'category-123',
+        'INCOME',
         '',
         'all',
         mockUser,
@@ -583,6 +586,7 @@ describe('EntryController - LIST_BY_MONTH', () => {
         sort: 'amount',
         order: 'asc',
         type: 'INCOME',
+        entryType: 'INCOME',
         categoryId: 'category-123',
         search: undefined,
         isPaid: 'all',

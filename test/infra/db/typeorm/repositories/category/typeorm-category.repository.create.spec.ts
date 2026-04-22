@@ -19,7 +19,6 @@ describe('TypeormCategoryRepository - create', () => {
 
   const mockUserId = 'a1b2c3d4-e5f6-7890-abcd-ef1234567890';
 
-  // Mock data for testing
   const mockCategoryEntity = {
     id: 'test-id',
     name: 'Test Category',
@@ -27,8 +26,6 @@ describe('TypeormCategoryRepository - create', () => {
     type: CategoryType.INCOME,
     color: '#4CAF50',
     icon: 'work',
-    userId: mockUserId,
-    isDefault: false,
     createdAt: new Date('2023-01-01'),
     updatedAt: new Date('2023-01-01'),
     deletedAt: null,
@@ -42,17 +39,29 @@ describe('TypeormCategoryRepository - create', () => {
     type: CategoryType.INCOME,
     color: '#4CAF50',
     icon: 'work',
-    userId: mockUserId,
-    isDefault: false,
     createdAt: new Date('2023-01-01'),
     updatedAt: new Date('2023-01-01'),
+  };
+
+  const mockQbLink = {
+    innerJoin: jest.fn().mockReturnThis(),
+    where: jest.fn().mockReturnThis(),
+    getCount: jest.fn().mockResolvedValue(0),
+  };
+
+  const mockRelationAdd = jest.fn().mockResolvedValue(undefined);
+  const mockQbRelation = {
+    relation: jest.fn().mockReturnValue({
+      of: jest.fn().mockReturnValue({
+        add: mockRelationAdd,
+      }),
+    }),
   };
 
   beforeEach(async () => {
     loggerSpy = new LoggerSpy();
     metricsSpy = new MetricsSpy();
 
-    // Create mock repository
     mockTypeormRepository = {
       create: jest.fn(),
       save: jest.fn(),
@@ -60,10 +69,18 @@ describe('TypeormCategoryRepository - create', () => {
       find: jest.fn(),
       update: jest.fn(),
       delete: jest.fn(),
-      softDelete: jest.fn(),
       createQueryBuilder: jest.fn(),
       count: jest.fn(),
     } as any;
+
+    mockTypeormRepository.createQueryBuilder.mockImplementation(
+      (alias?: string) => {
+        if (alias === 'category') {
+          return mockQbLink as any;
+        }
+        return mockQbRelation as any;
+      },
+    );
 
     testingModule = await Test.createTestingModule({
       providers: [
@@ -87,6 +104,8 @@ describe('TypeormCategoryRepository - create', () => {
 
   afterEach(() => {
     jest.clearAllMocks();
+    mockQbLink.getCount.mockResolvedValue(0);
+    mockRelationAdd.mockResolvedValue(undefined);
     loggerSpy.clear();
     metricsSpy.clear();
   });
@@ -97,7 +116,6 @@ describe('TypeormCategoryRepository - create', () => {
 
   describe('create', () => {
     it('should create category successfully', async () => {
-      // Arrange
       const categoryData: CategoryCreateData = {
         name: 'Test Category',
         description: 'Test Description',
@@ -107,13 +125,12 @@ describe('TypeormCategoryRepository - create', () => {
         userId: mockUserId,
       };
 
+      mockTypeormRepository.findOne.mockResolvedValue(null);
       mockTypeormRepository.create.mockReturnValue(mockCategoryEntity as any);
       mockTypeormRepository.save.mockResolvedValue(mockCategoryEntity as any);
 
-      // Act
       const result = await repository.create(categoryData);
 
-      // Assert
       expect(result).toMatchObject(mockCategory);
       expect(mockTypeormRepository.create).toHaveBeenCalledWith({
         name: categoryData.name,
@@ -121,14 +138,12 @@ describe('TypeormCategoryRepository - create', () => {
         type: categoryData.type,
         color: categoryData.color,
         icon: categoryData.icon,
-        userId: categoryData.userId,
-        isDefault: false,
       });
       expect(mockTypeormRepository.save).toHaveBeenCalledWith(
         mockCategoryEntity,
       );
+      expect(mockRelationAdd).toHaveBeenCalledWith(mockUserId);
 
-      // Verify logging
       const businessEvents = loggerSpy.getBusinessEvents('category_created');
       expect(businessEvents).toHaveLength(1);
       expect(businessEvents[0]).toMatchObject({
@@ -141,7 +156,6 @@ describe('TypeormCategoryRepository - create', () => {
         },
       });
 
-      // Verify metrics
       expect(metricsSpy.hasRecordedMetric('financial_transactions_total')).toBe(
         true,
       );
@@ -155,7 +169,6 @@ describe('TypeormCategoryRepository - create', () => {
     });
 
     it('should create category with minimal data', async () => {
-      // Arrange
       const categoryData: CategoryCreateData = {
         name: 'Minimal Category',
         type: CategoryType.EXPENSE,
@@ -169,27 +182,22 @@ describe('TypeormCategoryRepository - create', () => {
         description: null,
         color: null,
         icon: null,
-        userId: mockUserId,
       };
 
+      mockTypeormRepository.findOne.mockResolvedValue(null);
       mockTypeormRepository.create.mockReturnValue(minimalEntity as any);
       mockTypeormRepository.save.mockResolvedValue(minimalEntity as any);
 
-      // Act
       const result = await repository.create(categoryData);
 
-      // Assert
       expect(result.name).toBe(categoryData.name);
       expect(result.description).toBeNull();
       expect(result.type).toBe(categoryData.type);
       expect(result.color).toBeNull();
       expect(result.icon).toBeNull();
-      expect(result.userId).toBe(categoryData.userId);
-      expect(result.isDefault).toBe(false);
     });
 
     it('should handle database errors and log them', async () => {
-      // Arrange
       const categoryData: CategoryCreateData = {
         name: 'Test Category',
         type: CategoryType.INCOME,
@@ -197,18 +205,16 @@ describe('TypeormCategoryRepository - create', () => {
       };
 
       const error = new Error('Database connection error');
+      mockTypeormRepository.findOne.mockResolvedValue(null);
       mockTypeormRepository.create.mockReturnValue(mockCategoryEntity as any);
       mockTypeormRepository.save.mockRejectedValue(error);
 
-      // Act & Assert
       await expect(repository.create(categoryData)).rejects.toThrow();
 
-      // Verify error logging
       expect(loggerSpy.getErrorsCount()).toBeGreaterThan(0);
       const lastError = loggerSpy.loggedErrors[0];
       expect(lastError.message).toContain('Failed to create category');
 
-      // Verify error metrics
       expect(metricsSpy.hasRecordedMetric('api_errors_total')).toBe(true);
       const errorMetrics = metricsSpy.getMetricsByFilter('api_errors_total');
       expect(errorMetrics[0].labels).toMatchObject({
@@ -217,6 +223,7 @@ describe('TypeormCategoryRepository - create', () => {
     });
 
     it('should rethrow non-Error exception and log/metric', async () => {
+      mockTypeormRepository.findOne.mockResolvedValue(null);
       mockTypeormRepository.create.mockImplementation(() => ({}) as any);
       (mockTypeormRepository.save as any).mockRejectedValue('db-failure');
       await expect(

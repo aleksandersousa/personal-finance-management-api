@@ -12,15 +12,12 @@ describe('TypeormCategoryRepository - hasEntriesAssociated', () => {
   let loggerSpy: LoggerSpy;
   let metricsSpy: MetricsSpy;
 
-  // Mock QueryBuilder
+  const mockUserId = 'user-1';
+  const mockCategoryId = 'cat-1';
+
   const mockQueryBuilder = {
+    innerJoin: jest.fn().mockReturnThis(),
     where: jest.fn().mockReturnThis(),
-    andWhere: jest.fn().mockReturnThis(),
-    leftJoin: jest.fn().mockReturnThis(),
-    addSelect: jest.fn().mockReturnThis(),
-    groupBy: jest.fn().mockReturnThis(),
-    orderBy: jest.fn().mockReturnThis(),
-    getRawAndEntities: jest.fn(),
     getCount: jest.fn(),
   };
 
@@ -28,7 +25,6 @@ describe('TypeormCategoryRepository - hasEntriesAssociated', () => {
     loggerSpy = new LoggerSpy();
     metricsSpy = new MetricsSpy();
 
-    // Create mock repository
     mockTypeormRepository = {
       create: jest.fn(),
       save: jest.fn(),
@@ -36,7 +32,6 @@ describe('TypeormCategoryRepository - hasEntriesAssociated', () => {
       find: jest.fn(),
       update: jest.fn(),
       delete: jest.fn(),
-      softDelete: jest.fn(),
       createQueryBuilder: jest.fn(),
       count: jest.fn(),
     } as any;
@@ -79,31 +74,29 @@ describe('TypeormCategoryRepository - hasEntriesAssociated', () => {
     });
 
     it('should return false when category has no entries', async () => {
-      // Arrange
       mockQueryBuilder.getCount.mockResolvedValue(0);
 
-      // Act
-      const result = await repository.hasEntriesAssociated('test-id');
+      const result = await repository.hasEntriesAssociated(
+        mockUserId,
+        mockCategoryId,
+      );
 
-      // Assert
       expect(result).toBe(false);
       expect(mockTypeormRepository.createQueryBuilder).toHaveBeenCalledWith(
         'category',
       );
-      expect(mockQueryBuilder.leftJoin).toHaveBeenCalledWith(
+      expect(mockQueryBuilder.innerJoin).toHaveBeenCalledWith(
         'category.entries',
         'entry',
+        'entry.userId = :userId',
+        { userId: mockUserId },
       );
       expect(mockQueryBuilder.where).toHaveBeenCalledWith(
         'category.id = :categoryId',
-        { categoryId: 'test-id' },
-      );
-      expect(mockQueryBuilder.andWhere).toHaveBeenCalledWith(
-        'entry.id IS NOT NULL',
+        { categoryId: mockCategoryId },
       );
       expect(mockQueryBuilder.getCount).toHaveBeenCalled();
 
-      // Verify metrics
       expect(metricsSpy.hasRecordedMetric('financial_transactions_total')).toBe(
         true,
       );
@@ -117,13 +110,13 @@ describe('TypeormCategoryRepository - hasEntriesAssociated', () => {
     });
 
     it('should return true when category has entries', async () => {
-      // Arrange
       mockQueryBuilder.getCount.mockResolvedValue(5);
 
-      // Act
-      const result = await repository.hasEntriesAssociated('test-id');
+      const result = await repository.hasEntriesAssociated(
+        mockUserId,
+        mockCategoryId,
+      );
 
-      // Assert
       expect(result).toBe(true);
       expect(metricsSpy.hasRecordedMetric('financial_transactions_total')).toBe(
         true,
@@ -131,22 +124,18 @@ describe('TypeormCategoryRepository - hasEntriesAssociated', () => {
     });
 
     it('should handle database errors', async () => {
-      // Arrange
       const error = new Error('Database error');
       mockQueryBuilder.getCount.mockRejectedValue(error);
 
-      // Act & Assert
       await expect(
-        repository.hasEntriesAssociated('test-id'),
+        repository.hasEntriesAssociated(mockUserId, mockCategoryId),
       ).rejects.toThrow();
 
-      // Verify error logging
       expect(loggerSpy.getErrorsCount()).toBeGreaterThan(0);
       expect(loggerSpy.loggedErrors[0].message).toContain(
         'Failed to check entries association',
       );
 
-      // Verify error metrics
       expect(metricsSpy.hasRecordedMetric('api_errors_total')).toBe(true);
       const errorMetrics = metricsSpy.getMetricsByFilter('api_errors_total');
       expect(errorMetrics[0].labels.endpoint).toBe(
@@ -156,13 +145,14 @@ describe('TypeormCategoryRepository - hasEntriesAssociated', () => {
 
     it('should log and rethrow on error', async () => {
       const qb = {
-        leftJoin: jest.fn().mockReturnThis(),
+        innerJoin: jest.fn().mockReturnThis(),
         where: jest.fn().mockReturnThis(),
-        andWhere: jest.fn().mockReturnThis(),
         getCount: jest.fn().mockRejectedValue('err'),
       } as any;
       (mockTypeormRepository.createQueryBuilder as any).mockReturnValue(qb);
-      await expect(repository.hasEntriesAssociated('id')).rejects.toBe('err');
+      await expect(
+        repository.hasEntriesAssociated(mockUserId, mockCategoryId),
+      ).rejects.toBe('err');
     });
   });
 });

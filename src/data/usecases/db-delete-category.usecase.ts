@@ -28,26 +28,23 @@ export class DbDeleteCategoryUseCase implements DeleteCategoryUseCase {
       throw new Error('Category not found');
     }
 
-    // Verify ownership - user can only delete their own categories
-    if (existingCategory.userId !== request.userId) {
+    const isLinked = await this.categoryRepository.isUserLinkedToCategory(
+      request.userId,
+      request.id,
+    );
+    if (!isLinked) {
       throw new Error('You can only delete your own categories');
     }
 
-    // Verify category is not a default category
-    if (existingCategory.isDefault) {
-      throw new Error('Cannot delete default categories');
-    }
-
-    // Check if category has associated entries
     const hasEntries = await this.categoryRepository.hasEntriesAssociated(
+      request.userId,
       request.id,
     );
     if (hasEntries) {
       throw new Error('Cannot delete category with existing entries');
     }
 
-    // Perform soft delete
-    await this.categoryRepository.softDelete(request.id);
+    await this.categoryRepository.unlinkFromUser(request.userId, request.id);
 
     return {
       deletedAt: new Date(),

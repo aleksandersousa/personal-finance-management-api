@@ -9,9 +9,9 @@ import {
   Inject,
   NotFoundException,
   Param,
-  Patch,
   Post,
   Put,
+  Patch,
   Query,
   UseGuards,
   ValidationPipe,
@@ -33,7 +33,7 @@ import { ListEntriesByMonthUseCase } from '@domain/usecases/list-entries-by-mont
 import { DeleteEntryUseCase } from '@domain/usecases/delete-entry.usecase';
 import { UpdateEntryUseCase } from '@domain/usecases/update-entry.usecase';
 import { GetEntriesMonthsYearsUseCase } from '@domain/usecases/get-entries-months-years.usecase';
-import { ToggleMonthlyPaymentStatusUseCase } from '@domain/usecases/toggle-monthly-payment-status.usecase';
+import { ToggleEntryPaymentStatusUseCase } from '@domain/usecases/toggle-entry-payment-status.usecase';
 import {
   CreateEntryDto,
   UpdateEntryDto,
@@ -41,14 +41,15 @@ import {
   EntryListResponseDto,
   DeleteEntryResponseDto,
   EntriesMonthsYearsResponseDto,
+  ToggleEntryPaymentStatusDto,
+  ToggleEntryPaymentStatusResponseDto,
 } from '../dtos';
-import { ToggleMonthlyPaymentRequestDto } from '../dtos/entries/toggle-monthly-payment-request.dto';
-import { ToggleMonthlyPaymentResponseDto } from '../dtos/entries/toggle-monthly-payment-response.dto';
 import { JwtAuthGuard } from '../guards/jwt-auth.guard';
 import { User } from '../decorators/user.decorator';
 import { Logger } from '@data/protocols/logger';
 import { Metrics } from '@data/protocols/metrics';
 import { UserPayload } from '@domain/models/user.model';
+import { EntryRepository } from '@/data/protocols/repositories/entry-repository';
 
 @ApiTags('entries')
 @Controller('entries')
@@ -64,14 +65,16 @@ export class EntryController {
     private readonly deleteEntryUseCase: DeleteEntryUseCase,
     @Inject('UpdateEntryUseCase')
     private readonly updateEntryUseCase: UpdateEntryUseCase,
+    @Inject('ToggleEntryPaymentStatusUseCase')
+    private readonly toggleEntryPaymentStatusUseCase: ToggleEntryPaymentStatusUseCase,
     @Inject('GetEntriesMonthsYearsUseCase')
     private readonly getEntriesMonthsYearsUseCase: GetEntriesMonthsYearsUseCase,
-    @Inject('ToggleMonthlyPaymentStatusUseCase')
-    private readonly toggleMonthlyPaymentStatusUseCase: ToggleMonthlyPaymentStatusUseCase,
     @Inject('Logger')
     private readonly logger: Logger,
     @Inject('Metrics')
     private readonly metrics: Metrics,
+    @Inject('EntryRepository')
+    private readonly entryRepository: EntryRepository,
   ) {}
 
   @Post()
@@ -98,13 +101,15 @@ export class EntryController {
 
     try {
       const entry = await this.addEntryUseCase.execute({
+        recurrenceId: await this.resolveRecurrenceId(
+          createEntryDto.recurrenceId,
+          createEntryDto.recurrenceType,
+        ),
         userId: user.id,
         description: createEntryDto.description,
         amount: createEntryDto.amount,
-        date: new Date(createEntryDto.date),
-        type: createEntryDto.type,
-        isFixed: createEntryDto.isFixed,
-        isPaid: createEntryDto.isPaid,
+        issueDate: new Date(createEntryDto.issueDate),
+        dueDate: new Date(createEntryDto.dueDate),
         categoryId: createEntryDto.categoryId,
       });
 
@@ -117,16 +122,29 @@ export class EntryController {
         userId: user.id,
         duration,
         metadata: {
-          type: entry.type,
           amount: entry.amount,
-          isFixed: entry.isFixed,
+          recurrenceId: entry.recurrenceId,
         },
       });
 
       // Record metrics
       this.metrics.recordHttpRequest('POST', '/entries', 201, duration);
 
-      return entry;
+      return {
+        id: entry.id,
+        userId: entry.userId,
+        description: entry.description,
+        amount: entry.amount,
+        issueDate: entry.issueDate,
+        dueDate: entry.dueDate,
+        categoryId: entry.categoryId,
+        categoryName: entry.categoryName,
+        entryType: entry.entryType,
+        recurrenceId: entry.recurrenceId,
+        isPaid: !!entry.payment,
+        createdAt: entry.createdAt,
+        updatedAt: entry.updatedAt,
+      };
     } catch (error) {
       // Log error
       this.logger.error(
@@ -189,12 +207,6 @@ export class EntryController {
     example: 'desc',
   })
   @ApiQuery({
-    name: 'type',
-    required: false,
-    description: 'Filter by type: INCOME, EXPENSE, all (default: all)',
-    example: 'all',
-  })
-  @ApiQuery({
     name: 'category',
     required: false,
     description: "Filter by category ID or 'all' (default: all)",
@@ -208,10 +220,10 @@ export class EntryController {
     example: 'groceries',
   })
   @ApiQuery({
-    name: 'isPaid',
+    name: 'entryType',
     required: false,
-    description: 'Filter by paid status: true, false, or all (default: all)',
-    example: 'all',
+    description: "Filter by entry type: 'INCOME' or 'EXPENSE'",
+    example: 'INCOME',
   })
   @ApiBadRequestResponse({ description: 'Invalid query parameters' })
   @ApiUnauthorizedResponse({ description: 'Invalid or missing JWT token' })
@@ -219,10 +231,10 @@ export class EntryController {
     @Query('month') month: string,
     @Query('page') page: string = '1',
     @Query('limit') limit: string = '20',
-    @Query('sort') sort: string = 'date',
+    @Query('sort') sort: string = 'dueDate',
     @Query('order') order: string = 'desc',
-    @Query('type') type: string = 'all',
     @Query('category') category: string = 'all',
+    @Query('entryType') entryType: string = '',
     @Query('search') search: string = '',
     @Query('isPaid') isPaid: string = 'all',
     @User() user: UserPayload,
@@ -250,9 +262,8 @@ export class EntryController {
       }
 
       // Validate query parameters
-      const validSortFields = ['date', 'amount', 'description'];
+      const validSortFields = ['date', 'dueDate', 'amount', 'description'];
       const validOrders = ['asc', 'desc'];
-      const validTypes = ['INCOME', 'EXPENSE', 'all'];
 
       if (!validSortFields.includes(sort)) {
         throw new BadRequestException(
@@ -265,19 +276,14 @@ export class EntryController {
           `Invalid order. Must be one of: ${validOrders.join(', ')}`,
         );
       }
-
-      if (!validTypes.includes(type)) {
+      const normalizedEntryType = entryType?.toUpperCase();
+      if (
+        normalizedEntryType &&
+        !['INCOME', 'EXPENSE', 'ALL'].includes(normalizedEntryType)
+      ) {
         throw new BadRequestException(
-          `Invalid type. Must be one of: ${validTypes.join(', ')}`,
+          'Invalid type. Must be one of: INCOME, EXPENSE, all',
         );
-      }
-
-      // Parse isPaid filter
-      let isPaidFilter: boolean | 'all' = 'all';
-      if (isPaid === 'true') {
-        isPaidFilter = true;
-      } else if (isPaid === 'false') {
-        isPaidFilter = false;
       }
 
       const result = await this.listEntriesByMonthUseCase.execute({
@@ -288,11 +294,18 @@ export class EntryController {
         limit: limitNum,
         sort,
         order: order as 'asc' | 'desc',
-        type: type as 'INCOME' | 'EXPENSE' | 'all',
         categoryId: category !== 'all' ? category : undefined,
+        entryType:
+          normalizedEntryType === 'INCOME' || normalizedEntryType === 'EXPENSE'
+            ? (normalizedEntryType as 'INCOME' | 'EXPENSE')
+            : undefined,
+        type:
+          normalizedEntryType === 'INCOME' || normalizedEntryType === 'EXPENSE'
+            ? normalizedEntryType
+            : 'all',
         search: search && search.trim() ? search.trim() : undefined,
-        isPaid: isPaidFilter,
-      });
+        isPaid,
+      } as any);
 
       const duration = Date.now() - startTime;
 
@@ -363,13 +376,15 @@ export class EntryController {
     try {
       const entry = await this.updateEntryUseCase.execute({
         id,
+        recurrenceId: await this.resolveRecurrenceId(
+          updateEntryDto.recurrenceId,
+          updateEntryDto.recurrenceType,
+        ),
         userId: user.id,
         description: updateEntryDto.description,
         amount: updateEntryDto.amount,
-        date: new Date(updateEntryDto.date),
-        type: updateEntryDto.type,
-        isFixed: updateEntryDto.isFixed,
-        isPaid: updateEntryDto.isPaid,
+        issueDate: new Date(updateEntryDto.issueDate),
+        dueDate: new Date(updateEntryDto.dueDate),
         categoryId: updateEntryDto.categoryId,
       });
 
@@ -382,9 +397,8 @@ export class EntryController {
         userId: user.id,
         duration,
         metadata: {
-          type: entry.type,
           amount: entry.amount,
-          isFixed: entry.isFixed,
+          recurrenceId: entry.recurrenceId,
         },
       });
 
@@ -393,15 +407,16 @@ export class EntryController {
 
       return {
         id: entry.id,
-        amount: entry.amount,
-        isPaid: entry.isPaid,
-        description: entry.description,
-        type: entry.type,
-        isFixed: entry.isFixed,
-        categoryId: entry.categoryId,
-        categoryName: 'Category Name', // Would come from category service
         userId: entry.userId,
-        date: entry.date,
+        amount: entry.amount,
+        description: entry.description,
+        issueDate: entry.issueDate,
+        dueDate: entry.dueDate,
+        recurrenceId: entry.recurrenceId,
+        categoryId: entry.categoryId,
+        categoryName: entry.categoryName,
+        entryType: entry.entryType,
+        isPaid: !!entry.payment,
         createdAt: entry.createdAt,
         updatedAt: entry.updatedAt,
       };
@@ -425,6 +440,41 @@ export class EntryController {
         throw new BadRequestException(error.message);
       }
       throw new BadRequestException('Failed to update entry');
+    }
+  }
+
+  @Patch(':id/payment-status')
+  @ApiOperation({
+    summary: 'Toggle paid/unpaid status by payment relation',
+    description:
+      'Marks an entry as paid by creating a payment record, or unpaid by deleting it.',
+  })
+  @ApiParam({
+    name: 'id',
+    description: 'Entry ID',
+    example: '123e4567-e89b-12d3-a456-426614174000',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Payment status updated successfully',
+    type: ToggleEntryPaymentStatusResponseDto,
+  })
+  async togglePaymentStatus(
+    @Param('id') id: string,
+    @Body(ValidationPipe) body: ToggleEntryPaymentStatusDto,
+    @User() user: UserPayload,
+  ): Promise<ToggleEntryPaymentStatusResponseDto> {
+    try {
+      return await this.toggleEntryPaymentStatusUseCase.execute({
+        userId: user.id,
+        entryId: id,
+        isPaid: body.isPaid,
+      });
+    } catch (error) {
+      if (this.isClientError(error.message)) {
+        throw new BadRequestException(error.message);
+      }
+      throw new BadRequestException('Failed to update payment status');
     }
   }
 
@@ -563,102 +613,6 @@ export class EntryController {
     }
   }
 
-  @Patch(':id/payment-status')
-  @HttpCode(HttpStatus.OK)
-  @ApiOperation({
-    summary: 'Toggle monthly payment status for a fixed entry',
-    description:
-      'Updates the payment status of a fixed entry for a specific month. Only works for fixed entries.',
-  })
-  @ApiParam({
-    name: 'id',
-    description: 'Entry ID',
-    example: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890',
-  })
-  @ApiResponse({
-    status: 200,
-    description: 'Payment status updated successfully',
-    type: ToggleMonthlyPaymentResponseDto,
-  })
-  @ApiBadRequestResponse({
-    description: 'Validation failed or entry is not fixed',
-  })
-  @ApiUnauthorizedResponse({ description: 'Invalid or missing JWT token' })
-  @ApiNotFoundResponse({ description: 'Entry not found' })
-  @ApiBody({ type: ToggleMonthlyPaymentRequestDto })
-  async toggleMonthlyPaymentStatus(
-    @Param('id') entryId: string,
-    @Body(ValidationPipe) dto: ToggleMonthlyPaymentRequestDto,
-    @User() user: UserPayload,
-  ): Promise<ToggleMonthlyPaymentResponseDto> {
-    const startTime = Date.now();
-
-    try {
-      const result = await this.toggleMonthlyPaymentStatusUseCase.execute({
-        entryId,
-        userId: user.id,
-        year: dto.year,
-        month: dto.month,
-        isPaid: dto.isPaid,
-      });
-
-      const duration = Date.now() - startTime;
-
-      // Log business event
-      this.logger.logBusinessEvent({
-        event: 'monthly_payment_status_toggled',
-        userId: user.id,
-        metadata: {
-          entryId,
-          year: dto.year,
-          month: dto.month,
-          isPaid: dto.isPaid,
-          duration,
-        },
-      });
-
-      // Record success metrics
-      this.metrics.recordHttpRequest(
-        'PATCH',
-        '/entries/:id/payment-status',
-        200,
-        duration,
-      );
-
-      return {
-        entryId: result.entryId,
-        year: result.year,
-        month: result.month,
-        isPaid: result.isPaid,
-        paidAt: result.paidAt,
-      };
-    } catch (error) {
-      const duration = Date.now() - startTime;
-
-      this.logger.error(
-        `Failed to toggle monthly payment status for entry ${entryId}`,
-        error.stack,
-      );
-
-      // Record error metrics
-      this.metrics.recordApiError(
-        'toggle_monthly_payment_status',
-        error.message,
-      );
-
-      if (this.isNotFoundError(error.message)) {
-        throw new NotFoundException(error.message);
-      }
-      if (this.isUnauthorizedError(error.message)) {
-        throw new BadRequestException(error.message);
-      }
-      if (this.isClientError(error.message)) {
-        throw new BadRequestException(error.message);
-      }
-      throw new BadRequestException('Failed to toggle monthly payment status');
-    }
-  }
-
   private isClientError(message: string): boolean {
     const clientErrorPatterns = [
       'validation',
@@ -681,5 +635,29 @@ export class EntryController {
 
   private isUnauthorizedError(message: string): boolean {
     return message.toLowerCase().includes('unauthorized');
+  }
+
+  private async resolveRecurrenceId(
+    recurrenceId: string | null | undefined,
+    recurrenceType?: 'MONTHLY',
+  ): Promise<string | null | undefined> {
+    if (recurrenceId !== undefined) {
+      return recurrenceId;
+    }
+
+    if (!recurrenceType) {
+      return undefined;
+    }
+
+    const resolvedRecurrenceId =
+      await this.entryRepository.findRecurrenceIdByType(recurrenceType);
+
+    if (!resolvedRecurrenceId) {
+      throw new BadRequestException(
+        `Recurrence type ${recurrenceType} not found`,
+      );
+    }
+
+    return resolvedRecurrenceId;
   }
 }

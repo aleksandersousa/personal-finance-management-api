@@ -9,11 +9,14 @@ describe('DbListEntriesByMonthUseCase', () => {
 
   beforeEach(() => {
     mockEntryRepository = {
+      findRecurrenceIdByType: jest.fn(),
       create: jest.fn(),
       findById: jest.fn(),
       findByUserId: jest.fn(),
       findByUserIdAndMonth: jest.fn(),
       findByUserIdAndMonthWithFilters: jest.fn(),
+      findMonthlyRecurringEntriesInRange: jest.fn(),
+      existsMonthlyMirroredEntry: jest.fn(),
       getMonthlySummaryStats: jest.fn(),
       getCategorySummaryForMonth: jest.fn(),
       getFixedEntriesSummary: jest.fn(),
@@ -21,11 +24,9 @@ describe('DbListEntriesByMonthUseCase', () => {
       getDistinctMonthsYears: jest.fn(),
       getAccumulatedStats: jest.fn(),
       update: jest.fn(),
+      togglePaymentStatus: jest.fn(),
       delete: jest.fn(),
       softDelete: jest.fn(),
-      setMonthlyPaymentStatus: jest.fn(),
-      getMonthlyPaymentStatus: jest.fn(),
-      deleteMonthlyPaymentStatuses: jest.fn(),
     };
 
     mockUserRepository = {
@@ -55,31 +56,29 @@ describe('DbListEntriesByMonthUseCase', () => {
     const mockEntries: EntryModel[] = [
       {
         id: 'entry-1',
+        recurrenceId: 'recurrence-1',
         userId: 'user-123',
         description: 'Salary',
         amount: 5000,
-        date: new Date('2025-01-15'),
-        type: 'INCOME',
-        isFixed: true,
+        issueDate: new Date('2025-01-15'),
+        dueDate: new Date('2025-01-15'),
         categoryId: null,
-        isPaid: true,
+        isPaid: false,
         createdAt: new Date(),
         updatedAt: new Date(),
-        isFromPreviousMonth: false,
       },
       {
         id: 'entry-2',
+        recurrenceId: null,
         userId: 'user-123',
         description: 'Grocery shopping',
         amount: 200,
-        date: new Date('2025-01-10'),
-        type: 'EXPENSE',
-        isFixed: false,
+        issueDate: new Date('2025-01-10'),
+        dueDate: new Date('2025-01-10'),
         categoryId: 'category-123',
         isPaid: false,
         createdAt: new Date(),
         updatedAt: new Date(),
-        isFromPreviousMonth: false,
       },
     ];
 
@@ -128,9 +127,8 @@ describe('DbListEntriesByMonthUseCase', () => {
         month: 1,
         page: 1,
         limit: 20,
-        sort: 'date',
+        sort: 'dueDate',
         order: 'desc',
-        type: 'all',
         categoryId: undefined,
       });
     });
@@ -144,7 +142,6 @@ describe('DbListEntriesByMonthUseCase', () => {
         limit: 10,
         sort: 'amount',
         order: 'asc' as const,
-        type: 'INCOME' as const,
         categoryId: 'category-123',
       };
 
@@ -166,7 +163,6 @@ describe('DbListEntriesByMonthUseCase', () => {
         limit: 10,
         sort: 'amount',
         order: 'asc',
-        type: 'INCOME',
         categoryId: 'category-123',
       });
     });
@@ -204,9 +200,8 @@ describe('DbListEntriesByMonthUseCase', () => {
         month: 1,
         page: -1, // Should be corrected to 1
         limit: 200, // Should be corrected to 100 (max)
-        sort: 'invalid', // Should be corrected to "date"
+        sort: 'invalid', // Should be corrected to "dueDate"
         order: 'invalid' as any, // Should be corrected to "desc"
-        type: 'invalid' as any, // Should be corrected to "all"
       };
 
       mockUserRepository.findById.mockResolvedValue(mockUser);
@@ -224,9 +219,8 @@ describe('DbListEntriesByMonthUseCase', () => {
         month: 1,
         page: 1, // Corrected
         limit: 100, // Corrected
-        sort: 'date', // Corrected
+        sort: 'dueDate', // Corrected
         order: 'desc', // Corrected
-        type: 'all', // Corrected
         categoryId: undefined,
       });
     });
@@ -298,9 +292,8 @@ describe('DbListEntriesByMonthUseCase', () => {
         month: 1,
         page: 1, // Adjusted to minimum
         limit: 100, // Adjusted to maximum
-        sort: 'date',
+        sort: 'dueDate',
         order: 'desc',
-        type: 'all',
         categoryId: undefined,
       });
     });
@@ -328,9 +321,8 @@ describe('DbListEntriesByMonthUseCase', () => {
         month: 1,
         page: 1,
         limit: 20,
-        sort: 'date', // Should default to 'date'
+        sort: 'dueDate', // Should default to 'dueDate'
         order: 'desc',
-        type: 'all',
         categoryId: undefined,
       });
     });
@@ -358,39 +350,8 @@ describe('DbListEntriesByMonthUseCase', () => {
         month: 1,
         page: 1,
         limit: 20,
-        sort: 'date',
+        sort: 'dueDate',
         order: 'desc', // Should default to 'desc'
-        type: 'all',
-        categoryId: undefined,
-      });
-    });
-
-    it('should default invalid type to all', async () => {
-      const request = {
-        userId: 'user-123',
-        year: 2025,
-        month: 1,
-        type: 'INVALID' as any,
-      };
-
-      mockUserRepository.findById.mockResolvedValue(mockUser);
-      mockEntryRepository.findByUserIdAndMonthWithFilters.mockResolvedValue(
-        mockRepositoryResult,
-      );
-
-      await sut.execute(request);
-
-      expect(
-        mockEntryRepository.findByUserIdAndMonthWithFilters,
-      ).toHaveBeenCalledWith({
-        userId: 'user-123',
-        year: 2025,
-        month: 1,
-        page: 1,
-        limit: 20,
-        sort: 'date',
-        order: 'desc',
-        type: 'all', // Should default to 'all'
         categoryId: undefined,
       });
     });

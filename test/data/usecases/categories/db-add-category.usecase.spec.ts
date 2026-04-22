@@ -3,6 +3,7 @@ import { CategoryRepositoryStub } from '@test/data/mocks/repositories';
 import {
   MockCategoryFactory,
   MockCategoryCreateDataFactory,
+  mockCategoryCreateData,
 } from '@test/domain/mocks/models';
 import { CategoryType } from '@domain/models';
 
@@ -34,8 +35,6 @@ describe('DbAddCategoryUseCase', () => {
       expect(result.type).toBe(inputData.type);
       expect(result.color).toBe(inputData.color);
       expect(result.icon).toBe(inputData.icon);
-      expect(result.userId).toBe(inputData.userId);
-      expect(result.isDefault).toBe(false);
       expect(result.createdAt).toBeInstanceOf(Date);
       expect(result.updatedAt).toBeInstanceOf(Date);
       expect(categoryRepositoryStub.getCount()).toBe(1);
@@ -165,11 +164,14 @@ describe('DbAddCategoryUseCase', () => {
     it('should throw error for duplicate category name', async () => {
       // Arrange
       const existingCategory = MockCategoryFactory.create();
-      categoryRepositoryStub.seed([existingCategory]);
+      categoryRepositoryStub.seed(
+        [existingCategory],
+        mockCategoryCreateData.userId,
+      );
 
       const inputData = MockCategoryCreateDataFactory.create({
         name: existingCategory.name,
-        userId: existingCategory.userId,
+        userId: mockCategoryCreateData.userId,
       });
 
       // Act & Assert
@@ -180,21 +182,20 @@ describe('DbAddCategoryUseCase', () => {
     });
 
     it('should allow same name for different users', async () => {
-      // Arrange
       const existingCategory = MockCategoryFactory.create();
-      categoryRepositoryStub.seed([existingCategory]);
+      categoryRepositoryStub.seed(
+        [existingCategory],
+        mockCategoryCreateData.userId,
+      );
 
       const inputData = MockCategoryCreateDataFactory.create({
         name: existingCategory.name,
         userId: 'different-user-id',
       });
 
-      // Act
       const result = await useCase.execute(inputData);
 
-      // Assert
       expect(result.name).toBe(existingCategory.name);
-      expect(result.userId).toBe('different-user-id');
       expect(categoryRepositoryStub.getCount()).toBe(2);
     });
 

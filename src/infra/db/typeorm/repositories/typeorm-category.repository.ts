@@ -30,17 +30,41 @@ export class TypeormCategoryRepository implements CategoryRepository {
     const startTime = Date.now();
 
     try {
-      const entity = this.categoryRepository.create({
-        name: data.name,
-        description: data.description,
-        type: data.type,
-        color: data.color,
-        icon: data.icon,
-        userId: data.userId,
-        isDefault: false,
+      const name = data.name.trim();
+      let savedCategory = await this.categoryRepository.findOne({
+        where: { name },
       });
 
-      const savedCategory = await this.categoryRepository.save(entity);
+      if (!savedCategory) {
+        savedCategory = await this.categoryRepository.save(
+          this.categoryRepository.create({
+            name,
+            description: data.description,
+            type: data.type,
+            color: data.color,
+            icon: data.icon,
+          }),
+        );
+      }
+
+      const existingLink = await this.categoryRepository
+        .createQueryBuilder('category')
+        .innerJoin('category.users', 'user', 'user.id = :userId', {
+          userId: data.userId,
+        })
+        .where('category.id = :categoryId', {
+          categoryId: savedCategory.id,
+        })
+        .getCount();
+      if (existingLink > 0) {
+        throw new Error('Category name already exists for this user');
+      }
+
+      await this.categoryRepository
+        .createQueryBuilder()
+        .relation(CategoryEntity, 'users')
+        .of(savedCategory.id)
+        .add(data.userId);
 
       const duration = Date.now() - startTime;
 
@@ -106,10 +130,11 @@ export class TypeormCategoryRepository implements CategoryRepository {
 
   async findByUserId(userId: string): Promise<Category[]> {
     try {
-      const categories = await this.categoryRepository.find({
-        where: { userId },
-        order: { name: 'ASC' },
-      });
+      const categories = await this.categoryRepository
+        .createQueryBuilder('category')
+        .innerJoin('category.users', 'user', 'user.id = :userId', { userId })
+        .orderBy('category.name', 'ASC')
+        .getMany();
 
       if (this.metrics) {
         this.metrics.recordTransaction('category_find_by_user_id', 'success');
@@ -139,10 +164,12 @@ export class TypeormCategoryRepository implements CategoryRepository {
     type: CategoryType,
   ): Promise<Category[]> {
     try {
-      const categories = await this.categoryRepository.find({
-        where: { userId, type },
-        order: { name: 'ASC' },
-      });
+      const categories = await this.categoryRepository
+        .createQueryBuilder('category')
+        .innerJoin('category.users', 'user', 'user.id = :userId', { userId })
+        .andWhere('category.type = :type', { type })
+        .orderBy('category.name', 'ASC')
+        .getMany();
 
       if (this.metrics) {
         this.metrics.recordTransaction(
@@ -175,9 +202,11 @@ export class TypeormCategoryRepository implements CategoryRepository {
     name: string,
   ): Promise<Category | null> {
     try {
-      const category = await this.categoryRepository.findOne({
-        where: { userId, name },
-      });
+      const category = await this.categoryRepository
+        .createQueryBuilder('category')
+        .innerJoin('category.users', 'user', 'user.id = :userId', { userId })
+        .andWhere('category.name = :name', { name })
+        .getOne();
 
       if (this.metrics) {
         this.metrics.recordTransaction(
@@ -213,7 +242,9 @@ export class TypeormCategoryRepository implements CategoryRepository {
     try {
       const queryBuilder = this.categoryRepository
         .createQueryBuilder('category')
-        .where('category.userId = :userId', { userId: filters.userId });
+        .innerJoin('category.users', 'user', 'user.id = :userId', {
+          userId: filters.userId,
+        });
 
       if (filters.type && filters.type !== 'all') {
         queryBuilder.andWhere('category.type = :type', { type: filters.type });
@@ -227,35 +258,34 @@ export class TypeormCategoryRepository implements CategoryRepository {
 
       if (filters.includeStats) {
         queryBuilder
-          .leftJoin('category.entries', 'entry')
+          .leftJoin('category.entries', 'entry', 'entry.userId = :userId', {
+            userId: filters.userId,
+          })
           .addSelect('COUNT(entry.id)', 'entriesCount')
           .addSelect('COALESCE(SUM(entry.amount), 0)', 'totalAmount')
-          .addSelect('MAX(entry.date)', 'lastUsed')
+          .addSelect('MAX(entry.dueDate)', 'lastUsed')
           .groupBy('category.id');
       }
 
       queryBuilder.orderBy('category.name', 'ASC');
 
-      let total: number;
-      if (filters.includeStats) {
-        const countQuery = this.categoryRepository
-          .createQueryBuilder('category')
-          .where('category.userId = :userId', { userId: filters.userId });
+      const countQuery = this.categoryRepository
+        .createQueryBuilder('category')
+        .innerJoin('category.users', 'user', 'user.id = :userId', {
+          userId: filters.userId,
+        });
 
-        if (filters.type && filters.type !== 'all') {
-          countQuery.andWhere('category.type = :type', { type: filters.type });
-        }
-
-        if (filters.search && filters.search.trim()) {
-          countQuery.andWhere('category.name ILIKE :search', {
-            search: `%${filters.search.trim()}%`,
-          });
-        }
-
-        total = await countQuery.getCount();
-      } else {
-        total = await queryBuilder.getCount();
+      if (filters.type && filters.type !== 'all') {
+        countQuery.andWhere('category.type = :type', { type: filters.type });
       }
+
+      if (filters.search && filters.search.trim()) {
+        countQuery.andWhere('category.name ILIKE :search', {
+          search: `%${filters.search.trim()}%`,
+        });
+      }
+
+      const total = await countQuery.getCount();
 
       // Apply pagination if provided
       if (filters.page !== undefined && filters.limit !== undefined) {
@@ -343,6 +373,9 @@ export class TypeormCategoryRepository implements CategoryRepository {
       if (data.icon !== undefined) {
         updateData.icon = data.icon;
       }
+      if (data.type !== undefined) {
+        updateData.type = data.type;
+      }
 
       const result = await this.categoryRepository.update(id, updateData);
 
@@ -363,7 +396,6 @@ export class TypeormCategoryRepository implements CategoryRepository {
       this.logger.logBusinessEvent({
         event: 'category_updated',
         entityId: id,
-        userId: updatedCategory.userId,
         duration,
         metadata: {
           updatedFields: Object.keys(data),
@@ -411,7 +443,6 @@ export class TypeormCategoryRepository implements CategoryRepository {
       this.logger.logBusinessEvent({
         event: 'category_deleted',
         entityId: id,
-        userId: category.userId,
         duration,
         metadata: {
           categoryName: category.name,
@@ -437,21 +468,39 @@ export class TypeormCategoryRepository implements CategoryRepository {
     }
   }
 
-  async softDelete(id: string): Promise<void> {
-    try {
-      const result = await this.categoryRepository.softDelete(id);
+  async isUserLinkedToCategory(
+    userId: string,
+    categoryId: string,
+  ): Promise<boolean> {
+    const count = await this.categoryRepository
+      .createQueryBuilder('category')
+      .innerJoin('category.users', 'user', 'user.id = :userId', { userId })
+      .where('category.id = :categoryId', { categoryId })
+      .getCount();
+    return count > 0;
+  }
 
-      if (result.affected === 0) {
+  async unlinkFromUser(userId: string, categoryId: string): Promise<void> {
+    try {
+      const linked = await this.isUserLinkedToCategory(userId, categoryId);
+      if (!linked) {
         throw new Error('Category not found');
       }
 
+      await this.categoryRepository
+        .createQueryBuilder()
+        .relation(CategoryEntity, 'users')
+        .of(categoryId)
+        .remove(userId);
+
       this.logger.logBusinessEvent({
-        event: 'category_soft_deleted',
-        entityId: id,
+        event: 'category_unlinked_from_user',
+        entityId: categoryId,
+        userId,
       });
 
       if (this.metrics) {
-        this.metrics.recordTransaction('category_soft_delete', 'success');
+        this.metrics.recordTransaction('category_unlink_from_user', 'success');
       }
     } catch (error) {
       const errorMessage =
@@ -459,12 +508,12 @@ export class TypeormCategoryRepository implements CategoryRepository {
       const errorStack = error instanceof Error ? error.stack : undefined;
 
       this.logger.error(
-        `Failed to soft delete category: ${errorMessage}`,
+        `Failed to unlink category from user: ${errorMessage}`,
         errorStack,
       );
       if (this.metrics) {
         this.metrics.recordApiError(
-          'category_repository_soft_delete',
+          'category_repository_unlink_from_user',
           errorMessage,
         );
       }
@@ -472,13 +521,17 @@ export class TypeormCategoryRepository implements CategoryRepository {
     }
   }
 
-  async hasEntriesAssociated(categoryId: string): Promise<boolean> {
+  async hasEntriesAssociated(
+    userId: string,
+    categoryId: string,
+  ): Promise<boolean> {
     try {
       const count = await this.categoryRepository
         .createQueryBuilder('category')
-        .leftJoin('category.entries', 'entry')
+        .innerJoin('category.entries', 'entry', 'entry.userId = :userId', {
+          userId,
+        })
         .where('category.id = :categoryId', { categoryId })
-        .andWhere('entry.id IS NOT NULL')
         .getCount();
 
       if (this.metrics) {
@@ -512,11 +565,9 @@ export class TypeormCategoryRepository implements CategoryRepository {
       id: entity.id,
       name: entity.name,
       description: entity.description,
-      type: entity.type,
-      color: entity.color,
       icon: entity.icon,
-      userId: entity.userId,
-      isDefault: entity.isDefault,
+      color: entity.color,
+      type: entity.type,
       createdAt: entity.createdAt,
       updatedAt: entity.updatedAt,
     };

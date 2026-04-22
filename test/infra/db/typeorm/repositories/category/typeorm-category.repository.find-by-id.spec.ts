@@ -13,8 +13,6 @@ describe('TypeormCategoryRepository - findById', () => {
   let loggerSpy: LoggerSpy;
   let metricsSpy: MetricsSpy;
 
-  const mockUserId = 'a1b2c3d4-e5f6-7890-abcd-ef1234567890';
-
   // Mock data for testing
   const mockCategoryEntity = {
     id: 'test-id',
@@ -23,8 +21,6 @@ describe('TypeormCategoryRepository - findById', () => {
     type: CategoryType.INCOME,
     color: '#4CAF50',
     icon: 'work',
-    userId: mockUserId,
-    isDefault: false,
     createdAt: new Date('2023-01-01'),
     updatedAt: new Date('2023-01-01'),
     deletedAt: null,
@@ -38,8 +34,6 @@ describe('TypeormCategoryRepository - findById', () => {
     type: CategoryType.INCOME,
     color: '#4CAF50',
     icon: 'work',
-    userId: mockUserId,
-    isDefault: false,
     createdAt: new Date('2023-01-01'),
     updatedAt: new Date('2023-01-01'),
   };
@@ -169,8 +163,6 @@ describe('TypeormCategoryRepository - findById', () => {
         type: CategoryType.EXPENSE,
         color: '#000',
         icon: 'i',
-        userId: 'user-1',
-        isDefault: false,
         createdAt: new Date('2023-01-01'),
         updatedAt: new Date('2023-01-01'),
         deletedAt: null as any,

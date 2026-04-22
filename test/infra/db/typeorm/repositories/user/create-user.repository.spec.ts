@@ -1,8 +1,9 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { EntityManager, Repository } from 'typeorm';
 import { TypeormUserRepository } from '@infra/db/typeorm/repositories/typeorm-user.repository';
 import { UserEntity } from '@infra/db/typeorm/entities/user.entity';
+import { UserSettingEntity } from '@infra/db/typeorm/entities/user-setting.entity';
 import { CreateUserData } from '@/data/protocols/repositories/user-repository';
 
 describe('TypeormUserRepository - Create User', () => {
@@ -15,7 +16,45 @@ describe('TypeormUserRepository - Create User', () => {
       create: jest.fn(),
       save: jest.fn(),
       findOne: jest.fn(),
+      manager: {} as EntityManager,
     } as any;
+
+    const runSuccessfulTransaction = async (
+      work: (
+        m: EntityManager,
+      ) => Promise<{ user: UserEntity; settings: UserSettingEntity }>,
+    ): Promise<{ user: UserEntity; settings: UserSettingEntity }> => {
+      const mockManager = {
+        create: jest.fn((_Entity: unknown, data: object) => ({ ...data })),
+        save: jest.fn(async (entity: Record<string, unknown>) => {
+          if ('userId' in entity && entity.userId) {
+            return {
+              id: 'settings-id',
+              userId: entity.userId,
+              notificationsEnabled: false,
+              notificationsTimeMinutes: 30,
+              timezone: 'America/Sao_Paulo',
+              createdAt: new Date('2024-01-01'),
+            };
+          }
+          return {
+            id: 'user-123',
+            name: entity.name,
+            email: entity.email,
+            password: entity.password,
+            avatarUrl: null,
+            emailVerified: false,
+            createdAt: new Date('2024-01-01'),
+            updatedAt: new Date('2024-01-01'),
+          };
+        }),
+      } as unknown as EntityManager;
+      return work(mockManager);
+    };
+
+    (mockRepository.manager as { transaction: unknown }).transaction = jest.fn(
+      runSuccessfulTransaction,
+    );
 
     testingModule = await Test.createTestingModule({
       providers: [
@@ -23,6 +62,10 @@ describe('TypeormUserRepository - Create User', () => {
         {
           provide: getRepositoryToken(UserEntity),
           useValue: mockRepository,
+        },
+        {
+          provide: getRepositoryToken(UserSettingEntity),
+          useValue: { update: jest.fn() },
         },
       ],
     }).compile();
@@ -43,60 +86,36 @@ describe('TypeormUserRepository - Create User', () => {
       password: 'hashedPassword123',
     };
 
-    const mockUserEntity: UserEntity = {
-      id: 'user-123',
-      name: 'John Doe',
-      email: 'john@example.com',
-      password: 'hashedPassword123',
-      avatarUrl: null,
-      emailVerified: false,
-      notificationEnabled: true,
-      notificationTimeMinutes: 30,
-      timezone: null,
-      createdAt: new Date('2024-01-01'),
-      updatedAt: new Date('2024-01-01'),
-      entries: [],
-      categories: [],
-      emailVerificationTokens: [],
-    };
-
-    it('should create and save a new user successfully', async () => {
-      // Arrange
-      mockRepository.create.mockReturnValue(mockUserEntity);
-      mockRepository.save.mockResolvedValue(mockUserEntity);
-
-      // Act
+    it('should create user and default user_settings in a transaction', async () => {
       const result = await repository.create(mockUserData);
 
-      // Assert
-      expect(mockRepository.create).toHaveBeenCalledWith(mockUserData);
-      expect(mockRepository.save).toHaveBeenCalledWith(mockUserEntity);
+      expect(
+        (mockRepository.manager as unknown as { transaction: jest.Mock })
+          .transaction,
+      ).toHaveBeenCalled();
       expect(result).toEqual({
-        id: mockUserEntity.id,
-        name: mockUserEntity.name,
-        email: mockUserEntity.email,
-        password: mockUserEntity.password,
-        avatarUrl: mockUserEntity.avatarUrl,
-        emailVerified: mockUserEntity.emailVerified,
-        notificationEnabled: mockUserEntity.notificationEnabled,
-        notificationTimeMinutes: mockUserEntity.notificationTimeMinutes,
-        timezone: mockUserEntity.timezone,
-        createdAt: mockUserEntity.createdAt,
-        updatedAt: mockUserEntity.updatedAt,
+        id: 'user-123',
+        name: 'John Doe',
+        email: 'john@example.com',
+        password: 'hashedPassword123',
+        avatarUrl: null,
+        emailVerified: false,
+        notificationEnabled: false,
+        notificationTimeMinutes: 30,
+        timezone: 'America/Sao_Paulo',
+        createdAt: new Date('2024-01-01'),
+        updatedAt: new Date('2024-01-01'),
       });
     });
 
     it('should handle repository errors during creation', async () => {
-      // Arrange
-      mockRepository.create.mockReturnValue(mockUserEntity);
-      mockRepository.save.mockRejectedValue(new Error('Database error'));
+      (mockRepository.manager as { transaction: unknown }).transaction = jest
+        .fn()
+        .mockRejectedValue(new Error('Database error'));
 
-      // Act & Assert
       await expect(repository.create(mockUserData)).rejects.toThrow(
         'Database error',
       );
-      expect(mockRepository.create).toHaveBeenCalledWith(mockUserData);
-      expect(mockRepository.save).toHaveBeenCalledWith(mockUserEntity);
     });
   });
 });
