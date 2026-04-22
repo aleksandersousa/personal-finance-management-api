@@ -20,6 +20,7 @@ export const CRON_PATTERNS = {
 
   // Monthly
   EVERY_MONTH: '0 0 1 * *', // First day of month at midnight
+  EVERY_MONTH_ON_DAY_1_AT_1AM: '0 1 1 * *',
   EVERY_MONTH_AT_2AM: '0 2 1 * *',
 
   // Yearly

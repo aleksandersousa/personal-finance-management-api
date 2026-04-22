@@ -3,21 +3,19 @@ import { EntryModel } from '@domain/models/entry.model';
 export interface CreateEntryData {
   amount: number;
   description: string;
-  date: Date;
-  type: 'INCOME' | 'EXPENSE';
-  isFixed: boolean;
+  issueDate: Date;
+  dueDate: Date;
+  recurrenceId: string | null;
   categoryId: string | null;
-  isPaid?: boolean;
   userId: string;
 }
 
 export interface UpdateEntryData {
   amount?: number;
   description?: string;
-  date?: Date;
-  type?: 'INCOME' | 'EXPENSE';
-  isFixed?: boolean;
-  isPaid?: boolean;
+  issueDate?: Date;
+  dueDate?: Date;
+  recurrenceId?: string | null;
   categoryId?: string | null;
 }
 
@@ -29,10 +27,9 @@ export interface FindEntriesByMonthFilters {
   limit?: number;
   sort?: string;
   order?: 'asc' | 'desc';
-  type?: 'INCOME' | 'EXPENSE' | 'all';
   categoryId?: string;
+  entryType?: 'INCOME' | 'EXPENSE';
   search?: string;
-  isPaid?: boolean | 'all';
 }
 
 export interface FindEntriesByMonthResult {
@@ -97,15 +94,27 @@ export interface AccumulatedStats {
   accumulatedBalance: number;
 }
 
-export interface MonthlyPaymentStatus {
+export interface ToggleEntryPaymentStatusResult {
   entryId: string;
-  year: number;
-  month: number;
   isPaid: boolean;
   paidAt: Date | null;
 }
 
+export interface MonthlyRecurringEntriesQuery {
+  startDate: Date;
+  endDate: Date;
+}
+
+export interface EntryMonthlyMirrorExistsQuery {
+  userId: string;
+  recurrenceId: string;
+  issueDate: Date;
+  amount: number;
+  description: string;
+}
+
 export interface EntryRepository {
+  findRecurrenceIdByType(type: string): Promise<string | null>;
   create(data: CreateEntryData): Promise<EntryModel>;
   findById(id: string): Promise<EntryModel | null>;
   findByUserId(userId: string): Promise<EntryModel[]>;
@@ -117,6 +126,12 @@ export interface EntryRepository {
   findByUserIdAndMonthWithFilters(
     filters: FindEntriesByMonthFilters,
   ): Promise<FindEntriesByMonthResult>;
+  findMonthlyRecurringEntriesInRange(
+    query: MonthlyRecurringEntriesQuery,
+  ): Promise<EntryModel[]>;
+  existsMonthlyMirroredEntry(
+    query: EntryMonthlyMirrorExistsQuery,
+  ): Promise<boolean>;
   getMonthlySummaryStats(
     userId: string,
     year: number,
@@ -136,18 +151,11 @@ export interface EntryRepository {
     month: number,
   ): Promise<AccumulatedStats>;
   update(id: string, data: UpdateEntryData): Promise<EntryModel>;
+  togglePaymentStatus(
+    userId: string,
+    entryId: string,
+    isPaid: boolean,
+  ): Promise<ToggleEntryPaymentStatusResult>;
   delete(id: string): Promise<void>;
   softDelete(id: string): Promise<Date>;
-  setMonthlyPaymentStatus(
-    entryId: string,
-    year: number,
-    month: number,
-    isPaid: boolean,
-  ): Promise<MonthlyPaymentStatus>;
-  getMonthlyPaymentStatus(
-    entryId: string,
-    year: number,
-    month: number,
-  ): Promise<MonthlyPaymentStatus | null>;
-  deleteMonthlyPaymentStatuses(entryId: string): Promise<void>;
 }

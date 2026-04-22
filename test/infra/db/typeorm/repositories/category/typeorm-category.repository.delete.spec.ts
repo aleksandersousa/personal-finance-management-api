@@ -13,8 +13,6 @@ describe('TypeormCategoryRepository - delete', () => {
   let loggerSpy: LoggerSpy;
   let metricsSpy: MetricsSpy;
 
-  const mockUserId = 'a1b2c3d4-e5f6-7890-abcd-ef1234567890';
-
   // Mock data for testing
   const mockCategoryEntity = {
     id: 'test-id',
@@ -23,8 +21,6 @@ describe('TypeormCategoryRepository - delete', () => {
     type: CategoryType.INCOME,
     color: '#4CAF50',
     icon: 'work',
-    userId: mockUserId,
-    isDefault: false,
     createdAt: new Date('2023-01-01'),
     updatedAt: new Date('2023-01-01'),
     deletedAt: null,
@@ -101,7 +97,6 @@ describe('TypeormCategoryRepository - delete', () => {
       expect(businessEvents[0]).toMatchObject({
         event: 'category_deleted',
         entityId: 'test-id',
-        userId: mockUserId,
         metadata: {
           categoryName: 'Test Category',
         },
@@ -198,7 +193,6 @@ describe('TypeormCategoryRepository - delete', () => {
     it('delete catch path when delete throws after found', async () => {
       mockTypeormRepository.findOne.mockResolvedValue({
         id: 'id',
-        userId: 'u',
       } as any);
       mockTypeormRepository.delete.mockRejectedValue('oops');
       await expect(repository.delete('id')).rejects.toBe('oops');

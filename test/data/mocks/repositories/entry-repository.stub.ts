@@ -1,65 +1,73 @@
 import {
+  AccumulatedStats,
+  CategorySummaryResult,
   CreateEntryData,
+  EntryMonthlyMirrorExistsQuery,
   EntryRepository,
   FindEntriesByMonthFilters,
   FindEntriesByMonthResult,
-  CategorySummaryItem,
-  CategorySummaryResult,
   FixedEntriesSummary,
-  MonthlySummaryStats,
   MonthYear,
-  AccumulatedStats,
-  MonthlyPaymentStatus,
+  MonthlyRecurringEntriesQuery,
+  MonthlySummaryStats,
+  ToggleEntryPaymentStatusResult,
+  UpdateEntryData,
 } from '@/data/protocols/repositories/entry-repository';
-import { EntryModel } from '@domain/models/entry.model';
 import { IdGenerator } from '@data/protocols/id-generator';
+import { EntryModel } from '@domain/models/entry.model';
 
 export class EntryRepositoryStub implements EntryRepository {
   private entries: Map<string, EntryModel> = new Map();
   private shouldFail = false;
   private errorToThrow: Error | null = null;
   private nextId = 1;
-  private idGenerator?: IdGenerator;
 
-  constructor(idGenerator?: IdGenerator) {
-    this.idGenerator = idGenerator;
-  }
+  constructor(private readonly idGenerator?: IdGenerator) {}
 
-  async create(data: CreateEntryData): Promise<EntryModel> {
+  private throwIfNeeded(): void {
     if (this.shouldFail && this.errorToThrow) {
       throw this.errorToThrow;
     }
+  }
 
-    const id = this.idGenerator
-      ? this.idGenerator.generate()
-      : `stub-entry-${Date.now()}-${this.nextId++}`;
-
-    const entry: EntryModel = {
-      ...data,
-      isPaid: data.isPaid ?? true,
+  private buildEntry(id: string, data: CreateEntryData): EntryModel {
+    return {
       id,
+      recurrenceId: data.recurrenceId,
+      userId: data.userId,
+      categoryId: data.categoryId,
+      description: data.description,
+      amount: data.amount,
+      issueDate: data.issueDate,
+      dueDate: data.dueDate,
+      isPaid: false,
       createdAt: new Date(),
       updatedAt: new Date(),
     };
+  }
 
-    this.entries.set(entry.id, entry);
+  async findRecurrenceIdByType(): Promise<string | null> {
+    return null;
+  }
+
+  async create(data: CreateEntryData): Promise<EntryModel> {
+    this.throwIfNeeded();
+    const id = this.idGenerator
+      ? this.idGenerator.generate()
+      : `stub-entry-${Date.now()}-${this.nextId++}`;
+    const entry = this.buildEntry(id, data);
+    this.entries.set(id, entry);
     return entry;
   }
 
   async findById(id: string): Promise<EntryModel | null> {
-    if (this.shouldFail && this.errorToThrow) {
-      throw this.errorToThrow;
-    }
+    this.throwIfNeeded();
     return this.entries.get(id) || null;
   }
 
   async findByUserId(userId: string): Promise<EntryModel[]> {
-    if (this.shouldFail && this.errorToThrow) {
-      throw this.errorToThrow;
-    }
-    return Array.from(this.entries.values()).filter(
-      entry => entry.userId === userId,
-    );
+    this.throwIfNeeded();
+    return [...this.entries.values()].filter(entry => entry.userId === userId);
   }
 
   async findByUserIdAndMonth(
@@ -67,327 +75,90 @@ export class EntryRepositoryStub implements EntryRepository {
     year: number,
     month: number,
   ): Promise<EntryModel[]> {
-    if (this.shouldFail && this.errorToThrow) {
-      throw this.errorToThrow;
-    }
-
-    return Array.from(this.entries.values()).filter(entry => {
-      const entryDate = new Date(entry.date);
-      return (
-        entry.userId === userId &&
-        entryDate.getFullYear() === year &&
-        entryDate.getMonth() === month - 1
-      ); // Month is 0-indexed
+    const entries = await this.findByUserId(userId);
+    return entries.filter(entry => {
+      const dueDate = entry.dueDate;
+      return dueDate.getFullYear() === year && dueDate.getMonth() + 1 === month;
     });
   }
 
   async findByUserIdAndMonthWithFilters(
     filters: FindEntriesByMonthFilters,
   ): Promise<FindEntriesByMonthResult> {
-    if (this.shouldFail && this.errorToThrow) {
-      throw this.errorToThrow;
-    }
-
-    const {
-      userId,
-      year,
-      month,
-      page = 1,
-      limit = 20,
-      sort = 'date',
-      order = 'desc',
-      type = 'all',
-      categoryId,
-      search,
-    } = filters;
-
-    // Get base entries for the month
-    let entries = await this.findByUserIdAndMonth(userId, year, month);
-
-    // Apply type filter
-    if (type && type !== 'all') {
-      entries = entries.filter(entry => entry.type === type);
-    }
-
-    // Apply category filter
-    if (categoryId && categoryId !== 'all') {
-      entries = entries.filter(entry => entry.categoryId === categoryId);
-    }
-
-    // Apply search filter (case-insensitive)
-    if (search && search.trim()) {
-      const searchLower = search.trim().toLowerCase();
-      entries = entries.filter(entry =>
-        entry.description.toLowerCase().includes(searchLower),
+    let entries = await this.findByUserIdAndMonth(
+      filters.userId,
+      filters.year,
+      filters.month,
+    );
+    if (filters.categoryId && filters.categoryId !== 'all') {
+      entries = entries.filter(
+        entry => entry.categoryId === filters.categoryId,
       );
     }
-
-    // Apply sorting
-    entries.sort((a, b) => {
-      let aValue: any;
-      let bValue: any;
-
-      switch (sort) {
-        case 'amount':
-          aValue = a.amount;
-          bValue = b.amount;
-          break;
-        case 'description':
-          aValue = a.description;
-          bValue = b.description;
-          break;
-        case 'date':
-        default:
-          aValue = a.date;
-          bValue = b.date;
-          break;
-      }
-
-      if (order === 'asc') {
-        return aValue > bValue ? 1 : aValue < bValue ? -1 : 0;
-      } else {
-        return aValue < bValue ? 1 : aValue > bValue ? -1 : 0;
-      }
-    });
-
-    // Calculate totals
-    const totalIncome = entries
-      .filter(entry => entry.type === 'INCOME')
-      .reduce((sum, entry) => sum + entry.amount, 0);
-
-    const totalExpenses = entries
-      .filter(entry => entry.type === 'EXPENSE')
-      .reduce((sum, entry) => sum + entry.amount, 0);
-
+    if (filters.search) {
+      entries = entries.filter(entry =>
+        entry.description.toLowerCase().includes(filters.search!.toLowerCase()),
+      );
+    }
     const total = entries.length;
-
-    // Apply pagination
-    const startIndex = (page - 1) * limit;
-    const endIndex = startIndex + limit;
-    const paginatedEntries = entries.slice(startIndex, endIndex);
-
+    const page = filters.page || 1;
+    const limit = filters.limit || 20;
+    const data = entries.slice((page - 1) * limit, page * limit);
     return {
-      data: paginatedEntries,
+      data,
       total,
-      totalIncome,
-      totalExpenses,
+      totalIncome: 0,
+      totalExpenses: 0,
     };
   }
 
-  async update(
-    id: string,
-    data: Partial<CreateEntryData>,
-  ): Promise<EntryModel> {
-    if (this.shouldFail && this.errorToThrow) {
-      throw this.errorToThrow;
-    }
-
-    const existing = this.entries.get(id);
-    if (!existing) {
-      throw new Error('Entry not found');
-    }
-
-    const updated = {
-      ...existing,
-      ...data,
-      updatedAt: new Date(),
-    };
-    this.entries.set(id, updated);
-    return updated;
-  }
-
-  async delete(id: string): Promise<void> {
-    if (this.shouldFail && this.errorToThrow) {
-      throw this.errorToThrow;
-    }
-
-    if (!this.entries.has(id)) {
-      throw new Error('Entry not found');
-    }
-
-    this.entries.delete(id);
-  }
-
-  async softDelete(id: string): Promise<Date> {
-    if (this.shouldFail && this.errorToThrow) {
-      throw this.errorToThrow;
-    }
-
-    const entry = this.entries.get(id);
-    if (!entry) {
-      throw new Error('Entry not found');
-    }
-
-    const deletedAt = new Date();
-    const updatedEntry = { ...entry, deletedAt };
-    this.entries.set(id, updatedEntry);
-    return deletedAt;
-  }
-
-  async getMonthlySummaryStats(
-    userId: string,
-    year: number,
-    month: number,
-  ): Promise<MonthlySummaryStats> {
-    if (this.shouldFail && this.errorToThrow) {
-      throw this.errorToThrow;
-    }
-
-    const entriesForMonth = await this.findByUserIdAndMonth(
-      userId,
-      year,
-      month,
-    );
-
-    const totalIncome = entriesForMonth
-      .filter(entry => entry.type === 'INCOME')
-      .reduce((sum, entry) => sum + entry.amount, 0);
-
-    const totalPaidExpenses = entriesForMonth
-      .filter(entry => entry.type === 'EXPENSE' && entry.isPaid)
-      .reduce((sum, entry) => sum + entry.amount, 0);
-
-    const totalUnpaidExpenses = entriesForMonth
-      .filter(entry => entry.type === 'EXPENSE' && !entry.isPaid)
-      .reduce((sum, entry) => sum + entry.amount, 0);
-
-    const totalExpenses = totalPaidExpenses;
-
-    const fixedIncome = entriesForMonth
-      .filter(entry => entry.type === 'INCOME' && entry.isFixed)
-      .reduce((sum, entry) => sum + entry.amount, 0);
-
-    const dynamicIncome = entriesForMonth
-      .filter(entry => entry.type === 'INCOME' && !entry.isFixed)
-      .reduce((sum, entry) => sum + entry.amount, 0);
-
-    const fixedPaidExpenses = entriesForMonth
-      .filter(
-        entry => entry.type === 'EXPENSE' && entry.isFixed && entry.isPaid,
-      )
-      .reduce((sum, entry) => sum + entry.amount, 0);
-
-    const fixedUnpaidExpenses = entriesForMonth
-      .filter(
-        entry => entry.type === 'EXPENSE' && entry.isFixed && !entry.isPaid,
-      )
-      .reduce((sum, entry) => sum + entry.amount, 0);
-
-    const fixedExpenses = fixedPaidExpenses;
-
-    const dynamicPaidExpenses = entriesForMonth
-      .filter(
-        entry => entry.type === 'EXPENSE' && !entry.isFixed && entry.isPaid,
-      )
-      .reduce((sum, entry) => sum + entry.amount, 0);
-
-    const dynamicUnpaidExpenses = entriesForMonth
-      .filter(
-        entry => entry.type === 'EXPENSE' && !entry.isFixed && !entry.isPaid,
-      )
-      .reduce((sum, entry) => sum + entry.amount, 0);
-
-    const dynamicExpenses = dynamicPaidExpenses;
-
+  async getMonthlySummaryStats(): Promise<MonthlySummaryStats> {
     return {
-      totalIncome,
-      totalExpenses,
-      totalPaidExpenses,
-      totalUnpaidExpenses,
-      fixedIncome,
-      dynamicIncome,
-      fixedExpenses,
-      dynamicExpenses,
-      fixedPaidExpenses,
-      fixedUnpaidExpenses,
-      dynamicPaidExpenses,
-      dynamicUnpaidExpenses,
-      totalEntries: entriesForMonth.length,
-      incomeEntries: entriesForMonth.filter(entry => entry.type === 'INCOME')
-        .length,
-      expenseEntries: entriesForMonth.filter(entry => entry.type === 'EXPENSE')
-        .length,
+      totalIncome: 0,
+      totalExpenses: 0,
+      totalPaidExpenses: 0,
+      totalUnpaidExpenses: 0,
+      fixedIncome: 0,
+      dynamicIncome: 0,
+      fixedExpenses: 0,
+      dynamicExpenses: 0,
+      fixedPaidExpenses: 0,
+      fixedUnpaidExpenses: 0,
+      dynamicPaidExpenses: 0,
+      dynamicUnpaidExpenses: 0,
+      totalEntries: 0,
+      incomeEntries: 0,
+      expenseEntries: 0,
     };
   }
 
-  async getCategorySummaryForMonth(
-    userId: string,
-    year: number,
-    month: number,
-  ): Promise<CategorySummaryResult> {
-    if (this.shouldFail && this.errorToThrow) {
-      throw this.errorToThrow;
-    }
+  async getCategorySummaryForMonth(): Promise<CategorySummaryResult> {
+    return {
+      items: [],
+      allItems: [],
+      incomeTotal: 0,
+      expenseTotal: 0,
+    };
+  }
 
-    const entriesForMonth = await this.findByUserIdAndMonth(
-      userId,
-      year,
-      month,
-    );
-    const categorizedEntries = entriesForMonth.filter(
-      entry => entry.categoryId,
-    );
-
-    // Group by category and type
-    const categoryGroups = new Map<string, CategorySummaryItem>();
-
-    categorizedEntries.forEach(entry => {
-      const key = `${entry.categoryId}-${entry.type}`;
-      if (!categoryGroups.has(key)) {
-        categoryGroups.set(key, {
-          categoryId: entry.categoryId,
-          categoryName: 'Test Category',
-          type: entry.type,
-          total: 0,
-          count: 0,
-          unpaidAmount: 0,
-        });
-      }
-
-      const group = categoryGroups.get(key)!;
-      if (entry.type === 'EXPENSE' && entry.isPaid) {
-        group.total += entry.amount;
-      } else if (entry.type === 'EXPENSE' && !entry.isPaid) {
-        group.unpaidAmount += entry.amount;
-      } else if (entry.type === 'INCOME') {
-        group.total += entry.amount;
-      }
-      group.count += 1;
+  async getFixedEntriesSummary(): Promise<FixedEntriesSummary> {
+    const entries = [...this.entries.values()];
+    const fixedEntries = entries.filter(entry => {
+      const legacyIsFixed = Boolean((entry as any).isFixed);
+      return legacyIsFixed || Boolean(entry.recurrenceId);
     });
-
-    const allItems = Array.from(categoryGroups.values());
-    const sortedItems = [...allItems].sort((a, b) => b.total - a.total);
-    const top3Items = sortedItems.slice(0, 3);
-
-    const incomeTotal = allItems.filter(item => item.type === 'INCOME').length;
-    const expenseTotal = allItems.filter(
-      item => item.type === 'EXPENSE',
-    ).length;
-
-    return {
-      items: top3Items,
-      allItems: sortedItems,
-      incomeTotal,
-      expenseTotal,
-    };
-  }
-
-  async getFixedEntriesSummary(userId: string): Promise<FixedEntriesSummary> {
-    if (this.shouldFail && this.errorToThrow) {
-      throw this.errorToThrow;
-    }
-
-    const userEntries = await this.findByUserId(userId);
-    const fixedEntries = userEntries.filter(entry => entry.isFixed === true);
-
     const fixedIncome = fixedEntries
-      .filter(entry => entry.type === 'INCOME')
+      .filter(entry => {
+        const legacyType = (entry as any).type;
+        return entry.entryType === 'INCOME' || legacyType === 'INCOME';
+      })
       .reduce((sum, entry) => sum + entry.amount, 0);
-
     const fixedExpenses = fixedEntries
-      .filter(entry => entry.type === 'EXPENSE')
+      .filter(entry => {
+        const legacyType = (entry as any).type;
+        return entry.entryType === 'EXPENSE' || legacyType === 'EXPENSE';
+      })
       .reduce((sum, entry) => sum + entry.amount, 0);
-
     return {
       fixedIncome,
       fixedExpenses,
@@ -396,142 +167,109 @@ export class EntryRepositoryStub implements EntryRepository {
     };
   }
 
-  async getCurrentBalance(userId: string): Promise<number> {
-    if (this.shouldFail && this.errorToThrow) {
-      throw this.errorToThrow;
-    }
-
-    const userEntries = await this.findByUserId(userId);
-    const totalIncome = userEntries
-      .filter(entry => entry.type === 'INCOME')
+  async getCurrentBalance(): Promise<number> {
+    this.throwIfNeeded();
+    const entries = [...this.entries.values()];
+    const totalIncome = entries
+      .filter(entry => {
+        const legacyType = (entry as any).type;
+        return entry.entryType === 'INCOME' || legacyType === 'INCOME';
+      })
       .reduce((sum, entry) => sum + entry.amount, 0);
-
-    const totalExpenses = userEntries
-      .filter(entry => entry.type === 'EXPENSE')
+    const totalExpenses = entries
+      .filter(entry => {
+        const legacyType = (entry as any).type;
+        return entry.entryType === 'EXPENSE' || legacyType === 'EXPENSE';
+      })
       .reduce((sum, entry) => sum + entry.amount, 0);
-
     return totalIncome - totalExpenses;
   }
 
   async getDistinctMonthsYears(userId: string): Promise<MonthYear[]> {
-    if (this.shouldFail && this.errorToThrow) {
-      throw this.errorToThrow;
-    }
-
-    const userEntries = await this.findByUserId(userId);
-    const monthsYearsMap = new Map<string, MonthYear>();
-
-    userEntries.forEach(entry => {
-      if (!entry.deletedAt) {
-        const entryDate = new Date(entry.date);
-        const year = entryDate.getFullYear();
-        const month = entryDate.getMonth() + 1; // Month is 1-indexed
-        const key = `${year}-${month}`;
-
-        if (!monthsYearsMap.has(key)) {
-          monthsYearsMap.set(key, { year, month });
-        }
+    this.throwIfNeeded();
+    const entries = await this.findByUserId(userId);
+    const map = new Map<string, MonthYear>();
+    entries.forEach(entry => {
+      const year = entry.dueDate.getFullYear();
+      const month = entry.dueDate.getMonth() + 1;
+      const key = `${year}-${month}`;
+      if (!map.has(key)) {
+        map.set(key, { year, month });
       }
     });
-
-    return Array.from(monthsYearsMap.values()).sort((a, b) => {
+    return [...map.values()].sort((a, b) => {
       if (a.year !== b.year) {
-        return b.year - a.year; // Descending by year
+        return b.year - a.year;
       }
-      return b.month - a.month; // Descending by month
+      return b.month - a.month;
     });
   }
 
-  async getAccumulatedStats(
-    userId: string,
-    year: number,
-    month: number,
-  ): Promise<AccumulatedStats> {
-    if (this.shouldFail && this.errorToThrow) {
-      throw this.errorToThrow;
-    }
-
-    const endDate = new Date(year, month, 0); // Last day of the month
-    const userEntries = await this.findByUserId(userId);
-
-    // Filter entries up to the end date
-    const entriesUpToDate = userEntries.filter(
-      entry => new Date(entry.date) <= endDate && !entry.deletedAt,
-    );
-
-    const totalAccumulatedIncome = entriesUpToDate
-      .filter(entry => entry.type === 'INCOME')
-      .reduce((sum, entry) => sum + entry.amount, 0);
-
-    const totalAccumulatedPaidExpenses = entriesUpToDate
-      .filter(entry => entry.type === 'EXPENSE' && entry.isPaid)
-      .reduce((sum, entry) => sum + entry.amount, 0);
-
-    // Calculate unpaid expenses from previous months
-    const startOfCurrentMonth = new Date(year, month - 1, 1);
-    const previousMonthsUnpaidExpenses = userEntries
-      .filter(
-        entry =>
-          entry.type === 'EXPENSE' &&
-          !entry.isPaid &&
-          new Date(entry.date) < startOfCurrentMonth &&
-          !entry.deletedAt,
-      )
-      .reduce((sum, entry) => sum + entry.amount, 0);
-
-    const accumulatedBalance =
-      totalAccumulatedIncome - totalAccumulatedPaidExpenses;
-
+  async getAccumulatedStats(): Promise<AccumulatedStats> {
+    this.throwIfNeeded();
     return {
-      totalAccumulatedIncome,
-      totalAccumulatedPaidExpenses,
-      previousMonthsUnpaidExpenses,
-      accumulatedBalance,
+      totalAccumulatedIncome: 0,
+      totalAccumulatedPaidExpenses: 0,
+      previousMonthsUnpaidExpenses: 0,
+      accumulatedBalance: 0,
     };
   }
 
-  async setMonthlyPaymentStatus(
-    entryId: string,
-    year: number,
-    month: number,
-    isPaid: boolean,
-  ): Promise<MonthlyPaymentStatus> {
-    if (this.shouldFail && this.errorToThrow) {
-      throw this.errorToThrow;
+  async update(id: string, data: UpdateEntryData): Promise<EntryModel> {
+    const entry = this.entries.get(id);
+    if (!entry) {
+      throw new Error('Entry not found');
     }
+    const updated: EntryModel = { ...entry, ...data, updatedAt: new Date() };
+    this.entries.set(id, updated);
+    return updated;
+  }
 
+  async delete(id: string): Promise<void> {
+    if (!this.entries.delete(id)) {
+      throw new Error('Entry not found');
+    }
+  }
+
+  async softDelete(id: string): Promise<Date> {
+    await this.delete(id);
+    return new Date();
+  }
+
+  async findMonthlyRecurringEntriesInRange(
+    _query: MonthlyRecurringEntriesQuery,
+  ): Promise<EntryModel[]> {
+    return [];
+  }
+
+  async existsMonthlyMirroredEntry(
+    _query: EntryMonthlyMirrorExistsQuery,
+  ): Promise<boolean> {
+    return false;
+  }
+
+  async togglePaymentStatus(
+    _userId: string,
+    entryId: string,
+    isPaid: boolean,
+  ): Promise<ToggleEntryPaymentStatusResult> {
+    const entry = this.entries.get(entryId);
+    if (!entry) {
+      throw new Error('Entry not found');
+    }
+    const updatedEntry: EntryModel = {
+      ...entry,
+      isPaid,
+      updatedAt: new Date(),
+    };
+    this.entries.set(entryId, updatedEntry);
     return {
       entryId,
-      year,
-      month,
       isPaid,
       paidAt: isPaid ? new Date() : null,
     };
   }
 
-  async getMonthlyPaymentStatus(
-    entryId: string,
-    year: number,
-    month: number,
-  ): Promise<MonthlyPaymentStatus | null> {
-    if (this.shouldFail && this.errorToThrow) {
-      throw this.errorToThrow;
-    }
-
-    return null;
-  }
-
-  async deleteMonthlyPaymentStatuses(entryId: string): Promise<void> {
-    if (this.shouldFail && this.errorToThrow) {
-      throw this.errorToThrow;
-    }
-  }
-
-  // =================== Test Utility Methods ===================
-
-  /**
-   * Clear all entries and reset error state
-   */
   clear(): void {
     this.entries.clear();
     this.shouldFail = false;
@@ -539,46 +277,28 @@ export class EntryRepositoryStub implements EntryRepository {
     this.nextId = 1;
   }
 
-  /**
-   * Seed the repository with predefined entries
-   */
   seed(entries: EntryModel[]): void {
     entries.forEach(entry => this.entries.set(entry.id, entry));
   }
 
-  /**
-   * Configure the stub to throw an error on next operation
-   */
   mockFailure(error: Error): void {
     this.shouldFail = true;
     this.errorToThrow = error;
   }
 
-  /**
-   * Configure the stub to operate normally
-   */
   mockSuccess(): void {
     this.shouldFail = false;
     this.errorToThrow = null;
   }
 
-  /**
-   * Get the number of entries in the stub
-   */
   getCount(): number {
     return this.entries.size;
   }
 
-  /**
-   * Check if an entry exists by ID
-   */
   hasEntry(id: string): boolean {
     return this.entries.has(id);
   }
 
-  /**
-   * Simulate connection errors
-   */
   mockConnectionError(): void {
     this.mockFailure(new Error('Database connection failed'));
   }

@@ -69,8 +69,6 @@ export class DbListCategoriesUseCase implements ListCategoriesUseCase {
       total: categories.length,
       income: categories.filter(c => c.type === CategoryType.INCOME).length,
       expense: categories.filter(c => c.type === CategoryType.EXPENSE).length,
-      custom: categories.filter(c => !c.isDefault).length,
-      default: categories.filter(c => c.isDefault).length,
     };
   }
 }

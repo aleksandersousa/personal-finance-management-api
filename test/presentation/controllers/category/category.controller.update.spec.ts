@@ -55,7 +55,6 @@ describe('CategoryController - update', () => {
         description: 'Updated description',
         color: '#FF5722',
         icon: 'updated_icon',
-        userId: 'user-123',
       });
 
       updateCategoryUseCase.execute.mockResolvedValue(expectedCategory);
@@ -76,8 +75,6 @@ describe('CategoryController - update', () => {
         type: expectedCategory.type,
         color: expectedCategory.color,
         icon: expectedCategory.icon,
-        userId: expectedCategory.userId,
-        isDefault: expectedCategory.isDefault,
         createdAt: expectedCategory.createdAt,
         updatedAt: expectedCategory.updatedAt,
       });
@@ -129,7 +126,6 @@ describe('CategoryController - update', () => {
       const expectedCategory = MockCategoryFactory.create({
         id: 'category-456',
         name: 'Only Name Updated',
-        userId: 'user-123',
       });
 
       updateCategoryUseCase.execute.mockResolvedValue(expectedCategory);
@@ -336,7 +332,6 @@ describe('CategoryController - update', () => {
       const expectedCategory = MockCategoryFactory.create({
         id: 'category-456',
         name: 'Performance Test Category',
-        userId: 'user-123',
       });
 
       updateCategoryUseCase.execute.mockResolvedValue(expectedCategory);
@@ -370,7 +365,6 @@ describe('CategoryController - update', () => {
       const mockRequest = RequestMockFactory.createWithUser('user-123');
       const expectedCategory = MockCategoryFactory.create({
         id: 'category-456',
-        userId: 'user-123',
       });
 
       updateCategoryUseCase.execute.mockResolvedValue(expectedCategory);

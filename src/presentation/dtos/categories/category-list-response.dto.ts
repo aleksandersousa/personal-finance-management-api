@@ -43,12 +43,6 @@ export class CategoryWithStatsResponseDto {
   icon?: string;
 
   @ApiProperty({
-    description: 'Whether this is a default system category',
-    example: false,
-  })
-  isDefault: boolean;
-
-  @ApiProperty({
     description: 'Number of entries in this category',
     example: 12,
     required: false,
@@ -100,18 +94,6 @@ export class CategoryListSummaryDto {
     example: 5,
   })
   expense: number;
-
-  @ApiProperty({
-    description: 'Number of custom categories',
-    example: 6,
-  })
-  custom: number;
-
-  @ApiProperty({
-    description: 'Number of default categories',
-    example: 2,
-  })
-  default: number;
 }
 
 export class CategoryListPaginationDto {

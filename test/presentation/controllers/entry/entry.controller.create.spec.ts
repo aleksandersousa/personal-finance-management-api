@@ -27,7 +27,8 @@ describe('EntryController - CREATE', () => {
         { provide: 'DeleteEntryUseCase', useValue: {} },
         { provide: 'UpdateEntryUseCase', useValue: {} },
         { provide: 'GetEntriesMonthsYearsUseCase', useValue: {} },
-        { provide: 'ToggleMonthlyPaymentStatusUseCase', useValue: {} },
+        { provide: 'ToggleEntryPaymentStatusUseCase', useValue: {} },
+        { provide: 'EntryRepository', useValue: {} },
         { provide: 'Logger', useValue: loggerSpy },
         { provide: 'Metrics', useValue: metricsSpy },
       ],
@@ -48,10 +49,9 @@ describe('EntryController - CREATE', () => {
       const createEntryDto: CreateEntryDto = {
         amount: 1000.0,
         description: 'Salary',
-        type: 'INCOME',
-        isFixed: true,
         categoryId: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890',
-        date: '2024-01-15',
+        issueDate: '2024-01-15T00:00:00Z',
+        dueDate: '2024-01-15T00:00:00Z',
       };
 
       const mockUser = { id: 'user-123', email: 'test@example.com' };
@@ -59,11 +59,12 @@ describe('EntryController - CREATE', () => {
         id: 'entry-123',
         amount: 1000.0,
         description: 'Salary',
-        type: 'INCOME',
-        isFixed: true,
+        entryType: 'INCOME',
+        recurrenceId: 'recurrence-1',
         categoryId: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890',
         userId: 'user-123',
-        date: new Date('2024-01-15'),
+        issueDate: new Date('2024-01-15T00:00:00Z'),
+        dueDate: new Date('2024-01-15T00:00:00Z'),
       });
 
       addEntryUseCase.execute.mockResolvedValue(mockEntry);
@@ -75,16 +76,15 @@ describe('EntryController - CREATE', () => {
       expect(result).toHaveProperty('id');
       expect(result.amount).toBe(mockEntry.amount);
       expect(result.description).toBe(mockEntry.description);
-      expect(result.type).toBe(mockEntry.type);
+      expect(result.entryType).toBe(mockEntry.entryType);
       expect(result.userId).toBe(mockEntry.userId);
 
       expect(addEntryUseCase.execute).toHaveBeenCalledWith({
         userId: 'user-123',
         description: createEntryDto.description,
         amount: createEntryDto.amount,
-        date: new Date(createEntryDto.date),
-        type: createEntryDto.type,
-        isFixed: createEntryDto.isFixed,
+        issueDate: new Date(createEntryDto.issueDate),
+        dueDate: new Date(createEntryDto.dueDate),
         categoryId: createEntryDto.categoryId,
       });
 
@@ -97,9 +97,8 @@ describe('EntryController - CREATE', () => {
         entityId: 'entry-123',
         userId: 'user-123',
         metadata: {
-          type: 'INCOME',
           amount: 1000.0,
-          isFixed: true,
+          recurrenceId: 'recurrence-1',
         },
       });
 
@@ -114,10 +113,9 @@ describe('EntryController - CREATE', () => {
       const createEntryDto: CreateEntryDto = {
         amount: 1000.0,
         description: 'Salary',
-        type: 'INCOME',
-        isFixed: true,
         categoryId: 'invalid-category-id',
-        date: '2024-01-15',
+        issueDate: '2024-01-15T00:00:00Z',
+        dueDate: '2024-01-15T00:00:00Z',
       };
 
       const mockUser = { id: 'user-123', email: 'test@example.com' };
@@ -142,10 +140,9 @@ describe('EntryController - CREATE', () => {
       const createEntryDto: CreateEntryDto = {
         amount: -100,
         description: '',
-        type: 'INCOME',
-        isFixed: true,
         categoryId: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890',
-        date: '2024-01-15',
+        issueDate: '2024-01-15T00:00:00Z',
+        dueDate: '2024-01-15T00:00:00Z',
       };
 
       const mockUser = { id: 'user-123', email: 'test@example.com' };
@@ -170,10 +167,9 @@ describe('EntryController - CREATE', () => {
       const createEntryDto: CreateEntryDto = {
         amount: 1000.0,
         description: 'Test Entry',
-        type: 'INCOME',
-        isFixed: false,
         categoryId: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890',
-        date: '2024-01-15',
+        issueDate: '2024-01-15T00:00:00Z',
+        dueDate: '2024-01-15T00:00:00Z',
       };
 
       const mockUser = { id: 'user-123', email: 'test@example.com' };
@@ -199,10 +195,9 @@ describe('EntryController - CREATE', () => {
       const createEntryDto: CreateEntryDto = {
         amount: 500.0,
         description: 'Groceries',
-        type: 'EXPENSE',
-        isFixed: false,
         categoryId: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890',
-        date: '2024-01-15',
+        issueDate: '2024-01-15T00:00:00Z',
+        dueDate: '2024-01-15T00:00:00Z',
       };
 
       const mockUser = { id: 'user-123', email: 'test@example.com' };
@@ -210,11 +205,12 @@ describe('EntryController - CREATE', () => {
         id: 'entry-123',
         amount: 500.0,
         description: 'Groceries',
-        type: 'EXPENSE',
-        isFixed: false,
+        entryType: 'EXPENSE',
+        recurrenceId: null,
         categoryId: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890',
         userId: 'user-123',
-        date: new Date('2024-01-15'),
+        issueDate: new Date('2024-01-15T00:00:00Z'),
+        dueDate: new Date('2024-01-15T00:00:00Z'),
       });
 
       addEntryUseCase.execute.mockResolvedValue(mockEntry);
@@ -237,10 +233,9 @@ describe('EntryController - CREATE', () => {
       const createEntryDto: CreateEntryDto = {
         amount: 1000.0,
         description: 'Test Entry',
-        type: 'INCOME',
-        isFixed: false,
         categoryId: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890',
-        date: '2024-01-15',
+        issueDate: '2024-01-15T00:00:00Z',
+        dueDate: '2024-01-15T00:00:00Z',
       };
 
       const mockUser = { id: 'user-123', email: 'test@example.com' };

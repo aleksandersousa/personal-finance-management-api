@@ -134,6 +134,7 @@ describe('AuthController', () => {
           email: 'john@example.com',
           createdAt: new Date(),
           updatedAt: new Date(),
+          emailVerified: false,
         },
         message:
           'Registration successful. Please check your email to verify your account.',
@@ -148,6 +149,8 @@ describe('AuthController', () => {
         name: mockResponse.user.name,
         email: mockResponse.user.email,
         createdAt: mockResponse.user.createdAt,
+        updatedAt: mockResponse.user.updatedAt,
+        emailVerified: mockResponse.user.emailVerified,
         message: mockResponse.message,
       });
 

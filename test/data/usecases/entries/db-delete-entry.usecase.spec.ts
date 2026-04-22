@@ -21,7 +21,6 @@ describe('DbDeleteEntryUseCase', () => {
       const entry = MockEntryFactory.create({
         id: 'entry-123',
         userId: 'user-123',
-        deletedAt: null,
       });
       repositoryStub.seed([entry]);
 
@@ -77,32 +76,11 @@ describe('DbDeleteEntryUseCase', () => {
       );
     });
 
-    it('should throw error when entry is already deleted', async () => {
-      // Arrange
-      const entry = MockEntryFactory.create({
-        id: 'entry-123',
-        userId: 'user-123',
-        deletedAt: new Date('2025-06-01T10:00:00Z'),
-      });
-      repositoryStub.seed([entry]);
-
-      const requestData = {
-        entryId: 'entry-123',
-        userId: 'user-123',
-      };
-
-      // Act & Assert
-      await expect(useCase.execute(requestData)).rejects.toThrow(
-        'Entry is already deleted',
-      );
-    });
-
     it('should throw error when user does not own the entry', async () => {
       // Arrange
       const entry = MockEntryFactory.create({
         id: 'entry-123',
         userId: 'other-user',
-        deletedAt: null,
       });
       repositoryStub.seed([entry]);
 
@@ -122,7 +100,6 @@ describe('DbDeleteEntryUseCase', () => {
       const entry = MockEntryFactory.create({
         id: 'entry-123',
         userId: 'user-123',
-        deletedAt: null,
       });
       repositoryStub.seed([entry]);
       repositoryStub.mockFailure(new Error('Database connection failed'));

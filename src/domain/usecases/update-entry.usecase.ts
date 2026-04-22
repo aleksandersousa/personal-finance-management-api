@@ -1,15 +1,14 @@
-import { EntryModel, EntryType } from '../models/entry.model';
+import { EntryModel } from '../models/entry.model';
 
 export interface UpdateEntryRequest {
   id: string;
   userId: string;
   description: string;
   amount: number;
-  date: Date;
-  type: EntryType;
-  isFixed: boolean;
-  categoryId?: string;
-  isPaid?: boolean;
+  categoryId: string;
+  issueDate: Date;
+  dueDate: Date;
+  recurrenceId?: string | null;
 }
 
 export interface UpdateEntryUseCase {

@@ -1,8 +1,7 @@
 import { ApiProperty } from '@nestjs/swagger';
 import {
-  IsBoolean,
   IsDateString,
-  IsEnum,
+  IsIn,
   IsNotEmpty,
   IsNumber,
   IsOptional,
@@ -11,7 +10,6 @@ import {
   Min,
 } from 'class-validator';
 import { Type } from 'class-transformer';
-import { EntryType } from '@domain/models/entry.model';
 
 export class CreateEntryDto {
   @ApiProperty({
@@ -34,44 +32,46 @@ export class CreateEntryDto {
   amount: number;
 
   @ApiProperty({
-    description: 'Entry date',
+    description: 'Issue date',
     example: '2025-01-15T10:00:00Z',
   })
   @IsNotEmpty()
   @IsDateString()
-  date: string;
+  issueDate: string;
 
   @ApiProperty({
-    description: 'Entry type',
-    enum: ['INCOME', 'EXPENSE'],
-    example: 'INCOME',
+    description: 'Due date',
+    example: '2025-01-15T10:00:00Z',
   })
   @IsNotEmpty()
-  @IsEnum(['INCOME', 'EXPENSE'])
-  type: EntryType;
-
-  @ApiProperty({
-    description: 'Whether this entry is fixed (recurring)',
-    example: true,
-  })
-  @IsNotEmpty()
-  @IsBoolean()
-  isFixed: boolean;
+  @IsDateString()
+  dueDate: string;
 
   @ApiProperty({
     description: 'Category ID',
     example: '123e4567-e89b-12d3-a456-426614174000',
+    required: true,
+  })
+  @IsNotEmpty()
+  @IsUUID()
+  categoryId: string;
+
+  @ApiProperty({
+    description: 'Recurrence ID',
+    example: '123e4567-e89b-12d3-a456-426614174111',
     required: false,
   })
   @IsOptional()
   @IsUUID()
-  categoryId?: string;
+  recurrenceId?: string | null;
 
   @ApiProperty({
-    description: 'Whether this entry is paid',
-    example: true,
+    description: 'Recurrence type',
+    example: 'MONTHLY',
+    required: false,
   })
   @IsOptional()
-  @IsBoolean()
-  isPaid?: boolean;
+  @IsString()
+  @IsIn(['MONTHLY'])
+  recurrenceType?: 'MONTHLY';
 }

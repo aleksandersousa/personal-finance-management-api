@@ -9,10 +9,9 @@ export interface NotificationModel {
   entryId: string;
   userId: string;
   scheduledAt: Date;
-  sentAt?: Date | null;
+  sentAt: Date | null;
   status: NotificationStatus;
-  jobId?: string | null;
+  jobId: string | null;
   createdAt: Date;
   updatedAt: Date;
-  deletedAt?: Date | null;
 }

@@ -42,14 +42,12 @@ export class DbUpdateCategoryUseCase implements UpdateCategoryUseCase {
       throw new Error('Category not found');
     }
 
-    // Verify ownership - user can only update their own categories
-    if (existingCategory.userId !== request.userId) {
+    const isLinked = await this.categoryRepository.isUserLinkedToCategory(
+      request.userId,
+      request.id,
+    );
+    if (!isLinked) {
       throw new Error('You can only update your own categories');
-    }
-
-    // Verify category is not a default category
-    if (existingCategory.isDefault) {
-      throw new Error('Cannot update default categories');
     }
 
     // Check if new name already exists for the user (if name is being updated)

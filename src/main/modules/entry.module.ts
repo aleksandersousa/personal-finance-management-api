@@ -2,8 +2,9 @@ import { Module, forwardRef } from '@nestjs/common';
 import { TypeOrmModule, getRepositoryToken } from '@nestjs/typeorm';
 import { EntryController } from '@presentation/controllers/entry.controller';
 import { EntryEntity } from '@infra/db/typeorm/entities/entry.entity';
-import { EntryMonthlyPaymentEntity } from '@infra/db/typeorm/entities/entry-monthly-payment.entity';
+import { PaymentEntity } from '@infra/db/typeorm/entities/payment.entity';
 import { CategoryEntity } from '@infra/db/typeorm/entities/category.entity';
+import { RecurrenceEntity } from '@infra/db/typeorm/entities/recurrence.entity';
 import {
   makeCategoryRepository,
   makeEntryRepository,
@@ -18,7 +19,7 @@ import {
   makeListEntriesByMonthFactory,
   makeUpdateEntryFactory,
   makeGetEntriesMonthsYearsFactory,
-  makeToggleMonthlyPaymentStatusFactory,
+  makeToggleEntryPaymentStatusFactory,
 } from '../factories';
 import { ContextAwareLoggerService } from '@/infra/logging/context-aware-logger.service';
 
@@ -26,8 +27,9 @@ import { ContextAwareLoggerService } from '@/infra/logging/context-aware-logger.
   imports: [
     TypeOrmModule.forFeature([
       EntryEntity,
-      EntryMonthlyPaymentEntity,
+      PaymentEntity,
       CategoryEntity,
+      RecurrenceEntity,
     ]),
     AuthModule,
     ObservabilityModule,
@@ -40,7 +42,8 @@ import { ContextAwareLoggerService } from '@/infra/logging/context-aware-logger.
       useFactory: makeEntryRepository,
       inject: [
         getRepositoryToken(EntryEntity),
-        getRepositoryToken(EntryMonthlyPaymentEntity),
+        getRepositoryToken(PaymentEntity),
+        getRepositoryToken(RecurrenceEntity),
         'Logger',
         'Metrics',
       ],
@@ -48,7 +51,7 @@ import { ContextAwareLoggerService } from '@/infra/logging/context-aware-logger.
     {
       provide: 'CategoryRepository',
       useFactory: makeCategoryRepository,
-      inject: [getRepositoryToken(CategoryEntity)],
+      inject: [getRepositoryToken(CategoryEntity), 'Logger', 'Metrics'],
     },
     {
       provide: 'IdGenerator',
@@ -94,14 +97,14 @@ import { ContextAwareLoggerService } from '@/infra/logging/context-aware-logger.
       ],
     },
     {
+      provide: 'ToggleEntryPaymentStatusUseCase',
+      useFactory: makeToggleEntryPaymentStatusFactory,
+      inject: ['EntryRepository', 'UserRepository'],
+    },
+    {
       provide: 'GetEntriesMonthsYearsUseCase',
       useFactory: makeGetEntriesMonthsYearsFactory,
       inject: ['EntryRepository', 'UserRepository', 'Logger'],
-    },
-    {
-      provide: 'ToggleMonthlyPaymentStatusUseCase',
-      useFactory: makeToggleMonthlyPaymentStatusFactory,
-      inject: ['EntryRepository'],
     },
   ],
   exports: [
@@ -109,8 +112,8 @@ import { ContextAwareLoggerService } from '@/infra/logging/context-aware-logger.
     'ListEntriesByMonthUseCase',
     'UpdateEntryUseCase',
     'DeleteEntryUseCase',
+    'ToggleEntryPaymentStatusUseCase',
     'GetEntriesMonthsYearsUseCase',
-    'ToggleMonthlyPaymentStatusUseCase',
     'EntryRepository',
   ],
 })

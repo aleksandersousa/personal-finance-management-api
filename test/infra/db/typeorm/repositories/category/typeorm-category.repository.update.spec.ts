@@ -16,8 +16,6 @@ describe('TypeormCategoryRepository - update', () => {
   let loggerSpy: LoggerSpy;
   let metricsSpy: MetricsSpy;
 
-  const mockUserId = 'a1b2c3d4-e5f6-7890-abcd-ef1234567890';
-
   // Mock data for testing
   const mockCategoryEntity = {
     id: 'test-id',
@@ -26,8 +24,6 @@ describe('TypeormCategoryRepository - update', () => {
     type: CategoryType.INCOME,
     color: '#4CAF50',
     icon: 'work',
-    userId: mockUserId,
-    isDefault: false,
     createdAt: new Date('2023-01-01'),
     updatedAt: new Date('2023-01-01'),
     deletedAt: null,
@@ -121,7 +117,6 @@ describe('TypeormCategoryRepository - update', () => {
       expect(businessEvents[0]).toMatchObject({
         event: 'category_updated',
         entityId: 'test-id',
-        userId: mockUserId,
         metadata: {
           updatedFields: ['name', 'description', 'color', 'icon'],
         },

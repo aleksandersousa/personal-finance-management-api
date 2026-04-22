@@ -23,6 +23,7 @@ export interface CategoryRepository {
   ): Promise<FindCategoriesWithFiltersResult>;
   update(id: string, data: CategoryUpdateData): Promise<Category>;
   delete(id: string): Promise<void>;
-  softDelete(id: string): Promise<void>;
-  hasEntriesAssociated(categoryId: string): Promise<boolean>;
+  isUserLinkedToCategory(userId: string, categoryId: string): Promise<boolean>;
+  unlinkFromUser(userId: string, categoryId: string): Promise<void>;
+  hasEntriesAssociated(userId: string, categoryId: string): Promise<boolean>;
 }

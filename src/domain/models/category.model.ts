@@ -2,11 +2,9 @@ export interface Category {
   id: string;
   name: string;
   description?: string;
-  type: CategoryType;
-  color?: string;
   icon?: string;
-  userId: string;
-  isDefault: boolean;
+  color?: string;
+  type: CategoryType;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -30,6 +28,7 @@ export interface CategoryUpdateData {
   description?: string;
   color?: string;
   icon?: string;
+  type?: CategoryType;
 }
 
 export interface CategoryListFilters {
@@ -51,8 +50,6 @@ export interface CategoryListSummary {
   total: number;
   income: number;
   expense: number;
-  custom: number;
-  default: number;
 }
 
 export interface CategoryListResponse {

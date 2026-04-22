@@ -46,6 +46,18 @@ export class RegisterResponseDto {
   createdAt: Date;
 
   @ApiProperty({
+    description: 'User last update date',
+    example: '2025-01-15T10:00:00Z',
+  })
+  updatedAt: Date;
+
+  @ApiProperty({
+    description: 'Whether the email address has been verified',
+    example: false,
+  })
+  emailVerified: boolean;
+
+  @ApiProperty({
     description: 'Registration message',
     example:
       'Registration successful. Please check your email to verify your account.',

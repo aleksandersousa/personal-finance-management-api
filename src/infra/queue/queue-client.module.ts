@@ -70,6 +70,23 @@ import Redis from 'ioredis';
           },
         },
       },
+      {
+        name: QUEUE_NAMES.RECURRING_ENTRIES,
+        defaultJobOptions: {
+          attempts: 3,
+          backoff: {
+            type: 'exponential',
+            delay: 2000,
+          },
+          removeOnComplete: {
+            age: 24 * 3600,
+            count: 500,
+          },
+          removeOnFail: {
+            age: 7 * 24 * 3600,
+          },
+        },
+      },
     ),
   ],
   exports: [BullModule],

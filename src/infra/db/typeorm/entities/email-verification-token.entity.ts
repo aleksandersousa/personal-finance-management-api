@@ -15,15 +15,14 @@ export class EmailVerificationTokenEntity {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @Column({ name: 'user_id', type: 'uuid' })
+  @Column({ name: 'id_user', type: 'uuid', nullable: false })
   @Index()
   userId: string;
 
-  @Column({ unique: true })
-  @Index()
+  @Column({ name: 'token', type: 'varchar', unique: true, nullable: false })
   token: string;
 
-  @Column({ name: 'expires_at', type: 'timestamp' })
+  @Column({ name: 'expires_at', type: 'timestamp', nullable: false })
   expiresAt: Date;
 
   @Column({ name: 'used_at', type: 'timestamp', nullable: true })
@@ -33,6 +32,6 @@ export class EmailVerificationTokenEntity {
   createdAt: Date;
 
   @ManyToOne(() => UserEntity, { onDelete: 'CASCADE' })
-  @JoinColumn({ name: 'user_id' })
+  @JoinColumn({ name: 'id_user' })
   user: UserEntity;
 }

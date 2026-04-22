@@ -115,7 +115,7 @@ export class TypeormPasswordResetTokenRepository implements PasswordResetTokenRe
     await this.tokenRepository
       .createQueryBuilder()
       .delete()
-      .where('user_id = :userId', { userId })
+      .where('id_user = :userId', { userId })
       .andWhere('used_at IS NULL')
       .execute();
   }

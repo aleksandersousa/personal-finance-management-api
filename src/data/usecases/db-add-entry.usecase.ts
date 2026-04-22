@@ -27,6 +27,14 @@ export class DbAddEntryUseCase implements AddEntryUseCase {
       throw new Error('Description is required');
     }
 
+    const issueDate = new Date(request.issueDate);
+    issueDate.setHours(0, 0, 0, 0);
+    const dueDate = new Date(request.dueDate);
+    dueDate.setHours(0, 0, 0, 0);
+    if (dueDate.getTime() < issueDate.getTime()) {
+      throw new Error('Due date cannot be before issue date');
+    }
+
     // Validate user ID
     if (!request.userId) {
       throw new Error('User ID is required');
@@ -39,6 +47,7 @@ export class DbAddEntryUseCase implements AddEntryUseCase {
     }
 
     // Verify category exists and belongs to user (if provided)
+    let categoryType: 'INCOME' | 'EXPENSE' | null = null;
     if (request.categoryId) {
       const category = await this.categoryRepository.findById(
         request.categoryId,
@@ -46,7 +55,12 @@ export class DbAddEntryUseCase implements AddEntryUseCase {
       if (!category) {
         throw new Error('Category not found');
       }
-      if (category.userId !== request.userId) {
+      categoryType = category.type;
+      const linked = await this.categoryRepository.isUserLinkedToCategory(
+        request.userId,
+        request.categoryId,
+      );
+      if (!linked) {
         throw new Error('Category does not belong to the user');
       }
     }
@@ -56,16 +70,15 @@ export class DbAddEntryUseCase implements AddEntryUseCase {
       userId: request.userId,
       description: request.description.trim(),
       amount: request.amount,
-      date: request.date,
-      type: request.type,
-      isFixed: request.isFixed,
+      issueDate: request.issueDate,
+      dueDate: request.dueDate,
+      recurrenceId: request.recurrenceId ?? null,
       categoryId: request.categoryId,
-      isPaid: request.isPaid ?? false,
     });
 
     // Create notification for EXPENSE entries if user has notifications enabled
     if (
-      entry.type === 'EXPENSE' &&
+      categoryType === 'EXPENSE' &&
       this.createNotificationUseCase &&
       user.notificationEnabled !== false
     ) {

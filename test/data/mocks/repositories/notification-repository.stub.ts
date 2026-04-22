@@ -29,12 +29,11 @@ export class NotificationRepositoryStub implements NotificationRepository {
       entryId: data.entryId,
       userId: data.userId,
       scheduledAt: data.scheduledAt,
+      sentAt: null,
       jobId: data.jobId ?? null,
       status: NotificationStatus.PENDING,
-      sentAt: null,
       createdAt: new Date(),
       updatedAt: new Date(),
-      deletedAt: null,
     };
 
     this.notifications.set(notification.id, notification);

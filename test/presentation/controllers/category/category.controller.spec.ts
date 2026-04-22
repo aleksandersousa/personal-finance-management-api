@@ -74,8 +74,6 @@ describe('CategoryController', () => {
         type: expectedCategory.type,
         color: expectedCategory.color,
         icon: expectedCategory.icon,
-        userId: expectedCategory.userId,
-        isDefault: expectedCategory.isDefault,
         createdAt: expectedCategory.createdAt,
         updatedAt: expectedCategory.updatedAt,
       });
