@@ -21,7 +21,7 @@
     "test:e2e": "jest --config ./test/jest-e2e.json",
     "test:all": "yarn test && yarn test:e2e",
     "test:ci": "yarn test:all && yarn test:coverage",
-    "typeorm": "npx typeorm -d dist/src/infra/db/typeorm/config/data-source.js",
+    "typeorm": "npx typeorm -d dist/infra/db/typeorm/config/data-source.js",
     "schema:drop": "yarn typeorm schema:drop",
     "migration:create": "yarn typeorm migration:create",
     "migration:generate": "yarn typeorm migration:generate",

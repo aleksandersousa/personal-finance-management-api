@@ -1,6 +1,7 @@
 import { DataSource } from 'typeorm';
 import * as dotenv from 'dotenv';
 import { ConfigService } from '@nestjs/config';
+import { join } from 'path';
 import { UserEntity } from '../entities/user.entity';
 import { EntryEntity } from '../entities/entry.entity';
 import { CategoryEntity } from '../entities/category.entity';
@@ -13,6 +14,10 @@ import { PaymentEntity } from '../entities/payment.entity';
 
 const configService = new ConfigService();
 const dbSchema = configService.get<string>('DB_SCHEMA') || 'financial';
+const migrationPaths = [
+  join(__dirname, '../migrations/*.js'),
+  join(__dirname, '../migrations/*.ts'),
+];
 
 dotenv.config();
 
@@ -31,7 +36,7 @@ export const AppDataSource = new DataSource({
     RecurrenceEntity,
     PaymentEntity,
   ],
-  migrations: ['dist/src/infra/db/typeorm/migrations/*.js'],
+  migrations: migrationPaths,
   migrationsTableName: 'migrations',
   extra: {
     options: `-c search_path=${dbSchema},public`,
@@ -56,7 +61,7 @@ export const typeOrmConfig = {
     RecurrenceEntity,
     PaymentEntity,
   ],
-  migrations: ['dist/src/infra/db/typeorm/migrations/*.js'],
+  migrations: migrationPaths,
   migrationsTableName: 'migrations',
   extra: {
     options: `-c search_path=${dbSchema},public`,
