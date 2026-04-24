@@ -3,7 +3,7 @@ module.exports = {
     {
       name: 'financial-api',
       cwd: '/var/www/financial-management/api/source',
-      script: 'dist/src/main.js',
+      script: 'dist/main.js',
       instances: 'max',
       exec_mode: 'cluster',
       env: {
@@ -14,7 +14,7 @@ module.exports = {
     {
       name: 'financial-api-worker',
       cwd: '/var/www/financial-management/api/source',
-      script: 'dist/src/worker.js',
+      script: 'dist/worker.js',
       instances: 1,
       exec_mode: 'fork',
       env: {
