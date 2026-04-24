@@ -137,6 +137,34 @@ export class ModernizeDataModel1772000000000 implements MigrationInterface {
     `);
 
     await queryRunner.query(`
+      INSERT INTO "${SCHEMA_NAME}"."user_categories" ("id_user", "id_category")
+      SELECT DISTINCT
+        e."user_id" AS "id_user",
+        c."id" AS "id_category"
+      FROM "${SCHEMA_NAME}"."${TABLE_NAMES.ENTRIES}" e
+      INNER JOIN "${SCHEMA_NAME}"."categories_legacy" cl
+        ON cl."id" = e."category_id"
+      INNER JOIN "${SCHEMA_NAME}"."${TABLE_NAMES.CATEGORIES}" c
+        ON c."name" = cl."name"
+       AND c."type" = cl."type"::varchar
+      WHERE e."user_id" IS NOT NULL
+      ON CONFLICT ("id_user", "id_category") DO NOTHING
+    `);
+
+    await queryRunner.query(`
+      DO $$
+      BEGIN
+        IF to_regclass('"${SCHEMA_NAME}"."entries_legacy"') IS NULL THEN
+          IF to_regclass('"${SCHEMA_NAME}"."${TABLE_NAMES.ENTRIES}"') IS NOT NULL THEN
+            EXECUTE 'ALTER TABLE "${SCHEMA_NAME}"."${TABLE_NAMES.ENTRIES}" RENAME TO "entries_legacy"';
+          ELSE
+            RAISE EXCEPTION 'Cannot run migration: neither % nor entries_legacy exists in schema %', '${TABLE_NAMES.ENTRIES}', '${SCHEMA_NAME}';
+          END IF;
+        END IF;
+      END $$;
+    `);
+
+    await queryRunner.query(`
       DO $$
       DECLARE invalid_entries_count bigint;
       BEGIN
@@ -156,11 +184,6 @@ export class ModernizeDataModel1772000000000 implements MigrationInterface {
           RAISE EXCEPTION 'Cannot migrate entries: % rows have missing or unmapped category', invalid_entries_count;
         END IF;
       END $$;
-    `);
-
-    await queryRunner.query(`
-      ALTER TABLE "${SCHEMA_NAME}"."${TABLE_NAMES.ENTRIES}"
-      RENAME TO "entries_legacy"
     `);
 
     await queryRunner.query(`
@@ -340,8 +363,13 @@ export class ModernizeDataModel1772000000000 implements MigrationInterface {
     `);
 
     await queryRunner.query(`
-      ALTER TABLE "${SCHEMA_NAME}"."${TABLE_NAMES.NOTIFICATIONS}"
-      RENAME TO "notifications_legacy"
+      DO $$
+      BEGIN
+        IF to_regclass('"${SCHEMA_NAME}"."notifications_legacy"') IS NULL
+           AND to_regclass('"${SCHEMA_NAME}"."${TABLE_NAMES.NOTIFICATIONS}"') IS NOT NULL THEN
+          EXECUTE 'ALTER TABLE "${SCHEMA_NAME}"."${TABLE_NAMES.NOTIFICATIONS}" RENAME TO "notifications_legacy"';
+        END IF;
+      END $$;
     `);
 
     await queryRunner.query(`
@@ -365,49 +393,74 @@ export class ModernizeDataModel1772000000000 implements MigrationInterface {
     `);
 
     await queryRunner.query(`
-      INSERT INTO "${SCHEMA_NAME}"."${TABLE_NAMES.NOTIFICATIONS}" (
-        "id",
-        "id_user",
-        "id_entry",
-        "job_id",
-        "status",
-        "scheduled_at",
-        "sent_at",
-        "created_at",
-        "updated_at"
-      )
-      SELECT
-        n."id",
-        n."user_id" AS "id_user",
-        n."entry_id" AS "id_entry",
-        COALESCE(n."job_id", n."id"::varchar) AS "job_id",
-        n."status"::varchar AS "status",
-        n."scheduled_at",
-        n."sent_at" AS "sent_at",
-        COALESCE(n."created_at", now()) AS "created_at",
-        COALESCE(n."updated_at", now()) AS "updated_at"
-      FROM "${SCHEMA_NAME}"."notifications_legacy" n
+      DO $$
+      BEGIN
+        IF to_regclass('"${SCHEMA_NAME}"."notifications_legacy"') IS NOT NULL THEN
+          INSERT INTO "${SCHEMA_NAME}"."${TABLE_NAMES.NOTIFICATIONS}" (
+            "id",
+            "id_user",
+            "id_entry",
+            "job_id",
+            "status",
+            "scheduled_at",
+            "sent_at",
+            "created_at",
+            "updated_at"
+          )
+          SELECT
+            n."id",
+            n."user_id" AS "id_user",
+            n."entry_id" AS "id_entry",
+            COALESCE(n."job_id", n."id"::varchar) AS "job_id",
+            n."status"::varchar AS "status",
+            n."scheduled_at",
+            n."sent_at" AS "sent_at",
+            COALESCE(n."created_at", now()) AS "created_at",
+            COALESCE(n."updated_at", now()) AS "updated_at"
+          FROM "${SCHEMA_NAME}"."notifications_legacy" n;
+        END IF;
+      END $$;
     `);
 
     await queryRunner.query(`
-      ALTER TABLE "${SCHEMA_NAME}"."${TABLE_NAMES.EMAIL_VERIFICATION_TOKENS}"
-      RENAME COLUMN "user_id" TO "id_user"
+      DO $$
+      BEGIN
+        IF EXISTS (
+          SELECT 1
+          FROM information_schema.columns
+          WHERE table_schema = '${SCHEMA_NAME}'
+            AND table_name = '${TABLE_NAMES.EMAIL_VERIFICATION_TOKENS}'
+            AND column_name = 'user_id'
+        ) THEN
+          EXECUTE 'ALTER TABLE "${SCHEMA_NAME}"."${TABLE_NAMES.EMAIL_VERIFICATION_TOKENS}" RENAME COLUMN "user_id" TO "id_user"';
+        END IF;
+      END $$;
     `);
 
     await queryRunner.query(`
-      ALTER TABLE "${SCHEMA_NAME}"."${TABLE_NAMES.PASSWORD_RESET_TOKENS}"
-      RENAME COLUMN "user_id" TO "id_user"
+      DO $$
+      BEGIN
+        IF EXISTS (
+          SELECT 1
+          FROM information_schema.columns
+          WHERE table_schema = '${SCHEMA_NAME}'
+            AND table_name = '${TABLE_NAMES.PASSWORD_RESET_TOKENS}'
+            AND column_name = 'user_id'
+        ) THEN
+          EXECUTE 'ALTER TABLE "${SCHEMA_NAME}"."${TABLE_NAMES.PASSWORD_RESET_TOKENS}" RENAME COLUMN "user_id" TO "id_user"';
+        END IF;
+      END $$;
     `);
 
     await queryRunner.query(`
       ALTER TABLE "${SCHEMA_NAME}"."${TABLE_NAMES.USERS}"
-      DROP COLUMN "notification_enabled",
-      DROP COLUMN "notification_time_minutes",
-      DROP COLUMN "timezone"
+      DROP COLUMN IF EXISTS "notification_enabled",
+      DROP COLUMN IF EXISTS "notification_time_minutes",
+      DROP COLUMN IF EXISTS "timezone"
     `);
 
     await queryRunner.query(`
-      DROP TABLE "${SCHEMA_NAME}"."notifications_legacy"
+      DROP TABLE IF EXISTS "${SCHEMA_NAME}"."notifications_legacy"
     `);
 
     await queryRunner.query(`
@@ -415,11 +468,11 @@ export class ModernizeDataModel1772000000000 implements MigrationInterface {
     `);
 
     await queryRunner.query(`
-      DROP TABLE "${SCHEMA_NAME}"."entries_legacy"
+      DROP TABLE IF EXISTS "${SCHEMA_NAME}"."entries_legacy"
     `);
 
     await queryRunner.query(`
-      DROP TABLE "${SCHEMA_NAME}"."categories_legacy"
+      DROP TABLE IF EXISTS "${SCHEMA_NAME}"."categories_legacy"
     `);
   }
 
